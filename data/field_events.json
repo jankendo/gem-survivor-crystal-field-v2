@@ -1,0 +1,13 @@
+{
+  "events": [
+    { "id": "gem_storm", "name_ja": "ジェム嵐", "duration": 45.0, "risk": "敵出現+30%", "reward": "ジェム価値+65%", "objective_ja": "ジェムを回収しながら生存", "success_type": "survive" },
+    { "id": "crystal_surge", "name_ja": "結晶隆起", "duration": 50.0, "risk": "結晶壁が増える", "reward": "結晶報酬UP", "objective_ja": "追加結晶を破壊", "success_type": "crystal_break", "success_count": 1 },
+    { "id": "elite_hunt", "name_ja": "エリート狩り", "duration": 45.0, "risk": "エリート出現率UP", "reward": "撃破で宝箱", "objective_ja": "エリートを1体撃破", "success_type": "elite_reward" },
+    { "id": "danger_bloom", "name_ja": "危険地帯拡大", "duration": 55.0, "risk": "危険地帯増加", "reward": "危険地帯倍率UP", "objective_ja": "危険地帯で10秒戦う", "success_type": "danger_time", "success_count": 10 },
+    { "id": "meteor_rain", "name_ja": "流星雨", "duration": 40.0, "risk": "予告円の後に隕石", "reward": "敵にも当たる", "objective_ja": "流星雨を生き残る", "success_type": "survive" },
+    { "id": "cursed_treasure", "name_ja": "呪いの宝箱", "duration": 60.0, "risk": "拾うと敵強化", "reward": "過充電/黄金抽選", "objective_ja": "呪いの宝箱を開ける", "success_type": "chest_open" }
+  ],
+  "start_seconds": 240.0,
+  "interval_min": 120.0,
+  "interval_max": 180.0
+}

@@ -1,0 +1,174 @@
+{
+  "move_speed": {
+    "name_ja": "軽量ブーツ",
+    "max_level": 5,
+    "description_ja": "移動速度UP"
+  },
+  "magnet": {
+    "name_ja": "磁力コア",
+    "max_level": 5,
+    "description_ja": "ジェム吸収範囲UP"
+  },
+  "might": {
+    "name_ja": "力の紋章",
+    "max_level": 5,
+    "description_ja": "全武器ダメージUP"
+  },
+  "cooldown": {
+    "name_ja": "速射回路",
+    "max_level": 5,
+    "description_ja": "攻撃間隔短縮"
+  },
+  "area": {
+    "name_ja": "拡張リング",
+    "max_level": 5,
+    "description_ja": "攻撃範囲UP"
+  },
+  "max_hp": {
+    "name_ja": "生命の器",
+    "max_level": 5,
+    "description_ja": "最大HPUP"
+  },
+  "regen": {
+    "name_ja": "再生細胞",
+    "max_level": 5,
+    "description_ja": "少しずつHP回復"
+  },
+  "greed": {
+    "name_ja": "欲張り袋",
+    "max_level": 5,
+    "description_ja": "スコア獲得量UP"
+  },
+  "armor": {
+    "name_ja": "甲殻装甲",
+    "max_level": 5,
+    "description_ja": "接触ダメージを軽減"
+  },
+  "revival": {
+    "name_ja": "復活の羽",
+    "max_level": 1,
+    "description_ja": "一度だけ倒れてもHP半分で復活"
+  },
+  "curse": {
+    "name_ja": "呪いの鈴",
+    "max_level": 5,
+    "description_ja": "敵が増える代わりにスコアと毒霧が強化"
+  },
+  "projectile_count": {
+    "name_ja": "多重射出",
+    "max_level": 3,
+    "description_ja": "弾数や設置数が増加"
+  },
+  "pickup_heal": {
+    "name_ja": "吸収治癒",
+    "max_level": 5,
+    "description_ja": "ジェム吸収時に定期的に回復"
+  },
+  "elite_hunter": {
+    "name_ja": "狩人の証",
+    "max_level": 5,
+    "description_ja": "エリートとボスへのダメージUP"
+  },
+  "crystal_breaker": {
+    "name_ja": "採掘グローブ",
+    "max_level": 5,
+    "description_ja": "クリスタル壁へのダメージと報酬UP"
+  },
+  "luck": {
+    "name_ja": "幸運のお守り",
+    "max_level": 5,
+    "description_ja": "宝箱とクリスタル報酬の発生率UP"
+  },
+  "corridor_sense": {
+    "name_ja": "回廊感覚", "max_level": 5,
+    "description_ja": "廊下内で移動速度と接触回避力UP", "tags": ["explore", "corridor"]
+  },
+  "room_mastery": {
+    "name_ja": "部屋支配", "max_level": 5,
+    "description_ja": "広い部屋で攻撃範囲UP", "tags": ["explore", "area"]
+  },
+  "wall_breaker": {
+    "name_ja": "壁砕き", "max_level": 5,
+    "description_ja": "壊せる壁へのダメージUP", "tags": ["crystal"]
+  },
+  "route_memory": {
+    "name_ja": "ルート記憶", "max_level": 5,
+    "description_ja": "ミニマップの探索済み表示範囲UP", "tags": ["explore"]
+  },
+  "treasure_instinct": {
+    "name_ja": "宝感知", "max_level": 5,
+    "description_ja": "レアドロップの方向表示と検知距離UP", "tags": ["explore", "currency"]
+  },
+  "event_focus": {
+    "name_ja": "試練集中", "max_level": 5,
+    "description_ja": "イベント成功時の報酬UP", "tags": ["explore"]
+  },
+  "relic_resist": {
+    "name_ja": "呪物耐性", "max_level": 5,
+    "description_ja": "呪いと契約の不利効果を軽減", "tags": ["curse"]
+  },
+  "boss_pressure": {
+    "name_ja": "威圧耐性", "max_level": 5,
+    "description_ja": "ボス接近中の被ダメージ軽減", "tags": ["defense"]
+  },
+  "choke_point": {
+    "name_ja": "関所戦術", "max_level": 5,
+    "description_ja": "結晶廊下で武器ダメージUP", "tags": ["explore", "melee"]
+  },
+  "open_field": {
+    "name_ja": "平地戦術", "max_level": 5,
+    "description_ja": "広場系部屋で移動速度UP", "tags": ["explore"]
+  },
+  "mining_luck": {
+    "name_ja": "採掘運", "max_level": 5,
+    "description_ja": "壁破壊時のジェムと宝箱報酬UP", "tags": ["crystal", "currency"]
+  },
+  "map_reader": {
+    "name_ja": "地図読み", "max_level": 5,
+    "description_ja": "未探索部屋へ向かう間の移動速度UP", "tags": ["explore"]
+  },
+  "hunter_mark": {
+    "name_ja": "狩猟印", "max_level": 5,
+    "description_ja": "エリートとボスへのダメージUP", "tags": ["combat"]
+  },
+  "chain_reward": {
+    "name_ja": "探索連鎖", "max_level": 5,
+    "description_ja": "探索チェーンの制限時間を延長", "tags": ["explore", "currency"]
+  },
+  "emergency_route": {
+    "name_ja": "緊急退路", "max_level": 3,
+    "description_ja": "HP低下時に壊せる壁をすり抜ける", "tags": ["defense", "explore"]
+  },
+  "terrain_core": {
+    "name_ja": "地形核", "max_level": 5,
+    "description_ja": "地形ギミックの有利効果UP", "tags": ["explore"]
+  },
+  "relic_appraiser": {
+    "name_ja": "遺物鑑定", "max_level": 5,
+    "description_ja": "呪い遺物の良い効果と報酬UP", "tags": ["curse", "currency"]
+  },
+  "safe_pocket": {
+    "name_ja": "安全袋", "max_level": 5,
+    "description_ja": "死亡時に持ち帰る通貨の保護率UP", "tags": ["currency"]
+  },
+  "reroll_ticket": {
+    "name_ja": "再抽選券", "max_level": 3,
+    "description_ja": "レベルアップ候補の再抽選回数UP", "tags": ["utility"]
+  },
+  "banish_mark": {
+    "name_ja": "封印印", "max_level": 3,
+    "description_ja": "不要候補を除外できる回数UP", "tags": ["utility"]
+  },
+  "reflect_prism": {
+    "name_ja": "反射プリズム", "max_level": 5,
+    "description_ja": "反射弾の威力と反射回数UP", "tags": ["ranged", "mirror"]
+  },
+  "poison_vessel": {
+    "name_ja": "毒の器", "max_level": 5,
+    "description_ja": "毒領域の持続時間と範囲UP", "tags": ["poison"]
+  },
+  "crystal_wallet": {
+    "name_ja": "結晶財布", "max_level": 5,
+    "description_ja": "通貨系武器とラン報酬UP", "tags": ["currency", "gem"]
+  }
+}

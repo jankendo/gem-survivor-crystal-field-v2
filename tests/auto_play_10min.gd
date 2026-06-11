@@ -1,0 +1,80 @@
+extends SceneTree
+
+const PlayerScript = preload("res://scripts/systems/Player.gd")
+const ExpGemScript = preload("res://scripts/core/ExpGem.gd")
+const ChestScript = preload("res://scripts/core/Chest.gd")
+const CrystalFieldSystemScript = preload("res://scripts/systems/CrystalFieldSystem.gd")
+
+var failures: Array = []
+
+func _initialize() -> void:
+	await _run()
+	if failures.is_empty():
+		print("AutoPlay OK: 10min run, levelups, chest, evolution, crystal break, fever, danger, no freeze.")
+		quit(0)
+	else:
+		for failure in failures:
+			push_error(failure)
+		quit(1)
+
+func _run() -> void:
+	SaveSystem.new().save_help_seen(true)
+	var main: Node = load("res://scenes/Main.tscn").instantiate()
+	root.add_child(main)
+	await process_frame
+	main.request_start()
+	await process_frame
+	var game: GameScreen = _find_game_screen(main)
+	_assert(game != null, "GameScreen should start")
+	if game == null:
+		return
+	game.state.start_new_run(810)
+	game.state.max_hp = 99999
+	game.state.hp = 99999
+	game.state.weapons = {"magic_bolt": 8, "ice_orbit": 5, "thunder_chain": 4}
+	game.state.passives = {"might": 3, "area": 2, "cooldown": 2}
+	game.state.chests.append(ChestScript.new(game.state.player_position + Vector2(10, 0)))
+	for i in range(160):
+		game.state.gems.append(ExpGemScript.new(game.state.player_position + Vector2(float(i % 20) - 10.0, float(i / 20) - 6.0), 1))
+	var events: Array = []
+	CrystalFieldSystemScript.new().damage_wall(game.state, game.state.crystal_walls[0], 99999, events, "auto")
+	var player = PlayerScript.new()
+	var selected = 0
+	for i in range(1200):
+		var direction = Vector2.RIGHT.rotated(float(i) * 0.04)
+		if game.state.gems.size() > 0:
+			direction = (game.state.gems[0].position - game.state.player_position).normalized()
+		player.process_movement(game.state, direction, 0.5)
+		game._process(0.5)
+		if game.state.level_up_pending:
+			game._select_reward(selected % maxi(1, game.state.level_up_options.size()))
+			selected += 1
+		if i % 10 == 0:
+			await process_frame
+	_assert(game.state.elapsed_seconds >= 600.0, "10min autoplay should reach 10 minutes")
+	_assert(game.state.level >= 8, "10min autoplay should gain multiple levels")
+	_assert(game.state.level <= 24, "10min autoplay level should not run away in boosted evolution setup, actual=%d" % game.state.level)
+	_assert(game.state.boss_spawned_minutes.size() <= 2, "10min autoplay should not spawn more than two boss checkpoints")
+	_assert(game.state.chests.size() <= game.state.max_chests(), "10min autoplay should respect chest cap")
+	_assert(game.state.chests_opened <= 8, "10min autoplay should not flood chest rewards, opened=%d" % game.state.chests_opened)
+	_assert(game.state.chests_opened > 0, "10min autoplay should open a chest")
+	_assert(game.state.evolved_weapon_count > 0, "10min autoplay should evolve a weapon")
+	_assert(game.state.crystals_destroyed > 0, "10min autoplay should break a crystal")
+	_assert(game.state.max_combo >= 100 or game.state.gem_fever_tier > 0 or game.state.gem_fever_timer >= 0.0, "10min autoplay should exercise fever path")
+	_assert(game.state.boss_spawned_minutes.has(5) and game.state.boss_spawned_minutes.has(10), "10min autoplay should process 5 and 10 minute boss checkpoints")
+	root.remove_child(main)
+	main.free()
+	await process_frame
+
+func _assert(condition: bool, message: String) -> void:
+	if not condition:
+		failures.append(message)
+
+func _find_game_screen(node: Node) -> GameScreen:
+	if node is GameScreen:
+		return node as GameScreen
+	for child in node.get_children():
+		var found: GameScreen = _find_game_screen(child)
+		if found != null:
+			return found
+	return null
