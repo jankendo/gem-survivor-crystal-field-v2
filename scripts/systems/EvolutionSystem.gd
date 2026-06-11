@@ -3,6 +3,8 @@ class_name EvolutionSystem
 
 func available_evolutions(state) -> Array:
 	var results: Array = []
+	if not state.evolution_timing_ready():
+		return results
 	for raw_id in state.evolution_defs.keys():
 		var evolution_id = String(raw_id)
 		var data = state.evolution_defs[evolution_id]
@@ -28,7 +30,7 @@ func apply_first_available_evolution(state, events: Array) -> bool:
 	return _apply_evolution(state, candidates[0], events)
 
 func can_evolve_magic_bolt(state) -> bool:
-	if state.is_weapon_evolved("magic_bolt"):
+	if state.is_weapon_evolved("magic_bolt") or not state.evolution_timing_ready():
 		return false
 	var evolution = state.evolution_for_weapon("magic_bolt")
 	if evolution.is_empty():
@@ -49,6 +51,7 @@ func _apply_evolution(state, evolution: Dictionary, events: Array) -> bool:
 	if weapon_id == "magic_bolt":
 		state.evolved_magic_bolt = true
 	state.evolved_weapon_count = state.evolved_weapons.keys().size()
+	state.last_evolution_seconds = state.elapsed_seconds
 	var name = String(evolution.get("name_ja", state.weapon_name(weapon_id)))
 	state.message = "%sへ進化！" % name
 	events.append({"type": "evolution", "weapon": weapon_id, "evolution": evolution_id, "name": name})

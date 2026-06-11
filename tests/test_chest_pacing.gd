@@ -32,10 +32,10 @@ func test_elite_cooldown(t) -> void:
 func test_rarity_resolution(t) -> void:
 	var state = SurvivorStateScript.new()
 	state.start_new_run(9105)
+	state.elapsed_seconds = 300.0
 	state.weapons["magic_bolt"] = 8
 	state.passives["might"] = 3
 	var system = ChestSystemScript.new()
 	var events: Array = []
 	system.drop_chest(state, state.player_position + Vector2(80, 0), events, "normal", "boss")
 	t.assert_eq(String(state.chests[0].rarity), "evolution", "boss chest should prioritize evolution when ready")
-

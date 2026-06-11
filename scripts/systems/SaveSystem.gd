@@ -234,7 +234,11 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 			"window_size": "1280x720",
 			"show_controls": true,
 			"seed_text": "",
-			"ui_scale": 1.0
+			"ui_scale": 1.0,
+			"touch_ui_mode": "auto",
+			"virtual_joystick_enabled": true,
+			"touch_button_size": "standard",
+			"render_quality": "standard"
 		}
 	var stat_defaults := {
 		"total_kills": 0,
@@ -289,7 +293,11 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 		"weapon_hud_enabled": true,
 		"passive_hud_enabled": true,
 		"boss_alert_intensity": "strong",
-		"effect_density": "normal"
+		"effect_density": "normal",
+		"touch_ui_mode": "auto",
+		"virtual_joystick_enabled": true,
+		"touch_button_size": "standard",
+		"render_quality": "standard"
 	}
 	var settings: Dictionary = data.get("settings", {})
 	for key in setting_defaults.keys():

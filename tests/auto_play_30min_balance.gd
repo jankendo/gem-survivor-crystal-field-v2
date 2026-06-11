@@ -34,12 +34,16 @@ func _run() -> void:
 	game.state.balance_data["max_projectiles"] = 300
 	game.state.balance_data["max_enemy_projectiles"] = 180
 	game.state.auto_infinite_enabled = true
-	for id in game.state.weapon_defs.keys():
-		game.state.weapons[String(id)] = int(game.state.weapon_defs[id].get("max_level", 8))
-	for id in game.state.passive_defs.keys():
-		game.state.passives[String(id)] = int(game.state.passive_defs[id].get("max_level", 5))
+	var test_weapons = ["magic_bolt", "soul_scythe", "thunder_chain", "poison_mist", "bomb_seed", "rune_gate"]
+	var test_passives = ["might", "cooldown", "area", "regen", "armor", "projectile_count"]
+	for id in test_weapons:
+		game.state.weapons[id] = int(game.state.weapon_defs[id].get("max_level", 8))
+	for id in test_passives:
+		game.state.passives[id] = int(game.state.passive_defs[id].get("max_level", 5))
 	for evolution_id in game.state.evolution_defs.keys():
-		game.state.evolved_weapons[String(game.state.evolution_defs[evolution_id].get("weapon", ""))] = String(evolution_id)
+		var weapon_id = String(game.state.evolution_defs[evolution_id].get("weapon", ""))
+		if test_weapons.has(weapon_id):
+			game.state.evolved_weapons[weapon_id] = String(evolution_id)
 	game.state.evolved_weapon_count = game.state.evolved_weapons.keys().size()
 	var player = PlayerScript.new()
 	var exp_system = ExpSystemScript.new()

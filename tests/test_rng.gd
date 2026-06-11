@@ -6,6 +6,7 @@ const EnemySpawnerScript = preload("res://scripts/systems/EnemySpawner.gd")
 func run(t) -> void:
 	test_same_seed_same_ints(t)
 	test_same_seed_same_enemy_pick(t)
+	test_same_seed_same_shuffle(t)
 
 func test_same_seed_same_ints(t) -> void:
 	var a = RunRng.new()
@@ -33,3 +34,14 @@ func test_same_seed_same_enemy_pick(t) -> void:
 		seq_a.append(spawner.pick_enemy_type(a))
 		seq_b.append(spawner.pick_enemy_type(b))
 	t.assert_eq(seq_a, seq_b, "same seed should produce same enemy picks")
+
+func test_same_seed_same_shuffle(t) -> void:
+	var a = RunRng.new()
+	var b = RunRng.new()
+	a.set_seed_value(3030)
+	b.set_seed_value(3030)
+	var values = ["a", "b", "c", "d", "e"]
+	var shuffled_a = a.shuffled(values)
+	var shuffled_b = b.shuffled(values)
+	t.assert_eq(shuffled_a, shuffled_b, "same seed should produce the same shuffled order")
+	t.assert_eq(values, ["a", "b", "c", "d", "e"], "shuffled should not mutate its input")

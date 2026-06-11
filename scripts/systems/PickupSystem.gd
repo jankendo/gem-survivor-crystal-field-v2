@@ -76,12 +76,12 @@ func _apply_pickup_heal(state, events: Array) -> void:
 	var heal_level = int(state.passives.get("pickup_heal", 0))
 	if heal_level <= 0:
 		return
-	var interval = maxi(4, 12 - heal_level)
+	var interval = maxi(6, 12 - heal_level)
 	if state.gems_collected % interval != 0:
 		return
 	if state.hp >= state.max_hp:
 		return
-	var heal = 1 + heal_level
+	var heal = mini(4, 1 + heal_level)
 	state.hp = mini(state.max_hp, state.hp + heal)
 	state.add_floating_text("+%d HP" % heal, state.player_position + Vector2(0, -34), Color(0.42, 1.0, 0.52))
 	events.append({"type": "player_heal", "amount": heal, "source": "pickup", "hp": state.hp})

@@ -2,3 +2,14 @@
 builds/
 *.log
 test-output/
+*.pck
+*.ipa
+*.xcarchive
+*.xcodeproj
+*.xcworkspace
+.ios-build/
+DerivedData/
+export_templates/
+.tools/
+*.app
+Payload/

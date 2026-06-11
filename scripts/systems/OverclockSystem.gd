@@ -3,8 +3,10 @@ class_name OverclockSystem
 
 func available_overclocks(state) -> Array:
 	var results: Array = []
+	if not state.overclock_timing_ready():
+		return results
 	for weapon_id in state.evolved_weapons.keys():
-		if state.overclock_count(String(weapon_id)) >= 2:
+		if state.overclock_count(String(weapon_id)) >= int(state.balance_data.get("overclock_max_per_weapon", 2)):
 			continue
 		var evolution_id = String(state.evolved_weapons[weapon_id])
 		for entry in state.overclock_defs.get(evolution_id, []):
@@ -18,8 +20,7 @@ func available_overclocks(state) -> Array:
 	return results
 
 func make_options(state, count: int = 3) -> Array:
-	var candidates = available_overclocks(state)
-	candidates.shuffle()
+	var candidates = state.rng.shuffled(available_overclocks(state))
 	var options: Array = []
 	for entry in candidates:
 		if options.size() >= count:
@@ -40,9 +41,11 @@ func make_options(state, count: int = 3) -> Array:
 func apply_option(state, weapon_id: String, overclock_id: String, events: Array) -> bool:
 	if weapon_id == "" or overclock_id == "":
 		return false
+	if not state.overclock_timing_ready():
+		return false
 	if not state.evolved_weapons.has(weapon_id):
 		return false
-	if state.overclock_count(weapon_id) >= 2 or state.has_overclock(weapon_id, overclock_id):
+	if state.overclock_count(weapon_id) >= int(state.balance_data.get("overclock_max_per_weapon", 2)) or state.has_overclock(weapon_id, overclock_id):
 		return false
 	var evolution_id = String(state.evolved_weapons[weapon_id])
 	var valid = false

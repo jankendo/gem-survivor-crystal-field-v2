@@ -246,8 +246,8 @@ func _process_poison_mist(state, events: Array) -> void:
 		return
 	var level = int(state.weapons.get("poison_mist", 1))
 	var evolved = state.is_weapon_evolved("poison_mist")
-	var radius = (120.0 + level * 18.0) * state.get_area_multiplier_for_weapon("poison_mist") * (1.45 if evolved else 1.0)
-	var damage = int(round(float(2 + level) * state.get_damage_multiplier_for_weapon("poison_mist") * (1.0 + 0.09 * float(state.passives.get("curse", 0)))))
+	var radius = (130.0 + level * 18.0) * state.get_area_multiplier_for_weapon("poison_mist") * (1.45 if evolved else 1.0)
+	var damage = int(round(float(3 + level) * state.get_damage_multiplier_for_weapon("poison_mist") * (1.0 + 0.09 * float(state.passives.get("curse", 0)))))
 	if evolved:
 		damage += 4
 	for enemy in state.enemies.duplicate():
@@ -255,7 +255,7 @@ func _process_poison_mist(state, events: Array) -> void:
 			_damage_enemy(state, enemy, damage, events, "poison_mist", enemy.position)
 	field_system.damage_walls_in_radius(state, state.player_position, radius, max(1, int(damage * 0.55)), events, "poison_mist")
 	events.append({"type": "attack", "weapon": "poison_mist", "count": 1, "radius": radius})
-	state.weapon_cooldowns["poison_mist"] = (0.58 if not evolved else 0.42) * state.get_cooldown_multiplier_for_weapon("poison_mist")
+	state.weapon_cooldowns["poison_mist"] = (0.56 if not evolved else 0.40) * state.get_cooldown_multiplier_for_weapon("poison_mist")
 
 func _process_drone_bit(state, events: Array) -> void:
 	if not state.weapons.has("drone_bit") or float(state.weapon_cooldowns.get("drone_bit", 0.0)) > 0.0:
@@ -320,10 +320,10 @@ func _process_rune_gate(state, events: Array) -> void:
 		if target != null:
 			pos = target.position + Vector2(60.0, 0).rotated(state.rng.range_float(0.0, TAU))
 		var radius = (70.0 + level * 8.0) * state.get_area_multiplier_for_weapon("rune_gate") * (1.35 if evolved else 1.0) * (1.35 if state.has_overclock("rune_gate", "wide_gate") else 1.0)
-		var damage = int(round(float(3 + level) * state.get_damage_multiplier_for_weapon("rune_gate") * (1.4 if state.has_overclock("rune_gate", "hot_rune") else 1.0)))
+		var damage = int(round(float(4 + level) * state.get_damage_multiplier_for_weapon("rune_gate") * (1.4 if state.has_overclock("rune_gate", "hot_rune") else 1.0)))
 		state.projectiles.append(ProjectileScript.new("rune_gate", pos, Vector2.ZERO, damage, 99, 3.0 + float(level) * 0.08, 22.0, radius, evolved))
 	events.append({"type": "attack", "weapon": "rune_gate", "count": count})
-	state.weapon_cooldowns["rune_gate"] = maxf(1.05, (2.8 - float(level) * 0.08) * state.get_cooldown_multiplier_for_weapon("rune_gate") * (0.78 if evolved else 1.0))
+	state.weapon_cooldowns["rune_gate"] = maxf(1.05, (2.45 - float(level) * 0.08) * state.get_cooldown_multiplier_for_weapon("rune_gate") * (0.78 if evolved else 1.0))
 
 func _process_comet_staff(state, events: Array) -> void:
 	if not state.weapons.has("comet_staff") or float(state.weapon_cooldowns.get("comet_staff", 0.0)) > 0.0:
@@ -387,7 +387,7 @@ func _process_sonic_wave(state, events: Array) -> void:
 	var level = int(state.weapons.get("sonic_wave", 1))
 	var evolved = state.is_weapon_evolved("sonic_wave")
 	var radius = (120.0 + level * 16.0) * state.get_area_multiplier_for_weapon("sonic_wave") * (1.35 if evolved else 1.0)
-	var damage = int(round(float(2 + level) * state.get_damage_multiplier_for_weapon("sonic_wave")))
+	var damage = int(round(float(3 + level) * state.get_damage_multiplier_for_weapon("sonic_wave")))
 	var hit_count = 0
 	for enemy in state.enemies.duplicate():
 		var distance = enemy.position.distance_to(state.player_position)
@@ -400,7 +400,7 @@ func _process_sonic_wave(state, events: Array) -> void:
 	field_gimmick_system.damage_gimmicks_in_radius(state, state.player_position, radius, max(1, int(damage * 0.45)), events, "sonic_wave")
 	state.hit_flashes.append({"pos": state.player_position, "life": 0.22, "source": "sonic_wave", "radius": radius})
 	events.append({"type": "attack", "weapon": "sonic_wave", "count": hit_count, "radius": radius})
-	state.weapon_cooldowns["sonic_wave"] = maxf(0.78, (1.85 - float(level) * 0.06) * state.get_cooldown_multiplier_for_weapon("sonic_wave") * (0.70 if evolved else 1.0))
+	state.weapon_cooldowns["sonic_wave"] = maxf(0.78, (1.70 - float(level) * 0.06) * state.get_cooldown_multiplier_for_weapon("sonic_wave") * (0.70 if evolved else 1.0))
 
 func _process_gem_turret(state, events: Array) -> void:
 	if not state.weapons.has("gem_turret") or float(state.weapon_cooldowns.get("gem_turret", 0.0)) > 0.0:
@@ -546,6 +546,7 @@ func _damage_enemy(state, enemy, damage: int, events: Array, source: String, hit
 	var actual_damage = _adjust_damage_for_enemy(state, enemy, damage, source)
 	enemy.hp -= actual_damage
 	state.record_damage(actual_damage)
+	state.weapon_damage_by_id[source] = int(state.weapon_damage_by_id.get(source, 0)) + actual_damage
 	state.hit_flashes.append({"pos": hit_pos, "life": 0.18, "source": source})
 	events.append({"type": "enemy_hit", "enemy": enemy.type, "damage": actual_damage, "hp": enemy.hp, "source": source, "pos": hit_pos})
 	if state.weapon_has_tag(source, "lightning") or source in ["thunder_field"]:
@@ -601,7 +602,8 @@ func _adjust_damage_for_enemy(state, enemy, damage: int, source: String) -> int:
 	if enemy.behavior == "shield" and source != "black_hole" and source != "poison_mist":
 		value = maxi(1, int(ceil(float(value) * 0.62)))
 	if enemy.elite or enemy.boss:
-		value = int(round(float(value) * (1.0 + 0.18 * float(state.passives.get("elite_hunter", 0)) + 0.12 * float(state.passives.get("hunter_mark", 0)))))
+		var elite_bonus = minf(1.0, 0.12 * float(state.passives.get("elite_hunter", 0)) + 0.08 * float(state.passives.get("hunter_mark", 0)))
+		value = int(round(float(value) * (1.0 + elite_bonus)))
 		value = int(round(float(value) * state.rune_contract_multiplier("elite_damage_mult", 1.0)))
 	else:
 		value = int(round(float(value) * state.rune_contract_multiplier("normal_damage_mult", 1.0)))

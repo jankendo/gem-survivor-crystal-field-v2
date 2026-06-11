@@ -1,0 +1,49 @@
+extends RefCounted
+
+const TouchControlSystemScript = preload("res://scripts/systems/TouchControlSystem.gd")
+const PerformanceProfileSystemScript = preload("res://scripts/systems/PerformanceProfileSystem.gd")
+const SurvivorStateScript = preload("res://scripts/core/SurvivorState.gd")
+
+func run(t) -> void:
+	test_touch_visibility_and_sizes(t)
+	test_combined_direction_is_bounded(t)
+	test_ios_performance_profile(t)
+	test_touch_settings_are_persisted(t)
+
+func test_touch_visibility_and_sizes(t) -> void:
+	var system = TouchControlSystemScript.new()
+	system.configure({}, "Windows")
+	t.assert_true(not system.should_show(), "auto touch UI should stay hidden on Windows")
+	system.configure({"touch_ui_mode": "auto", "virtual_joystick_enabled": true}, "iOS")
+	t.assert_true(system.should_show_joystick(), "auto touch UI should show the joystick on iOS")
+	system.configure({"touch_ui_mode": "on", "virtual_joystick_enabled": false, "touch_button_size": "large"}, "Windows")
+	t.assert_true(system.should_show(), "forced touch UI should show on desktop for testing")
+	t.assert_true(not system.should_show_joystick(), "joystick toggle should be honored")
+	t.assert_eq(system.button_extent(), 92.0, "large touch buttons should use the accessible extent")
+
+func test_combined_direction_is_bounded(t) -> void:
+	var system = TouchControlSystemScript.new()
+	var direction = system.combined_direction(Vector2.RIGHT, Vector2.DOWN)
+	t.assert_true(absf(direction.length() - 1.0) < 0.001, "combined keyboard and touch direction should be normalized")
+
+func test_ios_performance_profile(t) -> void:
+	var state = SurvivorStateScript.new()
+	state.start_new_run(4201)
+	var profile = PerformanceProfileSystemScript.new().apply_to_state(state, {"render_quality": "low"}, "iOS")
+	t.assert_eq(profile, "ios_low", "iOS low quality should select the mobile profile")
+	t.assert_eq(state.max_enemies(), 260, "iOS low profile should cap enemies")
+	t.assert_eq(state.max_projectiles(), 200, "iOS low profile should cap projectiles")
+
+func test_touch_settings_are_persisted(t) -> void:
+	var save = SaveSystem.new("user://test_touch_controls_config.save")
+	save.save_data({"settings": {
+		"touch_ui_mode": "on",
+		"virtual_joystick_enabled": false,
+		"touch_button_size": "large",
+		"render_quality": "low"
+	}})
+	var settings: Dictionary = save.load_data().get("settings", {})
+	t.assert_eq(String(settings.get("touch_ui_mode", "")), "on", "touch UI mode should persist")
+	t.assert_eq(bool(settings.get("virtual_joystick_enabled", true)), false, "virtual joystick toggle should persist")
+	t.assert_eq(String(settings.get("touch_button_size", "")), "large", "touch button size should persist")
+	t.assert_eq(String(settings.get("render_quality", "")), "low", "render quality should persist")

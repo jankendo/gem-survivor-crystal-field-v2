@@ -31,6 +31,15 @@ func choice(items: Array):
 		return null
 	return items[next_int(items.size())]
 
+func shuffled(items: Array) -> Array:
+	var result = items.duplicate(true)
+	for index in range(result.size() - 1, 0, -1):
+		var swap_index = range_int(0, index)
+		var value = result[index]
+		result[index] = result[swap_index]
+		result[swap_index] = value
+	return result
+
 func weighted_choice(weighted_items: Array) -> Dictionary:
 	var total := 0.0
 	for item in weighted_items:

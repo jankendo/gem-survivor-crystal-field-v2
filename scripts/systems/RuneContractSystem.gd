@@ -9,7 +9,7 @@ func make_offer(state, count: int = 3) -> Array:
 		if state.rune_contracts.has(String(id)):
 			continue
 		choices.append(String(id))
-	choices.shuffle()
+	choices = state.rng.shuffled(choices)
 	var options: Array = []
 	for id in choices:
 		if options.size() >= count - 1:

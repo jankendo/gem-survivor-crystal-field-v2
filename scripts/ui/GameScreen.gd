@@ -31,9 +31,12 @@ const SpeedHoldSystemScript = preload("res://scripts/systems/SpeedHoldSystem.gd"
 const NotificationLogSystemScript = preload("res://scripts/systems/NotificationLogSystem.gd")
 const BossAlertSystemScript = preload("res://scripts/systems/BossAlertSystem.gd")
 const EquipmentHudSystemScript = preload("res://scripts/systems/EquipmentHudSystem.gd")
+const TouchControlSystemScript = preload("res://scripts/systems/TouchControlSystem.gd")
+const PerformanceProfileSystemScript = preload("res://scripts/systems/PerformanceProfileSystem.gd")
 const ArenaViewScript = preload("res://scripts/ui/ArenaView.gd")
 const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.gd")
 const ConfirmDialogScript = preload("res://scripts/ui/components/ConfirmDialog.gd")
+const VirtualJoystickScript = preload("res://scripts/ui/components/VirtualJoystick.gd")
 
 signal game_finished(summary: Dictionary)
 signal title_requested
@@ -67,6 +70,8 @@ var speed_hold_system
 var notification_log_system
 var boss_alert_system
 var equipment_hud_system
+var touch_control_system
+var performance_profile_system
 var arena_view
 var audio_manager: AudioManager
 var reward_popup: RewardPopup
@@ -104,6 +109,13 @@ var pause_tab_buttons: Array = []
 var pause_tab_index := 0
 var pause_tabs := ["ステータス", "武器", "パッシブ", "進化条件", "ビルド相性", "フィールドヘルプ", "契約/過充電", "設定", "ログ"]
 var speed_active := false
+var touch_root: Control
+var virtual_joystick
+var touch_direction := Vector2.ZERO
+var touch_scan_button: Button
+var touch_drone_button: Button
+var touch_speed_button: Button
+var touch_pause_button: Button
 
 func _ready() -> void:
 	state = SurvivorStateScript.new()
@@ -135,12 +147,16 @@ func _ready() -> void:
 	notification_log_system = NotificationLogSystemScript.new()
 	boss_alert_system = BossAlertSystemScript.new()
 	equipment_hud_system = EquipmentHudSystemScript.new()
+	touch_control_system = TouchControlSystemScript.new()
+	performance_profile_system = PerformanceProfileSystemScript.new()
 	state.start_new_run(0, initial_seed_text)
 	var save_data = initial_save_data if not initial_save_data.is_empty() else SaveSystem.new().load_data()
 	var settings: Dictionary = save_data.get("settings", {})
 	speed_hold_system.configure(settings)
 	notification_log_system.configure(settings)
 	equipment_hud_system.configure(settings)
+	touch_control_system.configure(settings)
+	performance_profile_system.apply_to_state(state, settings)
 	state.effect_density = String(settings.get("effect_density", "normal"))
 	meta_system.apply_to_state(state, initial_character_id, initial_blessing_id, save_data)
 	state.auto_infinite_enabled = initial_auto_infinite_enabled
@@ -173,7 +189,8 @@ func _process(delta: float) -> void:
 		_refresh()
 		return
 	var speed_blocked = state.paused or state.level_up_pending or state.chest_pending or state.rune_contract_pending or boss_alert_system.warning_timer > 0.0
-	var time_scale = speed_hold_system.simulation_multiplier(speed_hold_system.is_pressed(), speed_blocked)
+	var speed_pressed = speed_hold_system.is_pressed() or touch_control_system.speed_pressed
+	var time_scale = speed_hold_system.simulation_multiplier(speed_pressed, speed_blocked)
 	speed_active = time_scale > 1.0
 	var sim_delta = delta * time_scale
 	state.elapsed_seconds += sim_delta
@@ -185,7 +202,8 @@ func _process(delta: float) -> void:
 	build_synergy_system.process(state, events)
 	melee_rush_system.process(state, sim_delta, events)
 	shock_stack_system.process(state, sim_delta, events)
-	player_system.process_input_movement(state, sim_delta)
+	var movement = touch_control_system.combined_direction(player_system.input_direction(), touch_direction)
+	player_system.process_movement(state, movement, sim_delta)
 	enemy_spawner.process(state, sim_delta, events)
 	field_gimmick_system.process(state, sim_delta, events)
 	weapon_system.process(state, sim_delta, events)
@@ -451,6 +469,7 @@ func _build_ui() -> void:
 	add_child(reward_popup)
 	reward_popup.reward_chosen.connect(_on_reward_chosen)
 	_build_pause_ui()
+	_build_touch_controls(ui_scale)
 
 func _handle_events(events: Array) -> void:
 	for event in events:
@@ -632,6 +651,7 @@ func _refresh() -> void:
 	else:
 		reward_popup.hide_popup()
 	arena_view.queue_redraw()
+	_refresh_touch_controls()
 
 func _refresh_goal_hud() -> void:
 	if goal_label == null:
@@ -756,6 +776,7 @@ func _summary() -> Dictionary:
 		"evolved_weapon_ids": state.evolved_weapons.keys(),
 		"enemy_seen": state.enemy_seen,
 		"weapon_kill_counts": state.weapon_kill_counts,
+		"weapon_damage_by_id": state.weapon_damage_by_id,
 		"active_synergies": state.active_synergies.keys(),
 		"synergy_history": state.active_synergy_history,
 		"melee_rush_kills": state.melee_rush_kills,
@@ -926,12 +947,78 @@ func _build_pause_ui() -> void:
 func _toggle_pause() -> void:
 	state.paused = not state.paused
 	pause_overlay.visible = state.paused
+	touch_control_system.set_speed_pressed(false)
 	if pause_confirm_dialog != null:
 		pause_confirm_dialog.hide()
 	if state.paused:
 		_refresh_pause_ui()
 	else:
 		message_label.text = "移動 WASD/矢印　F/右クリック スキャン　R ドローン　Esc ポーズ"
+	_refresh_touch_controls()
+
+func _build_touch_controls(ui_scale: float) -> void:
+	touch_root = Control.new()
+	touch_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	touch_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(touch_root)
+	var extent = touch_control_system.joystick_extent() * ui_scale
+	virtual_joystick = VirtualJoystickScript.new()
+	virtual_joystick.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	virtual_joystick.offset_left = 24.0
+	virtual_joystick.offset_right = 24.0 + extent
+	virtual_joystick.offset_top = -24.0 - extent
+	virtual_joystick.offset_bottom = -24.0
+	virtual_joystick.direction_changed.connect(func(value: Vector2): touch_direction = value)
+	touch_root.add_child(virtual_joystick)
+
+	var button_extent = touch_control_system.button_extent() * ui_scale
+	var buttons = GridContainer.new()
+	buttons.columns = 2
+	buttons.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	buttons.offset_left = -24.0 - button_extent * 2.0 - 10.0
+	buttons.offset_right = -24.0
+	buttons.offset_top = -24.0 - button_extent * 2.0 - 10.0
+	buttons.offset_bottom = -24.0
+	buttons.add_theme_constant_override("h_separation", 10)
+	buttons.add_theme_constant_override("v_separation", 10)
+	touch_root.add_child(buttons)
+
+	touch_scan_button = CrystalButtonScript.new()
+	touch_scan_button.setup("探査", Color(0.42, 0.88, 1.0), Vector2(button_extent, button_extent))
+	touch_scan_button.pressed.connect(_scan_field_target)
+	buttons.add_child(touch_scan_button)
+	touch_drone_button = CrystalButtonScript.new()
+	touch_drone_button.setup("回収", Color(0.50, 1.0, 0.70), Vector2(button_extent, button_extent))
+	touch_drone_button.pressed.connect(_activate_recall_drone)
+	buttons.add_child(touch_drone_button)
+	touch_speed_button = CrystalButtonScript.new()
+	touch_speed_button.setup("倍速", Color(1.0, 0.82, 0.28), Vector2(button_extent, button_extent))
+	touch_speed_button.button_down.connect(func(): touch_control_system.set_speed_pressed(true))
+	touch_speed_button.button_up.connect(func(): touch_control_system.set_speed_pressed(false))
+	buttons.add_child(touch_speed_button)
+	touch_pause_button = CrystalButtonScript.new()
+	touch_pause_button.setup("停止", Color(1.0, 0.46, 0.42), Vector2(button_extent, button_extent))
+	touch_pause_button.pressed.connect(_toggle_pause)
+	buttons.add_child(touch_pause_button)
+	_refresh_touch_controls()
+
+func _refresh_touch_controls() -> void:
+	if touch_root == null:
+		return
+	var show_touch = touch_control_system.should_show()
+	touch_root.visible = show_touch
+	if not show_touch:
+		touch_direction = Vector2.ZERO
+		touch_control_system.set_speed_pressed(false)
+		return
+	var action_blocked = state.paused or state.level_up_pending or state.chest_pending or state.rune_contract_pending or state.game_over
+	virtual_joystick.visible = touch_control_system.should_show_joystick() and not action_blocked
+	virtual_joystick.set_enabled(virtual_joystick.visible)
+	touch_scan_button.visible = not action_blocked
+	touch_drone_button.visible = not action_blocked
+	touch_speed_button.visible = not action_blocked
+	touch_drone_button.disabled = not state.recall_drone_ready
+	touch_pause_button.text = "再開" if state.paused else "停止"
 
 func set_pause_tab(index: int) -> void:
 	pause_tab_index = clampi(index, 0, pause_tabs.size() - 1)
@@ -1200,6 +1287,8 @@ func _evolution_status_text(weapon_id: String) -> String:
 	if int(state.passives.get(passive_id, 0)) < int(evo.get("passive_level", 1)):
 		missing.append("素材不足")
 	if missing.is_empty():
+		if not state.evolution_timing_ready():
+			return "進化待機中（%s）" % _evolution_wait_text()
 		return "宝箱で進化可能"
 	return "条件不足：" + " / ".join(missing)
 
@@ -1218,8 +1307,19 @@ func _evolution_shortage_text(weapon_id: String) -> String:
 	if passive_need > 0:
 		parts.append("%s +%dLv" % [state.passive_name(passive_id), passive_need])
 	if parts.is_empty():
+		if not state.evolution_timing_ready():
+			return _evolution_wait_text()
 		return "なし。宝箱または進化核で進化可能！"
 	return " / ".join(parts)
+
+func _evolution_wait_text() -> String:
+	var remaining = 0.0
+	if state.evolved_weapon_count <= 0:
+		remaining = float(state.balance_data.get("first_evolution_seconds", 300.0)) - state.elapsed_seconds
+	else:
+		remaining = float(state.balance_data.get("evolution_cooldown_seconds", 180.0)) - (state.elapsed_seconds - state.last_evolution_seconds)
+	var seconds = maxi(0, int(ceil(remaining)))
+	return "進化解禁まで %d:%02d" % [int(seconds / 60), seconds % 60]
 
 func _overclock_label(weapon_id: String) -> String:
 	if not state.overclocks.has(weapon_id):

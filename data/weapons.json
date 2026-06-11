@@ -107,8 +107,8 @@
     ],
     "category": "poison",
     "range": 240,
-    "base_damage_score": 0.72,
-    "base_cooldown_score": 0.58,
+    "base_damage_score": 0.84,
+    "base_cooldown_score": 0.56,
     "dot_enabled": true,
     "effect_id": "poison_mist"
   },
@@ -171,8 +171,8 @@
     ],
     "category": "deploy",
     "range": 520,
-    "base_damage_score": 0.88,
-    "base_cooldown_score": 2.8,
+    "base_damage_score": 0.94,
+    "base_cooldown_score": 2.45,
     "effect_id": "rune_gate"
   },
   "comet_staff": {
@@ -235,8 +235,8 @@
     ],
     "category": "knockback",
     "range": 220,
-    "base_damage_score": 0.7,
-    "base_cooldown_score": 1.85,
+    "base_damage_score": 0.84,
+    "base_cooldown_score": 1.7,
     "effect_id": "sonic_wave"
   },
   "gem_turret": {
@@ -324,10 +324,10 @@
     "category": "deploy",
     "attack_pattern": "deploy_area",
     "range": 520,
-    "base_damage": 5,
-    "cooldown": 2.45,
-    "base_damage_score": 0.78,
-    "base_cooldown_score": 2.45,
+    "base_damage": 6,
+    "cooldown": 2.15,
+    "base_damage_score": 0.84,
+    "base_cooldown_score": 2.15,
     "effect_id": "mine_lantern"
   },
   "relic_chain": {
@@ -361,10 +361,10 @@
     "category": "deploy",
     "attack_pattern": "deploy_area",
     "range": 650,
-    "base_damage": 7,
-    "cooldown": 2.65,
-    "base_damage_score": 0.95,
-    "base_cooldown_score": 2.65,
+    "base_damage": 8,
+    "cooldown": 2.3,
+    "base_damage_score": 1.02,
+    "base_cooldown_score": 2.3,
     "effect_id": "shrine_beam"
   },
   "thorn_seed": {
@@ -400,10 +400,10 @@
     "category": "deploy",
     "attack_pattern": "deploy_area",
     "range": 280,
-    "base_damage": 5,
-    "cooldown": 2.3,
-    "base_damage_score": 0.72,
-    "base_cooldown_score": 2.3,
+    "base_damage": 6,
+    "cooldown": 2.05,
+    "base_damage_score": 0.8,
+    "base_cooldown_score": 2.05,
     "effect_id": "frost_wall"
   },
   "coin_orbit": {
@@ -516,10 +516,10 @@
     "category": "deploy",
     "attack_pattern": "deploy_area",
     "range": 320,
-    "base_damage": 6,
-    "cooldown": 2.1,
-    "base_damage_score": 0.78,
-    "base_cooldown_score": 2.1,
+    "base_damage": 7,
+    "cooldown": 1.9,
+    "base_damage_score": 0.86,
+    "base_cooldown_score": 1.9,
     "effect_id": "guardian_wall"
   },
   "gravity_anchor": {

@@ -14,7 +14,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="Chrono Merge Tactics"
+config/name="Gem Survivor Crystal Field"
 config/description="Gem Survivor: Crystal Field bullet-heaven action for Windows."
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.2", "Forward Plus")
@@ -28,7 +28,9 @@ window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
+window/handheld/orientation=4
 
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
+textures/vram_compression/import_etc2_astc=true

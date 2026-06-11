@@ -34,6 +34,7 @@ func test_chest_upgrades_owned_item(t) -> void:
 
 func test_magic_bolt_evolves(t) -> void:
 	var state = _state()
+	state.elapsed_seconds = 300.0
 	state.weapons["magic_bolt"] = 8
 	state.passives["might"] = 3
 	ChestSystemScript.new().open_chest(state, [])

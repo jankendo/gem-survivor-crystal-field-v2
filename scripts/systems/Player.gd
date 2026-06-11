@@ -31,7 +31,7 @@ func process_survival(state, delta: float, events: Array) -> void:
 		state.regen_meter += delta
 		if state.regen_meter >= 1.0:
 			state.regen_meter -= 1.0
-			var heal = regen_level
+			var heal = mini(3, int(ceil(float(regen_level) * 0.6)))
 			state.hp = mini(state.max_hp, state.hp + heal)
 			state.add_floating_text("+%d HP" % heal, state.player_position + Vector2(0, -34), Color(0.42, 1.0, 0.52))
 			events.append({"type": "player_heal", "amount": heal, "source": "regen", "hp": state.hp})
@@ -47,7 +47,7 @@ func process_survival(state, delta: float, events: Array) -> void:
 			if state.current_terrain_id == "crystal_corridor":
 				damage = maxi(1, int(round(float(damage) * float(state.character_modifiers.get("corridor_defense_mult", 1.0)))))
 			if state.boss_alive():
-				damage = maxi(1, int(round(float(damage) * maxf(0.55, 1.0 - 0.06 * float(state.passives.get("boss_pressure", 0))))))
+				damage = maxi(1, int(round(float(damage) * maxf(0.65, 1.0 - 0.05 * float(state.passives.get("boss_pressure", 0))))))
 			state.hp -= damage
 			state.record_damage_taken(damage)
 			state.damage_flash_timer = 0.22
@@ -63,7 +63,7 @@ func process_survival(state, delta: float, events: Array) -> void:
 
 func _reduced_damage(state, base_damage: int) -> int:
 	var armor_level = int(state.passives.get("armor", 0))
-	var reduced = int(round(float(base_damage) * maxf(0.52, 1.0 - 0.08 * float(armor_level))))
+	var reduced = int(round(float(base_damage) * maxf(0.58, 1.0 - 0.07 * float(armor_level))))
 	return maxi(1, reduced - armor_level)
 
 func _try_revival(state, events: Array) -> bool:

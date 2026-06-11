@@ -146,7 +146,7 @@ func _best_infinite_option(state, options: Array) -> Dictionary:
 
 func _fill_infinite_options(state, options: Array, used: Array, count: int) -> void:
 	var infinite_ids: Array = state.infinite_defs.keys()
-	infinite_ids.shuffle()
+	infinite_ids = state.rng.shuffled(infinite_ids)
 	for raw_id in infinite_ids:
 		if options.size() >= count:
 			return

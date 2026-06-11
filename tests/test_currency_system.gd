@@ -42,4 +42,4 @@ func test_currency_multiplier_sources(t) -> void:
 	save_data["meta_upgrades"]["currency"] = 2
 	var character := meta.character_data("lily")
 	var amount := CurrencySystemScript.new().calculate_run_currency(_summary(), save_data, character)
-	t.assert_eq(amount, 606, "currency upgrade and Lily's currency trait should multiply earnings")
+	t.assert_eq(amount, 554, "currency upgrade and Lily's currency trait should multiply earnings")

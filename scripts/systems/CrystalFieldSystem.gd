@@ -55,7 +55,7 @@ func resolve_circle_position(state, pos: Vector2, radius: float) -> Vector2:
 func damage_walls_in_radius(state, pos: Vector2, radius: float, damage: int, events: Array, source: String) -> int:
 	var hits = 0
 	var overdrive = 2.0 if state.crystal_overdrive_timer > 0.0 else 1.0
-	var actual_damage = int(round(float(damage) * overdrive * state.crystal_damage_multiplier() * (1.0 + 0.28 * float(state.passives.get("crystal_breaker", 0)))))
+	var actual_damage = int(round(float(damage) * overdrive * state.crystal_damage_multiplier() * (1.0 + 0.16 * float(state.passives.get("crystal_breaker", 0)))))
 	for wall in state.crystal_walls.duplicate():
 		if not wall.breakable:
 			continue
@@ -110,7 +110,7 @@ func _drop_crystal_rewards(state, wall, pos: Vector2, events: Array) -> void:
 		events.append({"type": "gem_drop", "pos": gem.position, "value": gem.value, "enemy": "crystal"})
 	var heal_chance = float(state.balance_data.get("crystal_heal_chance", 0.18)) + 0.02 * float(state.passives.get("luck", 0))
 	if state.rng.chance(heal_chance) and state.hp < state.max_hp:
-		var heal = 8 + int(state.passives.get("pickup_heal", 0)) * 3
+		var heal = 6 + int(state.passives.get("pickup_heal", 0))
 		state.hp = mini(state.max_hp, state.hp + heal)
 		state.add_floating_text("+%d HP" % heal, pos, Color(0.42, 1.0, 0.52))
 		events.append({"type": "player_heal", "amount": heal, "source": "crystal", "hp": state.hp, "pos": pos})

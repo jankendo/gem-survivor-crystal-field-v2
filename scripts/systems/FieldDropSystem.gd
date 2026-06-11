@@ -104,8 +104,8 @@ func _apply_overclock_core(state, events: Array) -> String:
 
 func _apply_cursed_relic(state) -> String:
 	state.cursed_relic_count += 1
-	state.cursed_power *= 1.10
-	state.add_score(1800)
+	state.cursed_power *= 1.12
+	state.add_score(1300)
 	return "呪いの遺物！ 報酬UP / 敵も強化"
 
 func _apply_heal_ore(state) -> String:

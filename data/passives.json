@@ -12,17 +12,26 @@
   "might": {
     "name_ja": "力の紋章",
     "max_level": 5,
-    "description_ja": "全武器ダメージUP"
+    "description_ja": "全武器ダメージUP",
+    "effect_per_level": 0.14,
+    "effect_cap": 0.70,
+    "direct_damage": true
   },
   "cooldown": {
     "name_ja": "速射回路",
     "max_level": 5,
-    "description_ja": "攻撃間隔短縮"
+    "description_ja": "攻撃間隔短縮",
+    "effect_per_level": 0.07,
+    "effect_cap": 0.35,
+    "direct_damage": true
   },
   "area": {
     "name_ja": "拡張リング",
     "max_level": 5,
-    "description_ja": "攻撃範囲UP"
+    "description_ja": "攻撃範囲UP",
+    "effect_per_level": 0.12,
+    "effect_cap": 0.60,
+    "direct_damage": true
   },
   "max_hp": {
     "name_ja": "生命の器",
@@ -32,17 +41,25 @@
   "regen": {
     "name_ja": "再生細胞",
     "max_level": 5,
-    "description_ja": "少しずつHP回復"
+    "description_ja": "少しずつHP回復",
+    "heal_per_second_cap": 3,
+    "direct_damage": false
   },
   "greed": {
     "name_ja": "欲張り袋",
     "max_level": 5,
-    "description_ja": "スコア獲得量UP"
+    "description_ja": "スコア獲得量UP",
+    "effect_per_level": 0.14,
+    "effect_cap": 0.70,
+    "direct_damage": false
   },
   "armor": {
     "name_ja": "甲殻装甲",
     "max_level": 5,
-    "description_ja": "接触ダメージを軽減"
+    "description_ja": "接触ダメージを軽減",
+    "reduction_per_level": 0.07,
+    "minimum_multiplier": 0.58,
+    "direct_damage": false
   },
   "revival": {
     "name_ja": "復活の羽",
@@ -62,17 +79,25 @@
   "pickup_heal": {
     "name_ja": "吸収治癒",
     "max_level": 5,
-    "description_ja": "ジェム吸収時に定期的に回復"
+    "description_ja": "ジェム吸収時に定期的に回復",
+    "minimum_interval": 6,
+    "heal_cap": 4,
+    "direct_damage": false
   },
   "elite_hunter": {
     "name_ja": "狩人の証",
     "max_level": 5,
-    "description_ja": "エリートとボスへのダメージUP"
+    "description_ja": "エリートとボスへのダメージUP",
+    "effect_per_level": 0.12,
+    "combined_effect_cap": 1.0,
+    "direct_damage": true
   },
   "crystal_breaker": {
     "name_ja": "採掘グローブ",
     "max_level": 5,
-    "description_ja": "クリスタル壁へのダメージと報酬UP"
+    "description_ja": "クリスタル壁へのダメージと報酬UP",
+    "bonus_per_level": 0.16,
+    "direct_damage": false
   },
   "luck": {
     "name_ja": "幸運のお守り",
@@ -89,7 +114,7 @@
   },
   "wall_breaker": {
     "name_ja": "壁砕き", "max_level": 5,
-    "description_ja": "壊せる壁へのダメージUP", "tags": ["crystal"]
+    "description_ja": "壊せる壁へのダメージUP", "tags": ["crystal"], "effect_per_level": 0.14, "direct_damage": false
   },
   "route_memory": {
     "name_ja": "ルート記憶", "max_level": 5,
@@ -109,7 +134,7 @@
   },
   "boss_pressure": {
     "name_ja": "威圧耐性", "max_level": 5,
-    "description_ja": "ボス接近中の被ダメージ軽減", "tags": ["defense"]
+    "description_ja": "ボス接近中の被ダメージ軽減", "tags": ["defense"], "reduction_per_level": 0.05, "minimum_multiplier": 0.65, "direct_damage": false
   },
   "choke_point": {
     "name_ja": "関所戦術", "max_level": 5,
@@ -121,7 +146,7 @@
   },
   "mining_luck": {
     "name_ja": "採掘運", "max_level": 5,
-    "description_ja": "壁破壊時のジェムと宝箱報酬UP", "tags": ["crystal", "currency"]
+    "description_ja": "壁破壊時のジェムと宝箱報酬UP", "tags": ["crystal", "currency"], "reward_per_level": 0.08, "direct_damage": false
   },
   "map_reader": {
     "name_ja": "地図読み", "max_level": 5,
@@ -129,7 +154,7 @@
   },
   "hunter_mark": {
     "name_ja": "狩猟印", "max_level": 5,
-    "description_ja": "エリートとボスへのダメージUP", "tags": ["combat"]
+    "description_ja": "エリートとボスへのダメージUP", "tags": ["combat"], "effect_per_level": 0.08, "combined_effect_cap": 1.0, "direct_damage": true
   },
   "chain_reward": {
     "name_ja": "探索連鎖", "max_level": 5,

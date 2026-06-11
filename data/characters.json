@@ -5,9 +5,9 @@
     "initial": true,
     "initial_weapon": "magic_bolt",
     "role_ja": "初心者向け",
-    "trait_ja": "ジェム吸収範囲 +15%",
+    "trait_ja": "ジェム吸収範囲 +15%、移動速度 +5%",
     "weakness_ja": "HP -10",
-    "modifiers": { "hp_flat": -10, "magnet_mult": 1.15 }
+    "modifiers": { "hp_flat": -10, "magnet_mult": 1.15, "move_mult": 1.05 }
   },
   "mio": {
     "name_ja": "氷術師ミオ",
@@ -42,9 +42,9 @@
     "display_locked_ja": "採掘王ガンツ",
     "initial_weapon": "rune_gate",
     "role_ja": "結晶壁/資源特化",
-    "trait_ja": "結晶壁へのダメージ +100%、結晶報酬 +30%",
+    "trait_ja": "結晶壁へのダメージ +100%、結晶報酬 +20%",
     "weakness_ja": "移動速度 -10%",
-    "modifiers": { "move_mult": 0.90, "crystal_damage_mult": 2.0, "crystal_reward_mult": 1.30 }
+    "modifiers": { "move_mult": 0.90, "crystal_damage_mult": 2.0, "crystal_reward_mult": 1.20 }
   },
   "kaede": {
     "name_ja": "斬影カエデ",
@@ -97,18 +97,18 @@
     "unlock_cost": 2000,
     "initial_weapon": "gem_turret",
     "role_ja": "稼ぎ型",
-    "trait_ja": "クリスタル貨 +30%、宝箱レア率 +10%",
-    "weakness_ja": "攻撃力 -15%",
-    "modifiers": { "damage_mult": 0.85, "currency_mult": 1.30, "rare_reward_bonus": 0.10 }
+    "trait_ja": "クリスタル貨 +20%、宝箱レア率 +6%",
+    "weakness_ja": "攻撃力 -14%",
+    "modifiers": { "damage_mult": 0.86, "currency_mult": 1.20, "rare_reward_bonus": 0.06 }
   },
   "zero": {
     "name_ja": "終末観測者ゼロ",
     "display_locked_ja": "終末観測者ゼロ",
     "initial_weapon": "laser_lance",
     "role_ja": "上級者向け",
-    "trait_ja": "進化武器ダメージ +35%、オーバークロック出現率UP",
+    "trait_ja": "進化武器ダメージ +35%、過充電出現率UP",
     "weakness_ja": "HP回復量 -50%",
-    "modifiers": { "evolved_damage_mult": 1.35, "overclock_bonus": 0.20, "healing_mult": 0.50 }
+    "modifiers": { "evolved_damage_mult": 1.35, "overclock_bonus": 0.15, "healing_mult": 0.50 }
   },
   "ghost": {
     "name_ja": "クリスタルの亡霊",
@@ -118,8 +118,8 @@
     "initial_weapon": "poison_mist",
     "role_ja": "高難度特殊操作",
     "trait_ja": "壁をすり抜けるが、HPが低い",
-    "weakness_ja": "最大HP -50%",
-    "modifiers": { "hp_mult": 0.50, "phase_walls": true, "tag_damage": { "poison": 1.25 } }
+    "weakness_ja": "最大HP -40%",
+    "modifiers": { "hp_mult": 0.60, "phase_walls": true, "tag_damage": { "poison": 1.25 } }
   },
   "collector": {
     "name_ja": "金色の回収者",
@@ -130,7 +130,7 @@
     "role_ja": "吸収ビルド",
     "trait_ja": "ジェム吸収で周囲にダメージ",
     "weakness_ja": "初期攻撃が弱い",
-    "modifiers": { "magnet_mult": 1.85, "gem_damage": true, "damage_mult": 0.75 }
+    "modifiers": { "magnet_mult": 1.85, "gem_damage": true, "damage_mult": 0.82 }
   },
   "nameless_reaper": {
     "name_ja": "無名の死神",
@@ -148,9 +148,9 @@
     "display_locked_ja": "回廊騎士ロウ",
     "initial_weapon": "corridor_blade",
     "role_ja": "廊下近接",
-    "trait_ja": "廊下で被ダメージ-20%、近接+15%",
+    "trait_ja": "廊下で被ダメージ-20%、近接+20%",
     "weakness_ja": "広場で移動速度-5%",
-    "modifiers": { "corridor_defense_mult": 0.80, "tag_damage": { "melee": 1.15 }, "open_move_mult": 0.95 }
+    "modifiers": { "corridor_defense_mult": 0.80, "tag_damage": { "melee": 1.20 }, "open_move_mult": 0.95 }
   },
   "cave_mapper": {
     "name_ja": "洞窟地図師ユナ",
@@ -177,7 +177,7 @@
     "role_ja": "設置防衛",
     "trait_ja": "イベント部屋でダメージ+25%",
     "weakness_ja": "攻撃間隔+8%",
-    "modifiers": { "event_damage_mult": 1.25, "cooldown_mult": 1.08, "tag_damage": { "deploy": 1.12 } }
+    "modifiers": { "event_damage_mult": 1.25, "cooldown_mult": 1.08, "tag_damage": { "deploy": 1.16 } }
   },
   "tunnel_runner": {
     "name_ja": "隧道走者キリ",
@@ -185,8 +185,8 @@
     "initial_weapon": "drill_charge",
     "role_ja": "高速探索",
     "trait_ja": "廊下移動速度+20%",
-    "weakness_ja": "最大HP-25",
-    "modifiers": { "hp_flat": -25, "corridor_move_mult": 1.20 }
+    "weakness_ja": "最大HP-20",
+    "modifiers": { "hp_flat": -20, "corridor_move_mult": 1.20 }
   },
   "crystal_witch": {
     "name_ja": "晶魔女フィア",
@@ -252,7 +252,7 @@
     "initial_weapon": "coin_orbit",
     "role_ja": "通貨呪い",
     "trait_ja": "通貨獲得+40%",
-    "weakness_ja": "敵出現+25%",
-    "modifiers": { "currency_mult": 1.40, "spawn_mult": 1.25, "tag_damage": { "gem": 1.20, "curse": 1.15 } }
+    "weakness_ja": "敵出現+18%",
+    "modifiers": { "currency_mult": 1.40, "spawn_mult": 1.18, "tag_damage": { "gem": 1.20, "curse": 1.15 } }
   }
 }

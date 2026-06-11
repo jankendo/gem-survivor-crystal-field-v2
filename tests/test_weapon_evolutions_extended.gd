@@ -18,6 +18,7 @@ func test_each_evolution_can_apply(t) -> void:
 	for evolution_id in base.evolution_defs.keys():
 		var state = SurvivorStateScript.new()
 		state.start_new_run(606)
+		state.elapsed_seconds = 300.0
 		var data = state.evolution_defs[evolution_id]
 		var weapon_id = String(data.get("weapon", ""))
 		var passive_id = String(data.get("passive", ""))
@@ -26,4 +27,3 @@ func test_each_evolution_can_apply(t) -> void:
 		var events: Array = []
 		t.assert_true(EvolutionSystemScript.new().apply_first_available_evolution(state, events), "evolution should apply for %s" % evolution_id)
 		t.assert_true(state.is_weapon_evolved(weapon_id), "weapon should be marked evolved for %s" % weapon_id)
-

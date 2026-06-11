@@ -6,6 +6,7 @@ func run(t) -> void:
 	test_melee_kills_build_gauge(t)
 	test_rush_levels_activate_effects(t)
 	test_rush_boosts_melee_effect_state(t)
+	test_rush_level_does_not_refresh_forever(t)
 
 func _state():
 	var state = SurvivorState.new()
@@ -39,3 +40,12 @@ func test_rush_boosts_melee_effect_state(t) -> void:
 	t.assert_true(state.get_area_multiplier_for_weapon("soul_scythe") > state.get_area_multiplier(), "rush should boost melee area")
 	t.assert_true(MeleeRushSystemScript.new().effect_boost_active(state), "rush Lv2 should request stronger slash effect")
 
+func test_rush_level_does_not_refresh_forever(t) -> void:
+	var state = _state()
+	var system = MeleeRushSystemScript.new()
+	for i in range(100):
+		system.record_kill(state, "soul_scythe", [])
+	system.process(state, 6.0, [])
+	var timer_before = state.melee_rush_timer
+	system.record_kill(state, "soul_scythe", [])
+	t.assert_eq(state.melee_rush_timer, timer_before, "melee kills after Lv3 threshold must not refresh the rush forever")

@@ -152,6 +152,7 @@ var melee_rush_kills: int = 0
 var melee_rush_level: int = 0
 var melee_rush_timer: float = 0.0
 var melee_rush_flash_timer: float = 0.0
+var melee_rush_triggered_levels: Array = []
 var melee_speed_timer: float = 0.0
 var shock_explosions: int = 0
 var field_drops_collected: int = 0
@@ -205,6 +206,7 @@ var boss_warned_minutes: Array = []
 var boss_defeated_ids: Array = []
 var enemy_seen: Array = []
 var weapon_kill_counts: Dictionary = {}
+var weapon_damage_by_id: Dictionary = {}
 
 var weapons: Dictionary = {"magic_bolt": 1}
 var passives: Dictionary = {}
@@ -224,8 +226,10 @@ var field_event_defs: Dictionary = {}
 var rune_contract_defs: Dictionary = {}
 var weapon_effect_defs: Dictionary = {}
 var effect_density: String = "normal"
+var performance_profile_id: String = "desktop_standard"
 var evolved_weapons: Dictionary = {}
 var evolved_magic_bolt: bool = false
+var last_evolution_seconds: float = -999.0
 
 func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	seed_value = map_generator.seed_value_from_text(seed_text, seed_value)
@@ -344,6 +348,7 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	last_ruin_reaper_minute = -1
 	balance_log_timer = 0.0
 	balance_log_rows = []
+	performance_profile_id = "desktop_standard"
 	active_synergies = {}
 	active_synergy_history = []
 	build_tag_counts = {}
@@ -351,6 +356,7 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	melee_rush_level = 0
 	melee_rush_timer = 0.0
 	melee_rush_flash_timer = 0.0
+	melee_rush_triggered_levels = []
 	melee_speed_timer = 0.0
 	shock_explosions = 0
 	field_drops_collected = 0
@@ -403,12 +409,14 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	boss_defeated_ids = []
 	enemy_seen = []
 	weapon_kill_counts = {}
+	weapon_damage_by_id = {}
 	weapons = {"magic_bolt": 1}
 	passives = {}
 	infinite_upgrades = {}
 	weapon_cooldowns = {}
 	evolved_weapons = {}
 	evolved_magic_bolt = false
+	last_evolution_seconds = -999.0
 	_build_crystal_field()
 	update_current_biome()
 	_build_background_particles()
@@ -593,9 +601,9 @@ func terrain_enemy_damage_multiplier() -> float:
 
 func apply_meta_modifiers() -> void:
 	meta_hp_mult = 1.0 + 0.03 * float(meta_upgrade_levels.get("base_hp", 0))
-	meta_damage_mult = 1.0 + 0.02 * float(meta_upgrade_levels.get("base_damage", 0))
+	meta_damage_mult = 1.0 + 0.015 * float(meta_upgrade_levels.get("base_damage", 0))
 	meta_magnet_mult = 1.0 + 0.03 * float(meta_upgrade_levels.get("base_magnet", 0))
-	meta_currency_mult = 1.0 + 0.03 * float(meta_upgrade_levels.get("currency", 0))
+	meta_currency_mult = 1.0 + 0.025 * float(meta_upgrade_levels.get("currency", 0))
 	meta_crystal_damage_mult = 1.0 + 0.05 * float(meta_upgrade_levels.get("crystal_mining", 0))
 	meta_chest_indicator_mult = 1.0 + 0.10 * float(meta_upgrade_levels.get("chest_sense", 0))
 	max_hp = maxi(1, int(round(float(max_hp) * meta_hp_mult)))
@@ -631,7 +639,7 @@ func get_damage_multiplier_for_weapon(weapon_id: String) -> float:
 	value *= category_damage_multiplier(weapon_id)
 	value *= synergy_damage_multiplier(weapon_id)
 	if melee_rush_timer > 0.0 and weapon_has_tag(weapon_id, "melee") and melee_rush_level >= 3:
-		value *= 1.50
+		value *= 1.35
 	if is_weapon_evolved(weapon_id):
 		value *= float(character_modifiers.get("evolved_damage_mult", 1.0))
 		value *= float(blessing_modifiers.get("evolved_damage_mult", 1.0))
@@ -660,49 +668,57 @@ func get_cooldown_multiplier_for_weapon(weapon_id: String) -> float:
 func category_damage_multiplier(weapon_id: String) -> float:
 	match String(weapon_defs.get(weapon_id, {}).get("category", "")):
 		"ranged":
-			return 0.88
+			return 0.92
 		"melee":
-			return 1.28
+			return 1.20
 		"lightning":
-			return 0.94
+			return 0.92
 		"poison":
-			return 0.78
-		"explosion":
-			return 1.12
-		"gem":
 			return 0.84
+		"explosion":
+			return 1.08
+		"deploy":
+			return 0.92
+		"gem":
+			return 0.80
 		"knockback":
-			return 0.76
+			return 0.84
 		"crystal":
-			return 0.88
+			return 0.94
 	return 1.0
 
 func category_area_multiplier(weapon_id: String) -> float:
 	match String(weapon_defs.get(weapon_id, {}).get("category", "")):
 		"melee":
-			return 0.82
+			return 0.86
 		"area":
-			return 1.12
+			return 1.10
 		"explosion":
-			return 1.14
+			return 1.10
 		"poison":
-			return 1.08
+			return 1.12
 		"laser":
 			return 1.04
+		"deploy":
+			return 1.12
+		"knockback":
+			return 1.10
 	return 1.0
 
 func category_cooldown_multiplier(weapon_id: String) -> float:
 	match String(weapon_defs.get(weapon_id, {}).get("category", "")):
 		"ranged":
-			return 0.94
+			return 0.96
 		"melee":
-			return 0.90
+			return 0.94
 		"explosion":
-			return 1.16
+			return 1.18
 		"poison":
-			return 1.06
+			return 1.00
 		"deploy":
-			return 1.10
+			return 0.92
+		"gem":
+			return 1.12
 	return 1.0
 
 func synergy_damage_multiplier(weapon_id: String) -> float:
@@ -714,11 +730,11 @@ func synergy_damage_multiplier(weapon_id: String) -> float:
 	return value
 
 func crystal_damage_multiplier() -> float:
-	return meta_crystal_damage_mult * modifier_mult("crystal_damage_mult", 1.0) * (1.0 + 0.22 * float(passives.get("wall_breaker", 0)))
+	return meta_crystal_damage_mult * modifier_mult("crystal_damage_mult", 1.0) * (1.0 + 0.14 * float(passives.get("wall_breaker", 0)))
 
 func character_crystal_reward_multiplier() -> float:
 	var value = modifier_mult("crystal_reward_mult", 1.0)
-	value *= 1.0 + 0.10 * float(passives.get("mining_luck", 0))
+	value *= 1.0 + 0.08 * float(passives.get("mining_luck", 0))
 	if active_synergies.has("mining_king"):
 		value *= 1.30
 	return value
@@ -733,14 +749,21 @@ func overclock_count(weapon_id: String) -> int:
 	return (overclocks[weapon_id] as Array).size() if overclocks.has(weapon_id) else 0
 
 func has_available_overclock() -> bool:
+	if not overclock_timing_ready():
+		return false
 	for weapon_id in evolved_weapons.keys():
-		if overclock_count(String(weapon_id)) >= 2:
+		if overclock_count(String(weapon_id)) >= int(balance_data.get("overclock_max_per_weapon", 2)):
 			continue
 		var evolution_id = String(evolved_weapons[weapon_id])
 		for entry in overclock_defs.get(evolution_id, []):
 			if not has_overclock(String(weapon_id), String(entry.get("id", ""))):
 				return true
 	return false
+
+func overclock_timing_ready() -> bool:
+	if evolved_weapons.is_empty():
+		return false
+	return elapsed_seconds - last_evolution_seconds >= float(balance_data.get("overclock_delay_seconds", 120.0))
 
 func add_chest(chest) -> bool:
 	if chests.size() >= int(balance_data.get("max_chests", 3)):
@@ -853,6 +876,8 @@ func evolution_for_weapon(id: String) -> Dictionary:
 	return {}
 
 func has_available_evolution() -> bool:
+	if not evolution_timing_ready():
+		return false
 	for evolution_id in evolution_defs.keys():
 		var data = evolution_defs[evolution_id]
 		var weapon_id = String(data.get("weapon", ""))
@@ -864,6 +889,13 @@ func has_available_evolution() -> bool:
 		if int(weapons.get(weapon_id, 0)) >= int(data.get("weapon_level", 8)) and int(passives.get(passive_id, 0)) >= int(data.get("passive_level", 1)):
 			return true
 	return false
+
+func evolution_timing_ready() -> bool:
+	if elapsed_seconds < float(balance_data.get("first_evolution_seconds", 300.0)):
+		return false
+	if evolved_weapon_count <= 0:
+		return true
+	return elapsed_seconds - last_evolution_seconds >= float(balance_data.get("evolution_cooldown_seconds", 180.0))
 
 func get_move_speed() -> float:
 	var value = base_move_speed * (1.0 + 0.12 * float(passives.get("move_speed", 0)))
@@ -887,10 +919,10 @@ func get_magnet_radius() -> float:
 	return base_magnet_radius * multiplier
 
 func get_damage_multiplier() -> float:
-	return (1.0 + 0.16 * float(passives.get("might", 0)) + 0.05 * float(infinite_upgrades.get("infinite_damage", 0))) * rune_contract_multiplier("damage_mult", 1.0) * meta_damage_mult * modifier_mult("damage_mult", 1.0)
+	return (1.0 + 0.14 * float(passives.get("might", 0)) + 0.05 * float(infinite_upgrades.get("infinite_damage", 0))) * rune_contract_multiplier("damage_mult", 1.0) * meta_damage_mult * modifier_mult("damage_mult", 1.0)
 
 func get_cooldown_multiplier() -> float:
-	var value = 1.0 - 0.08 * float(passives.get("cooldown", 0)) - 0.03 * float(infinite_upgrades.get("infinite_speed", 0))
+	var value = 1.0 - 0.07 * float(passives.get("cooldown", 0)) - 0.03 * float(infinite_upgrades.get("infinite_speed", 0))
 	if gem_fever_timer > 0.0 and gem_fever_tier >= 2:
 		value *= 0.80
 	value *= rune_contract_multiplier("cooldown_mult", 1.0)
@@ -898,13 +930,13 @@ func get_cooldown_multiplier() -> float:
 	return maxf(0.32, value)
 
 func get_area_multiplier() -> float:
-	var value = (1.0 + 0.13 * float(passives.get("area", 0)) + 0.05 * float(infinite_upgrades.get("infinite_area", 0))) * modifier_mult("area_mult", 1.0)
+	var value = (1.0 + 0.12 * float(passives.get("area", 0)) + 0.05 * float(infinite_upgrades.get("infinite_area", 0))) * modifier_mult("area_mult", 1.0)
 	if current_terrain_id != "crystal_corridor":
 		value *= 1.0 + 0.06 * float(passives.get("room_mastery", 0))
 	return value
 
 func get_score_multiplier(pos: Vector2 = Vector2.INF) -> float:
-	var multiplier = 1.0 + 0.18 * float(passives.get("greed", 0)) + 0.10 * float(infinite_upgrades.get("infinite_greed", 0)) + 0.08 * float(passives.get("curse", 0))
+	var multiplier = 1.0 + 0.14 * float(passives.get("greed", 0)) + 0.10 * float(infinite_upgrades.get("infinite_greed", 0)) + 0.08 * float(passives.get("curse", 0))
 	multiplier *= rune_contract_score_multiplier()
 	multiplier *= modifier_mult("score_mult", 1.0)
 	var check_pos = player_position if pos == Vector2.INF else pos
@@ -1102,6 +1134,7 @@ func trim_runtime_arrays() -> void:
 
 func _exp_needed_for_level(value: int) -> int:
 	var required = 20.0 + floor(12.0 * pow(float(value), 1.55)) + floor(float(value * value) * 0.28)
+	required *= 1.0 + minf(1.00, maxf(0.0, float(value - 8)) * 0.05)
 	required *= 1.0 + maxf(0.0, elapsed_minutes() - 20.0) * 0.015
 	return maxi(8, int(round(required)))
 

@@ -1,0 +1,219 @@
+name: Build Windows and iOS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      full_test:
+        description: "Run full long tests"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+env:
+  GODOT_VERSION: "4.2-stable"
+  TEMPLATE_VERSION: "4.2.stable"
+  PROJECT_NAME: "GemSurvivor"
+  IOS_PRESET: "iOS"
+  WINDOWS_PRESET: "Windows Desktop"
+  EXPORT_NAME: "ChronoMergeTactics"
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Godot and export templates
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path .tools | Out-Null
+          Invoke-WebRequest "https://github.com/godotengine/godot-builds/releases/download/${env:GODOT_VERSION}/Godot_v${env:GODOT_VERSION}_win64.exe.zip" -OutFile ".tools/godot.zip"
+          Invoke-WebRequest "https://github.com/godotengine/godot-builds/releases/download/${env:GODOT_VERSION}/Godot_v${env:GODOT_VERSION}_export_templates.tpz" -OutFile ".tools/templates.zip"
+          Expand-Archive ".tools/godot.zip" ".tools/godot" -Force
+          Expand-Archive ".tools/templates.zip" ".tools/templates" -Force
+          $templateDir = Join-Path $env:APPDATA "Godot/export_templates/${env:TEMPLATE_VERSION}"
+          New-Item -ItemType Directory -Force -Path $templateDir | Out-Null
+          Copy-Item ".tools/templates/templates/*" $templateDir -Recurse -Force
+
+      - name: Validate workflow and presets
+        run: |
+          python tools/validate_github_actions.py
+          python tools/validate_ios_workflow.py
+
+      - name: Run standard tests
+        shell: pwsh
+        run: |
+          $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_win64.exe" | Select-Object -First 1).FullName
+          & $godot --headless --path . --check-only --script res://tests/test_runner.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/test_runner.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_60sec.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_5min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run full balance tests
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.full_test == 'true' }}
+        shell: pwsh
+        run: |
+          $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_win64.exe" | Select-Object -First 1).FullName
+          $scripts = @(
+            "res://tests/auto_play_10min.gd",
+            "res://tests/auto_play_30min_balance.gd",
+            "res://tests/auto_play_balance_ranged_10min.gd",
+            "res://tests/auto_play_balance_melee_10min.gd",
+            "res://tests/auto_play_balance_lightning_10min.gd",
+            "res://tests/auto_play_balance_poison_10min.gd",
+            "res://tests/auto_play_balance_explosion_10min.gd",
+            "res://tests/auto_play_balance_deploy_10min.gd",
+            "res://tests/auto_play_balance_gem_10min.gd"
+          )
+          foreach ($script in $scripts) {
+            & $godot --headless --path . --script $script
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Generate balance report
+        run: python tools/analyze_balance.py --output balance_report.md
+
+      - name: Export Windows release
+        shell: pwsh
+        run: |
+          $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_win64.exe" | Select-Object -First 1).FullName
+          New-Item -ItemType Directory -Force -Path builds/windows | Out-Null
+          & $godot --headless --path . --export-release "${env:WINDOWS_PRESET}" "builds/windows/${env:EXPORT_NAME}.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $exePath = "builds/windows/${env:EXPORT_NAME}.exe"
+          if (-not (Test-Path $exePath)) { throw "Windows export was not created." }
+          if ((Get-Item $exePath).Length -lt 1MB) { throw "Windows export is unexpectedly small." }
+
+      - name: Upload balance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Balance-Report
+          path: balance_report.md
+          if-no-files-found: error
+
+  ios-unsigned-build:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Godot and export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .tools/godot .tools/templates
+          curl -fL "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_macos.universal.zip" -o .tools/godot.zip
+          curl -fL "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz" -o .tools/templates.zip
+          ditto -x -k .tools/godot.zip .tools/godot
+          ditto -x -k .tools/templates.zip .tools/templates
+          TEMPLATE_DIR="${HOME}/Library/Application Support/Godot/export_templates/${TEMPLATE_VERSION}"
+          mkdir -p "${TEMPLATE_DIR}"
+          cp -R .tools/templates/templates/. "${TEMPLATE_DIR}/"
+          chmod +x .tools/godot/Godot.app/Contents/MacOS/Godot
+
+      - name: Validate iOS workflow
+        run: |
+          python3 tools/validate_github_actions.py
+          python3 tools/validate_ios_workflow.py
+
+      - name: Export Windows artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT=".tools/godot/Godot.app/Contents/MacOS/Godot"
+          mkdir -p builds/windows
+          "${GODOT}" --headless --path . --export-release "${WINDOWS_PRESET}" "builds/windows/${EXPORT_NAME}.exe"
+          test -s "builds/windows/${EXPORT_NAME}.exe"
+          test "$(stat -f%z "builds/windows/${EXPORT_NAME}.exe")" -gt 1000000
+          cp README.md builds/windows/README.md
+          (
+            cd builds/windows
+            zip -qry ../ChronoMergeTactics-Windows.zip "${EXPORT_NAME}.exe" README.md
+          )
+          test -s builds/ChronoMergeTactics-Windows.zip
+          unzip -l builds/ChronoMergeTactics-Windows.zip | head -40
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChronoMergeTactics-Windows
+          path: builds/ChronoMergeTactics-Windows.zip
+          if-no-files-found: error
+
+      - name: Export iOS Xcode project
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT=".tools/godot/Godot.app/Contents/MacOS/Godot"
+          mkdir -p builds/ios-export
+          "${GODOT}" --headless --path . --export-release "${IOS_PRESET}" "builds/ios-export/${PROJECT_NAME}.ipa"
+          find builds/ios-export -maxdepth 2 -print
+          test -n "$(find builds/ios-export -maxdepth 1 -name '*.xcodeproj' -print -quit)"
+
+      - name: Build unsigned iOS app
+        shell: bash
+        run: |
+          set -euo pipefail
+          XCODEPROJ="$(find builds/ios-export -maxdepth 1 -name '*.xcodeproj' -print -quit)"
+          echo "Xcode project: ${XCODEPROJ}"
+          xcodebuild -project "${XCODEPROJ}" -list
+          SCHEME="$(xcodebuild -project "${XCODEPROJ}" -list -json | python3 -c 'import json,sys; data=json.load(sys.stdin); print((data.get("project", {}).get("schemes") or [""])[0])')"
+          if [ -z "${SCHEME}" ]; then
+            SCHEME="${PROJECT_NAME}"
+          fi
+          echo "Scheme: ${SCHEME}"
+          rm -rf DerivedData
+          xcodebuild \
+            -project "${XCODEPROJ}" \
+            -scheme "${SCHEME}" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            build
+
+      - name: Package unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find DerivedData/Build/Products -type d -name '*.app' -print -quit)"
+          if [ -z "${APP_PATH}" ]; then
+            echo "No .app found. Build products:"
+            find DerivedData/Build/Products -maxdepth 4 -print
+            exit 1
+          fi
+          rm -rf builds/ios
+          mkdir -p builds/ios/Payload
+          cp -R "${APP_PATH}" builds/ios/Payload/
+          (
+            cd builds/ios
+            zip -qry GemSurvivor-unsigned.ipa Payload
+          )
+          test -s builds/ios/GemSurvivor-unsigned.ipa
+          unzip -l builds/ios/GemSurvivor-unsigned.ipa | head -80
+          echo "This IPA is unsigned. It cannot be installed directly on a normal iPhone."
+          echo "Use AltStore, Sideloadly, or your own Apple signing flow."
+
+      - name: Upload unsigned iOS IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: GemSurvivor-iOS-unsigned-IPA
+          path: |
+            builds/ios/GemSurvivor-unsigned.ipa
+            README.md
+            IOS_UNSIGNED_README.md
+          if-no-files-found: error
