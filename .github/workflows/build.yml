@@ -74,7 +74,11 @@ jobs:
             "res://tests/auto_play_balance_poison_10min.gd",
             "res://tests/auto_play_balance_explosion_10min.gd",
             "res://tests/auto_play_balance_deploy_10min.gd",
-            "res://tests/auto_play_balance_gem_10min.gd"
+            "res://tests/auto_play_balance_gem_10min.gd",
+            "res://tests/auto_play_ios_touch_60sec.gd",
+            "res://tests/auto_play_ios_touch_5min.gd",
+            "res://tests/auto_play_ios_levelup_selection.gd",
+            "res://tests/auto_play_ios_menu_flow.gd"
           )
           foreach ($script in $scripts) {
             & $godot --headless --path . --script $script

@@ -40,12 +40,16 @@ func _run() -> void:
 	CrystalFieldSystemScript.new().damage_wall(game.state, game.state.crystal_walls[0], 99999, events, "auto")
 	var player = PlayerScript.new()
 	var selected = 0
+	var evolution_chest_injected := false
 	for i in range(1200):
 		var direction = Vector2.RIGHT.rotated(float(i) * 0.04)
 		if game.state.gems.size() > 0:
 			direction = (game.state.gems[0].position - game.state.player_position).normalized()
 		player.process_movement(game.state, direction, 0.5)
 		game._process(0.5)
+		if not evolution_chest_injected and game.state.elapsed_seconds >= 300.0:
+			game.state.chests.append(ChestScript.new(game.state.player_position + Vector2(10, 0), "evolution", "autoplay"))
+			evolution_chest_injected = true
 		if game.state.level_up_pending:
 			game._select_reward(selected % maxi(1, game.state.level_up_options.size()))
 			selected += 1

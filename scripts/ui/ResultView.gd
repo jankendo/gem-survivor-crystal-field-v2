@@ -3,16 +3,25 @@ class_name ResultView
 
 const JaText = preload("res://scripts/ui/JaText.gd")
 const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.gd")
+const InputModeSystemScript = preload("res://scripts/systems/InputModeSystem.gd")
+const MobileSafeAreaSystemScript = preload("res://scripts/systems/MobileSafeAreaSystem.gd")
 
 signal retry_requested
 signal title_requested
+signal character_requested
+signal shop_requested
+signal collection_requested
 
 var lines: Label
 var score_line: Label
 var best_update_label: Label
 var scroll: ScrollContainer
+var input_mode = InputModeSystemScript.new()
+var mobile_safe_area = MobileSafeAreaSystemScript.new()
 
 func _ready() -> void:
+	var settings: Dictionary = SaveSystem.new().load_data().get("settings", {})
+	input_mode.configure(settings)
 	var bg = ColorRect.new()
 	bg.color = Color(0.018, 0.024, 0.040)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -21,23 +30,25 @@ func _ready() -> void:
 	var center = VBoxContainer.new()
 	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.offset_left = 110
-	center.offset_right = -110
-	center.offset_top = 42
-	center.offset_bottom = -42
+	var viewport_size := get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
+	var safe := mobile_safe_area.safe_rect(viewport_size, float(settings.get("safe_area_margin", 0.0)))
+	center.offset_left = maxf(36.0, safe.position.x)
+	center.offset_right = -maxf(36.0, viewport_size.x - safe.end.x)
+	center.offset_top = maxf(24.0, safe.position.y)
+	center.offset_bottom = -maxf(24.0, viewport_size.y - safe.end.y)
 	center.add_theme_constant_override("separation", 10)
 	add_child(center)
 
 	var title = Label.new()
 	title.text = "ゲームオーバー"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 56)
+	title.add_theme_font_size_override("font_size", 42 if input_mode.is_touch_mode() else 56)
 	title.add_theme_color_override("font_color", Color(1.0, 0.44, 0.32))
 	center.add_child(title)
 
 	score_line = Label.new()
 	score_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	score_line.add_theme_font_size_override("font_size", 42)
+	score_line.add_theme_font_size_override("font_size", 34 if input_mode.is_touch_mode() else 42)
 	score_line.add_theme_color_override("font_color", Color(1.0, 0.82, 0.32))
 	center.add_child(score_line)
 
@@ -56,7 +67,7 @@ func _ready() -> void:
 	center.add_child(scroll)
 
 	lines = Label.new()
-	lines.custom_minimum_size.x = 880
+	lines.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else 880
 	lines.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lines.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lines.add_theme_font_size_override("font_size", 20)
@@ -64,26 +75,43 @@ func _ready() -> void:
 	lines.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	scroll.add_child(lines)
 
-	var row = HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 12)
+	var row = GridContainer.new()
+	row.columns = 3 if input_mode.is_touch_mode() else 5
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("h_separation", 12)
+	row.add_theme_constant_override("v_separation", 10)
 	center.add_child(row)
 	var retry_button = CrystalButtonScript.new()
-	retry_button.setup("もう一度", Color(0.52, 1.0, 1.0), Vector2(180, 48))
+	retry_button.setup("もう一度", Color(0.52, 1.0, 1.0), Vector2(160, 56 if input_mode.is_touch_mode() else 48))
 	retry_button.pressed.connect(func(): retry_requested.emit())
 	row.add_child(retry_button)
+	var character_button = CrystalButtonScript.new()
+	character_button.setup("キャラ変更", Color(0.70, 0.86, 1.0), Vector2(160, 56 if input_mode.is_touch_mode() else 48))
+	character_button.pressed.connect(func(): character_requested.emit())
+	row.add_child(character_button)
+	var shop_button = CrystalButtonScript.new()
+	shop_button.setup("強化へ", Color(1.0, 0.82, 0.34), Vector2(160, 56 if input_mode.is_touch_mode() else 48))
+	shop_button.pressed.connect(func(): shop_requested.emit())
+	row.add_child(shop_button)
+	var collection_button = CrystalButtonScript.new()
+	collection_button.setup("図鑑へ", Color(0.58, 1.0, 0.74), Vector2(160, 56 if input_mode.is_touch_mode() else 48))
+	collection_button.pressed.connect(func(): collection_requested.emit())
+	row.add_child(collection_button)
 	var title_button = CrystalButtonScript.new()
-	title_button.setup("タイトルへ", Color(1.0, 0.82, 0.34), Vector2(180, 48))
+	title_button.setup("タイトルへ", Color(1.0, 0.58, 0.42), Vector2(160, 56 if input_mode.is_touch_mode() else 48))
 	title_button.pressed.connect(func(): title_requested.emit())
 	row.add_child(title_button)
-	var prompt = Label.new()
-	prompt.text = "Enter：もう一度　Esc：タイトルへ"
-	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	prompt.add_theme_font_size_override("font_size", 18)
-	prompt.add_theme_color_override("font_color", Color(0.99, 0.76, 0.31))
-	center.add_child(prompt)
+	if input_mode.keyboard_hints_allowed():
+		var prompt = Label.new()
+		prompt.text = "Enter：もう一度　Esc：タイトルへ"
+		prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		prompt.add_theme_font_size_override("font_size", 18)
+		prompt.add_theme_color_override("font_color", Color(0.99, 0.76, 0.31))
+		center.add_child(prompt)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if input_mode.is_ios_touch():
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ENTER:
 			retry_requested.emit()

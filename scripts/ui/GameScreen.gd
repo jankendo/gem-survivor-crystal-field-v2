@@ -33,10 +33,14 @@ const BossAlertSystemScript = preload("res://scripts/systems/BossAlertSystem.gd"
 const EquipmentHudSystemScript = preload("res://scripts/systems/EquipmentHudSystem.gd")
 const TouchControlSystemScript = preload("res://scripts/systems/TouchControlSystem.gd")
 const PerformanceProfileSystemScript = preload("res://scripts/systems/PerformanceProfileSystem.gd")
+const InputModeSystemScript = preload("res://scripts/systems/InputModeSystem.gd")
+const MobileSafeAreaSystemScript = preload("res://scripts/systems/MobileSafeAreaSystem.gd")
+const MobileHudLayoutSystemScript = preload("res://scripts/systems/MobileHudLayoutSystem.gd")
 const ArenaViewScript = preload("res://scripts/ui/ArenaView.gd")
 const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.gd")
 const ConfirmDialogScript = preload("res://scripts/ui/components/ConfirmDialog.gd")
 const VirtualJoystickScript = preload("res://scripts/ui/components/VirtualJoystick.gd")
+const TouchActionButtonScript = preload("res://scripts/ui/components/TouchActionButton.gd")
 
 signal game_finished(summary: Dictionary)
 signal title_requested
@@ -72,6 +76,9 @@ var boss_alert_system
 var equipment_hud_system
 var touch_control_system
 var performance_profile_system
+var input_mode
+var mobile_safe_area_system
+var mobile_hud_layout_system
 var arena_view
 var audio_manager: AudioManager
 var reward_popup: RewardPopup
@@ -101,7 +108,7 @@ var initial_save_data: Dictionary = {}
 var initial_seed_text := ""
 var pause_overlay: PanelContainer
 var pause_content: Label
-var pause_action_row: HBoxContainer
+var pause_action_row: Container
 var pause_confirm_dialog
 var pause_title_label: Label
 var pause_summary: Label
@@ -112,10 +119,19 @@ var speed_active := false
 var touch_root: Control
 var virtual_joystick
 var touch_direction := Vector2.ZERO
-var touch_scan_button: Button
-var touch_drone_button: Button
-var touch_speed_button: Button
-var touch_pause_button: Button
+var touch_scan_button
+var touch_drone_button
+var touch_speed_button
+var touch_pause_button
+var touch_log_button
+var touch_map_button
+var touch_chest_button
+var goal_panel: PanelContainer
+var help_panel: PanelContainer
+var runtime_settings: Dictionary = {}
+var last_reward_signature := ""
+var touch_rerolls_remaining := 0
+var touch_banishes_remaining := 0
 
 func _ready() -> void:
 	state = SurvivorStateScript.new()
@@ -149,9 +165,14 @@ func _ready() -> void:
 	equipment_hud_system = EquipmentHudSystemScript.new()
 	touch_control_system = TouchControlSystemScript.new()
 	performance_profile_system = PerformanceProfileSystemScript.new()
+	input_mode = InputModeSystemScript.new()
+	mobile_safe_area_system = MobileSafeAreaSystemScript.new()
+	mobile_hud_layout_system = MobileHudLayoutSystemScript.new()
 	state.start_new_run(0, initial_seed_text)
 	var save_data = initial_save_data if not initial_save_data.is_empty() else SaveSystem.new().load_data()
 	var settings: Dictionary = save_data.get("settings", {})
+	runtime_settings = settings.duplicate(true)
+	input_mode.configure(settings)
 	speed_hold_system.configure(settings)
 	notification_log_system.configure(settings)
 	equipment_hud_system.configure(settings)
@@ -202,7 +223,8 @@ func _process(delta: float) -> void:
 	build_synergy_system.process(state, events)
 	melee_rush_system.process(state, sim_delta, events)
 	shock_stack_system.process(state, sim_delta, events)
-	var movement = touch_control_system.combined_direction(player_system.input_direction(), touch_direction)
+	var keyboard_direction: Vector2 = player_system.input_direction() if input_mode.keyboard_hints_allowed() else Vector2.ZERO
+	var movement = touch_control_system.combined_direction(keyboard_direction, touch_direction)
 	player_system.process_movement(state, movement, sim_delta)
 	enemy_spawner.process(state, sim_delta, events)
 	field_gimmick_system.process(state, sim_delta, events)
@@ -225,6 +247,8 @@ func _process(delta: float) -> void:
 	_refresh()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if input_mode.is_ios_touch():
+		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT and not state.paused:
 		_scan_field_target()
 		return
@@ -267,6 +291,10 @@ func _build_ui() -> void:
 	var viewport_size = get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
 	var ui_scale = ui_safe_area_system.ui_scale_for(viewport_size, requested_scale, state.ui_layout_defs)
 	var safe_margin = float(state.ui_layout_defs.get("safe_margin", 24.0))
+	var mobile_safe: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 0.0)))
+	var safe_left: float = mobile_safe.position.x if input_mode.is_touch_mode() else safe_margin
+	var safe_right: float = viewport_size.x - mobile_safe.end.x if input_mode.is_touch_mode() else safe_margin
+	var safe_top: float = mobile_safe.position.y if input_mode.is_touch_mode() else float(state.ui_layout_defs.get("hud_top_margin", 18.0))
 	var bg = ColorRect.new()
 	bg.color = Color(0.020, 0.030, 0.052)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -285,9 +313,9 @@ func _build_ui() -> void:
 
 	var top = VBoxContainer.new()
 	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	top.offset_left = safe_margin
-	top.offset_right = -safe_margin
-	top.offset_top = float(state.ui_layout_defs.get("hud_top_margin", 18.0))
+	top.offset_left = safe_left
+	top.offset_right = -safe_right
+	top.offset_top = safe_top
 	top.offset_bottom = float(state.ui_layout_defs.get("hud_max_height", 118.0)) * ui_scale
 	top.add_theme_constant_override("separation", 3)
 	add_child(top)
@@ -349,10 +377,10 @@ func _build_ui() -> void:
 	exp_bar.show_percentage = false
 	top.add_child(exp_bar)
 
-	var goal_panel = PanelContainer.new()
+	goal_panel = PanelContainer.new()
 	goal_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	goal_panel.offset_left = -float(state.ui_layout_defs.get("goal_panel_width", 330.0)) - safe_margin
-	goal_panel.offset_right = -safe_margin
+	goal_panel.offset_left = -float(state.ui_layout_defs.get("goal_panel_width", 330.0)) - safe_right
+	goal_panel.offset_right = -safe_right
 	goal_panel.offset_top = 132.0 * ui_scale
 	goal_panel.offset_bottom = 302.0 * ui_scale
 	goal_panel.add_theme_stylebox_override("panel", _hud_panel_style(Color(0.42, 0.82, 1.0)))
@@ -429,12 +457,19 @@ func _build_ui() -> void:
 	notification_label.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0))
 	add_child(notification_label)
 
-	var help_panel = PanelContainer.new()
+	help_panel = PanelContainer.new()
 	help_panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help_panel.offset_left = safe_margin
 	help_panel.offset_right = safe_margin + float(state.ui_layout_defs.get("field_help_panel_width", 390.0))
-	help_panel.offset_top = -190.0 * ui_scale
-	help_panel.offset_bottom = -72.0 * ui_scale
+	if input_mode.is_touch_mode():
+		help_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		help_panel.offset_left = safe_left
+		help_panel.offset_right = safe_left + minf(360.0, viewport_size.x * 0.30)
+		help_panel.offset_top = maxf(310.0, viewport_size.y * 0.42)
+		help_panel.offset_bottom = minf(viewport_size.y - 210.0, help_panel.offset_top + 125.0)
+	else:
+		help_panel.offset_top = -190.0 * ui_scale
+		help_panel.offset_bottom = -72.0 * ui_scale
 	help_panel.add_theme_stylebox_override("panel", _hud_panel_style(Color(0.46, 1.0, 0.70)))
 	add_child(help_panel)
 	field_help_label = Label.new()
@@ -454,7 +489,7 @@ func _build_ui() -> void:
 	message_label.add_theme_font_size_override("font_size", int(18.0 * ui_scale))
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.34))
-	message_label.text = "移動 WASD/矢印　F/右クリック スキャン　R ドローン　Esc ポーズ"
+	message_label.text = "左下をドラッグして移動　右下でスキャン・回収・倍速" if input_mode.is_touch_mode() else "移動 WASD/矢印　F/右クリック スキャン　R ドローン　Esc ポーズ"
 	add_child(message_label)
 
 	audio_manager = AudioManager.new()
@@ -468,6 +503,9 @@ func _build_ui() -> void:
 	reward_popup.offset_bottom = minf(220.0, viewport_size.y * 0.38)
 	add_child(reward_popup)
 	reward_popup.reward_chosen.connect(_on_reward_chosen)
+	reward_popup.reroll_requested.connect(_on_touch_reroll)
+	reward_popup.banish_requested.connect(_on_touch_banish)
+	reward_popup.skip_requested.connect(_on_touch_skip)
 	_build_pause_ui()
 	_build_touch_controls(ui_scale)
 
@@ -607,8 +645,12 @@ func _refresh() -> void:
 		JaText.format_time(state.elapsed_seconds),
 		JaText.format_int(state.kills)
 	]
+	if input_mode.is_touch_mode():
+		hud_label.text += "　武器 %d/%d　パッシブ %d/%d" % [state.weapons.size(), state.max_owned_weapons(), state.passives.size(), state.max_owned_passives()]
 	weapon_label.text = equipment_hud_system.weapon_text(state)
 	passive_label.text = equipment_hud_system.passive_text(state)
+	weapon_label.visible = not input_mode.is_touch_mode() and equipment_hud_system.show_weapons
+	passive_label.visible = not input_mode.is_touch_mode() and equipment_hud_system.show_passives
 	speed_label.text = speed_hold_system.display_text(speed_active)
 	notification_label.text = notification_log_system.visible_text()
 	boss_alert_label.text = boss_alert_system.warning_text if boss_alert_system.warning_timer > 0.0 else ""
@@ -634,7 +676,7 @@ func _refresh() -> void:
 	if state.crystal_overdrive_timer > 0.0:
 		combo_label.text += "　OD %.1fs" % state.crystal_overdrive_timer
 	if state.recall_drone_ready:
-		combo_label.text += "　回収ドローン READY [R]"
+		combo_label.text += "　回収ドローン READY" if input_mode.is_touch_mode() else "　回収ドローン READY [R]"
 	else:
 		var charge = int(round(100.0 * state.recall_drone_meter / float(state.balance_data.get("recall_drone_charge_seconds", 180.0))))
 		combo_label.text += "　ドローン %d%%" % clampi(charge, 0, 100)
@@ -647,9 +689,20 @@ func _refresh() -> void:
 	_refresh_field_help_hud()
 	_refresh_low_hp_overlay()
 	if state.level_up_pending:
-		reward_popup.show_options(state.level_up_options)
+		var signature := _reward_signature(state.level_up_options)
+		if signature != last_reward_signature:
+			if last_reward_signature == "":
+				touch_rerolls_remaining = int(state.passives.get("reroll_ticket", 0))
+				touch_banishes_remaining = int(state.passives.get("banish_mark", 0))
+			last_reward_signature = signature
+			reward_popup.show_options(state.level_up_options, {
+				"rerolls": touch_rerolls_remaining,
+				"banishes": touch_banishes_remaining,
+				"can_skip": _has_contract_skip(state.level_up_options)
+			}, input_mode.is_touch_mode())
 	else:
 		reward_popup.hide_popup()
+		last_reward_signature = ""
 	arena_view.queue_redraw()
 	_refresh_touch_controls()
 
@@ -690,7 +743,8 @@ func _refresh_field_help_hud() -> void:
 		return
 	var target: Dictionary = state.scanned_field_help if state.field_scan_timer > 0.0 and not state.scanned_field_help.is_empty() else state.nearby_field_help
 	if target.is_empty():
-		field_help_label.text = "現在地：%s\n%s\nF / 右クリックで周辺をスキャン" % [state.current_terrain_name, state.current_terrain_guide()]
+		var scan_hint := "スキャンボタンで周辺を調査" if input_mode.is_touch_mode() else "F / 右クリックで周辺をスキャン"
+		field_help_label.text = "現在地：%s\n%s\n%s" % [state.current_terrain_name, state.current_terrain_guide(), scan_hint]
 		return
 	field_help_label.text = "現在地：%s\n%s\n\n%s" % [state.current_terrain_name, state.current_terrain_guide(), tooltip_system.format_field_help(target, state.field_scan_timer > 0.0)]
 
@@ -715,6 +769,70 @@ func _on_reward_chosen(reward_id: String) -> void:
 	if level_up_system.apply_option(state, reward_id, events):
 		_handle_events(events)
 		_refresh()
+
+func _on_touch_reroll() -> void:
+	if touch_rerolls_remaining <= 0 or not state.level_up_pending:
+		return
+	touch_rerolls_remaining -= 1
+	state.level_up_options = level_up_system.prepare_options(state, 3)
+	last_reward_signature = _reward_signature(state.level_up_options)
+	reward_popup.show_options(state.level_up_options, {
+		"rerolls": touch_rerolls_remaining,
+		"banishes": touch_banishes_remaining,
+		"can_skip": _has_contract_skip(state.level_up_options)
+	}, input_mode.is_touch_mode())
+	touch_control_system.feedback_light()
+	_refresh()
+
+func _on_touch_banish(reward_id: String) -> void:
+	if touch_banishes_remaining <= 0 or not state.level_up_pending:
+		return
+	touch_banishes_remaining -= 1
+	var replacement_pool: Array = level_up_system.prepare_options(state, 4)
+	var next_options: Array = []
+	for option in state.level_up_options:
+		if String(option.get("uid", "")) != reward_id:
+			next_options.append(option)
+	for option in replacement_pool:
+		if next_options.size() >= 3:
+			break
+		var uid := String(option.get("uid", ""))
+		var exists := false
+		for current in next_options:
+			if String(current.get("uid", "")) == uid:
+				exists = true
+				break
+		if uid != reward_id and not exists:
+			next_options.append(option)
+	state.level_up_options = next_options
+	last_reward_signature = _reward_signature(state.level_up_options)
+	reward_popup.show_options(state.level_up_options, {
+		"rerolls": touch_rerolls_remaining,
+		"banishes": touch_banishes_remaining,
+		"can_skip": _has_contract_skip(state.level_up_options)
+	}, input_mode.is_touch_mode())
+	touch_control_system.feedback_light()
+	_refresh()
+
+func _on_touch_skip() -> void:
+	if not state.level_up_pending:
+		return
+	for option in state.level_up_options:
+		if String(option.get("kind", "")) == "contract_skip":
+			_on_reward_chosen(String(option.get("uid", "")))
+			return
+
+func _has_contract_skip(options: Array) -> bool:
+	for option in options:
+		if String(option.get("kind", "")) == "contract_skip":
+			return true
+	return false
+
+func _reward_signature(options: Array) -> String:
+	var ids: Array = []
+	for option in options:
+		ids.append(String(option.get("uid", option.get("id", ""))))
+	return "|".join(ids)
 
 func _tick_flashes(delta: float) -> void:
 	state.field_scan_timer = maxf(0.0, state.field_scan_timer - delta)
@@ -862,13 +980,15 @@ func _hud_panel_style(accent: Color) -> StyleBoxFlat:
 
 func _build_pause_ui() -> void:
 	var safe_margin = float(state.ui_layout_defs.get("safe_margin", 24.0))
+	var viewport_size := get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
+	var mobile_safe: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 0.0)))
 	pause_overlay = PanelContainer.new()
 	pause_overlay.visible = false
 	pause_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	pause_overlay.offset_left = safe_margin * 2.0
-	pause_overlay.offset_right = -safe_margin * 2.0
-	pause_overlay.offset_top = safe_margin * 1.6
-	pause_overlay.offset_bottom = -safe_margin * 1.6
+	pause_overlay.offset_left = mobile_safe.position.x if input_mode.is_touch_mode() else safe_margin * 2.0
+	pause_overlay.offset_right = -(viewport_size.x - mobile_safe.end.x) if input_mode.is_touch_mode() else -safe_margin * 2.0
+	pause_overlay.offset_top = mobile_safe.position.y if input_mode.is_touch_mode() else safe_margin * 1.6
+	pause_overlay.offset_bottom = -(viewport_size.y - mobile_safe.end.y) if input_mode.is_touch_mode() else -safe_margin * 1.6
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.04, 0.055, 0.075, 0.97)
 	style.border_color = Color(0.46, 0.75, 0.92)
@@ -884,24 +1004,28 @@ func _build_pause_ui() -> void:
 	pause_title_label = Label.new()
 	pause_title_label.text = "ポーズ"
 	pause_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	pause_title_label.custom_minimum_size.x = 700
-	pause_title_label.add_theme_font_size_override("font_size", 30)
+	pause_title_label.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else 700
+	pause_title_label.add_theme_font_size_override("font_size", 26 if input_mode.is_touch_mode() else 30)
 	pause_title_label.add_theme_color_override("font_color", Color(0.96, 0.98, 1.0))
 	root.add_child(pause_title_label)
-	var body = HBoxContainer.new()
+	var body: BoxContainer = VBoxContainer.new() if input_mode.is_touch_mode() else HBoxContainer.new()
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 12)
 	root.add_child(body)
-	var tabs = VBoxContainer.new()
-	tabs.custom_minimum_size.x = float(state.ui_layout_defs.get("pause_tab_width", 178.0))
+	var tabs: Container = GridContainer.new() if input_mode.is_touch_mode() else VBoxContainer.new()
+	if tabs is GridContainer:
+		(tabs as GridContainer).columns = 4
+	tabs.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else float(state.ui_layout_defs.get("pause_tab_width", 178.0))
 	tabs.add_theme_constant_override("separation", 6)
-	body.add_child(tabs)
+	if not input_mode.is_touch_mode():
+		body.add_child(tabs)
 	pause_tab_buttons = []
 	for i in range(pause_tabs.size()):
 		var button = CrystalButtonScript.new()
-		button.setup("%d  %s" % [i + 1, pause_tabs[i]], Color(0.42, 0.82, 1.0), Vector2(float(state.ui_layout_defs.get("pause_tab_width", 178.0)), 42))
-		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var tab_text: String = pause_tabs[i] if input_mode.is_touch_mode() else "%d  %s" % [i + 1, pause_tabs[i]]
+		button.setup(tab_text, Color(0.42, 0.82, 1.0), Vector2(132 if input_mode.is_touch_mode() else float(state.ui_layout_defs.get("pause_tab_width", 178.0)), 56 if input_mode.is_touch_mode() else 42))
+		button.alignment = HORIZONTAL_ALIGNMENT_CENTER if input_mode.is_touch_mode() else HORIZONTAL_ALIGNMENT_LEFT
 		var index = i
 		button.pressed.connect(func(): set_pause_tab(index))
 		tabs.add_child(button)
@@ -918,7 +1042,8 @@ func _build_pause_ui() -> void:
 	pause_content.add_theme_color_override("font_color", Color(0.86, 0.92, 0.98))
 	scroll.add_child(pause_content)
 	var summary_panel = PanelContainer.new()
-	summary_panel.custom_minimum_size.x = float(state.ui_layout_defs.get("pause_summary_width", 286.0))
+	summary_panel.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else float(state.ui_layout_defs.get("pause_summary_width", 286.0))
+	summary_panel.visible = not input_mode.is_touch_mode()
 	summary_panel.add_theme_stylebox_override("panel", _hud_panel_style(Color(1.0, 0.82, 0.34)))
 	body.add_child(summary_panel)
 	pause_summary = Label.new()
@@ -928,8 +1053,13 @@ func _build_pause_ui() -> void:
 	pause_summary.add_theme_font_size_override("font_size", 16)
 	pause_summary.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0))
 	summary_panel.add_child(pause_summary)
-	pause_action_row = HBoxContainer.new()
-	pause_action_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	if input_mode.is_touch_mode():
+		root.add_child(tabs)
+	pause_action_row = GridContainer.new() if input_mode.is_touch_mode() else HBoxContainer.new()
+	if pause_action_row is GridContainer:
+		(pause_action_row as GridContainer).columns = 2
+	else:
+		pause_action_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	pause_action_row.add_theme_constant_override("separation", 10)
 	root.add_child(pause_action_row)
 	pause_confirm_dialog = ConfirmDialogScript.new()
@@ -953,7 +1083,7 @@ func _toggle_pause() -> void:
 	if state.paused:
 		_refresh_pause_ui()
 	else:
-		message_label.text = "移動 WASD/矢印　F/右クリック スキャン　R ドローン　Esc ポーズ"
+		message_label.text = "左下をドラッグして移動　右下でスキャン・回収・倍速" if input_mode.is_touch_mode() else "移動 WASD/矢印　F/右クリック スキャン　R ドローン　Esc ポーズ"
 	_refresh_touch_controls()
 
 func _build_touch_controls(ui_scale: float) -> void:
@@ -961,45 +1091,71 @@ func _build_touch_controls(ui_scale: float) -> void:
 	touch_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	touch_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(touch_root)
-	var extent = touch_control_system.joystick_extent() * ui_scale
+	var viewport_size := get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
+	var safe_rect: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 0.0)))
+	var layout: Dictionary = mobile_hud_layout_system.layout(viewport_size, safe_rect, runtime_settings)
+	var joystick_rect: Rect2 = layout["joystick_rect"]
 	virtual_joystick = VirtualJoystickScript.new()
-	virtual_joystick.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	virtual_joystick.offset_left = 24.0
-	virtual_joystick.offset_right = 24.0 + extent
-	virtual_joystick.offset_top = -24.0 - extent
-	virtual_joystick.offset_bottom = -24.0
-	virtual_joystick.direction_changed.connect(func(value: Vector2): touch_direction = value)
+	_place_touch_rect(virtual_joystick, joystick_rect)
+	virtual_joystick.configure(touch_control_system.touch_button_opacity, true)
+	virtual_joystick.direction_changed.connect(func(value: Vector2):
+		touch_direction = value
+		touch_control_system.set_move_vector(value)
+	)
 	touch_root.add_child(virtual_joystick)
 
-	var button_extent = touch_control_system.button_extent() * ui_scale
+	var button_extent := float(layout["button_extent"])
+	var actions_rect: Rect2 = layout["actions_rect"]
 	var buttons = GridContainer.new()
 	buttons.columns = 2
-	buttons.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	buttons.offset_left = -24.0 - button_extent * 2.0 - 10.0
-	buttons.offset_right = -24.0
-	buttons.offset_top = -24.0 - button_extent * 2.0 - 10.0
-	buttons.offset_bottom = -24.0
+	_place_touch_rect(buttons, actions_rect)
 	buttons.add_theme_constant_override("h_separation", 10)
 	buttons.add_theme_constant_override("v_separation", 10)
 	touch_root.add_child(buttons)
 
-	touch_scan_button = CrystalButtonScript.new()
-	touch_scan_button.setup("探査", Color(0.42, 0.88, 1.0), Vector2(button_extent, button_extent))
-	touch_scan_button.pressed.connect(_scan_field_target)
+	touch_scan_button = TouchActionButtonScript.new()
+	touch_scan_button.setup("action_scan", "スキャン", Color(0.42, 0.88, 1.0), button_extent, false, touch_control_system.touch_button_opacity)
+	touch_scan_button.action_started.connect(_on_touch_action_started)
 	buttons.add_child(touch_scan_button)
-	touch_drone_button = CrystalButtonScript.new()
-	touch_drone_button.setup("回収", Color(0.50, 1.0, 0.70), Vector2(button_extent, button_extent))
-	touch_drone_button.pressed.connect(_activate_recall_drone)
+	touch_drone_button = TouchActionButtonScript.new()
+	touch_drone_button.setup("action_drone", "回収", Color(0.50, 1.0, 0.70), button_extent, false, touch_control_system.touch_button_opacity)
+	touch_drone_button.action_started.connect(_on_touch_action_started)
 	buttons.add_child(touch_drone_button)
-	touch_speed_button = CrystalButtonScript.new()
-	touch_speed_button.setup("倍速", Color(1.0, 0.82, 0.28), Vector2(button_extent, button_extent))
-	touch_speed_button.button_down.connect(func(): touch_control_system.set_speed_pressed(true))
-	touch_speed_button.button_up.connect(func(): touch_control_system.set_speed_pressed(false))
+	touch_speed_button = TouchActionButtonScript.new()
+	touch_speed_button.setup("action_speed_hold", "倍速\n長押し", Color(1.0, 0.82, 0.28), button_extent, true, touch_control_system.touch_button_opacity)
+	touch_speed_button.action_started.connect(_on_touch_action_started)
+	touch_speed_button.action_ended.connect(_on_touch_action_ended)
 	buttons.add_child(touch_speed_button)
-	touch_pause_button = CrystalButtonScript.new()
-	touch_pause_button.setup("停止", Color(1.0, 0.46, 0.42), Vector2(button_extent, button_extent))
-	touch_pause_button.pressed.connect(_toggle_pause)
-	buttons.add_child(touch_pause_button)
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(button_extent, button_extent)
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	buttons.add_child(spacer)
+
+	touch_pause_button = TouchActionButtonScript.new()
+	touch_pause_button.setup("action_pause", "ポーズ", Color(1.0, 0.46, 0.42), float(layout["pause_rect"].size.x), false, touch_control_system.touch_button_opacity)
+	_place_touch_rect(touch_pause_button, layout["pause_rect"])
+	touch_pause_button.action_started.connect(_on_touch_action_started)
+	touch_root.add_child(touch_pause_button)
+	touch_log_button = TouchActionButtonScript.new()
+	touch_log_button.setup("action_open_log", "ログ", Color(0.62, 0.78, 1.0), float(layout["log_rect"].size.x), false, touch_control_system.touch_button_opacity)
+	_place_touch_rect(touch_log_button, layout["log_rect"])
+	touch_log_button.action_started.connect(_on_touch_action_started)
+	touch_root.add_child(touch_log_button)
+	touch_map_button = TouchActionButtonScript.new()
+	touch_map_button.setup("action_open_map", "目標", Color(0.58, 1.0, 0.76), float(layout["map_rect"].size.x), false, touch_control_system.touch_button_opacity)
+	_place_touch_rect(touch_map_button, layout["map_rect"])
+	touch_map_button.action_started.connect(_on_touch_action_started)
+	touch_root.add_child(touch_map_button)
+
+	touch_chest_button = TouchActionButtonScript.new()
+	touch_chest_button.setup("action_confirm", "報酬を確認", Color(1.0, 0.82, 0.28), 190.0, false, 0.94)
+	touch_chest_button.set_anchors_preset(Control.PRESET_CENTER)
+	touch_chest_button.offset_left = -120
+	touch_chest_button.offset_right = 120
+	touch_chest_button.offset_top = 70
+	touch_chest_button.offset_bottom = 132
+	touch_chest_button.action_started.connect(_on_touch_action_started)
+	touch_root.add_child(touch_chest_button)
 	_refresh_touch_controls()
 
 func _refresh_touch_controls() -> void:
@@ -1017,8 +1173,49 @@ func _refresh_touch_controls() -> void:
 	touch_scan_button.visible = not action_blocked
 	touch_drone_button.visible = not action_blocked
 	touch_speed_button.visible = not action_blocked
-	touch_drone_button.disabled = not state.recall_drone_ready
-	touch_pause_button.text = "再開" if state.paused else "停止"
+	touch_drone_button.set_ready_state(state.recall_drone_ready)
+	touch_scan_button.set_active_state(not state.nearby_field_help.is_empty())
+	touch_speed_button.text = "×%.1f" % speed_hold_system.speed_multiplier if speed_active else "倍速\n長押し"
+	touch_pause_button.text = "再開" if state.paused else "ポーズ"
+	touch_log_button.visible = not state.game_over
+	touch_map_button.visible = not state.game_over
+	touch_chest_button.visible = state.chest_pending
+
+func _place_touch_rect(control: Control, rect: Rect2) -> void:
+	control.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	control.offset_left = rect.position.x
+	control.offset_top = rect.position.y
+	control.offset_right = rect.end.x
+	control.offset_bottom = rect.end.y
+
+func _on_touch_action_started(action: String) -> void:
+	touch_control_system.set_action_pressed(action, true, false)
+	match action:
+		"action_scan":
+			_scan_field_target()
+		"action_drone":
+			_activate_recall_drone()
+		"action_speed_hold":
+			touch_control_system.set_speed_pressed(true)
+		"action_pause":
+			_toggle_pause()
+		"action_open_log":
+			if not state.paused:
+				_toggle_pause()
+			set_pause_tab(8)
+		"action_open_map":
+			if goal_panel != null:
+				goal_panel.visible = not goal_panel.visible
+		"action_confirm":
+			if state.chest_pending:
+				state.chest_pending = false
+				state.chest_timer = 0.0
+				message_label.text = state.chest_message
+
+func _on_touch_action_ended(action: String) -> void:
+	touch_control_system.set_action_pressed(action, false, false)
+	if action == "action_speed_hold":
+		touch_control_system.set_speed_pressed(false)
 
 func set_pause_tab(index: int) -> void:
 	pause_tab_index = clampi(index, 0, pause_tabs.size() - 1)
@@ -1054,8 +1251,9 @@ func _refresh_pause_ui() -> void:
 	pause_summary.text = _pause_summary_text()
 	for i in range(pause_tab_buttons.size()):
 		var button: Button = pause_tab_buttons[i]
-		button.setup("%d  %s" % [i + 1, pause_tabs[i]], Color(1.0, 0.82, 0.34) if i == pause_tab_index else Color(0.42, 0.82, 1.0), Vector2(float(state.ui_layout_defs.get("pause_tab_width", 178.0)), 42))
-		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var tab_text: String = pause_tabs[i] if input_mode.is_touch_mode() else "%d  %s" % [i + 1, pause_tabs[i]]
+		button.setup(tab_text, Color(1.0, 0.82, 0.34) if i == pause_tab_index else Color(0.42, 0.82, 1.0), Vector2(132 if input_mode.is_touch_mode() else float(state.ui_layout_defs.get("pause_tab_width", 178.0)), 56 if input_mode.is_touch_mode() else 42))
+		button.alignment = HORIZONTAL_ALIGNMENT_CENTER if input_mode.is_touch_mode() else HORIZONTAL_ALIGNMENT_LEFT
 	_refresh_pause_actions()
 
 func _refresh_pause_actions() -> void:
@@ -1065,7 +1263,7 @@ func _refresh_pause_actions() -> void:
 		child.queue_free()
 	if pause_tab_index == 7:
 		var auto_button = CrystalButtonScript.new()
-		auto_button.setup("無限強化 %s" % ("ON" if state.auto_infinite_enabled else "OFF"), Color(0.52, 1.0, 0.72), Vector2(180, 42))
+		auto_button.setup("無限強化 %s" % ("ON" if state.auto_infinite_enabled else "OFF"), Color(0.52, 1.0, 0.72), Vector2(180, 56 if input_mode.is_touch_mode() else 42))
 		auto_button.pressed.connect(func():
 			state.auto_infinite_enabled = not state.auto_infinite_enabled
 			SaveSystem.new().update_settings({"auto_infinite": state.auto_infinite_enabled})
@@ -1073,7 +1271,7 @@ func _refresh_pause_actions() -> void:
 		)
 		pause_action_row.add_child(auto_button)
 		var recall_button = CrystalButtonScript.new()
-		recall_button.setup("自動ドローン %s" % ("ON" if state.auto_recall_drone_enabled else "OFF"), Color(0.52, 1.0, 0.72), Vector2(180, 42))
+		recall_button.setup("自動ドローン %s" % ("ON" if state.auto_recall_drone_enabled else "OFF"), Color(0.52, 1.0, 0.72), Vector2(180, 56 if input_mode.is_touch_mode() else 42))
 		recall_button.pressed.connect(func():
 			state.auto_recall_drone_enabled = not state.auto_recall_drone_enabled
 			SaveSystem.new().update_settings({"auto_recall_drone": state.auto_recall_drone_enabled})
@@ -1081,15 +1279,15 @@ func _refresh_pause_actions() -> void:
 		)
 		pause_action_row.add_child(recall_button)
 	var settings_button = CrystalButtonScript.new()
-	settings_button.setup("設定", Color(0.52, 1.0, 0.72), Vector2(130, 42))
+	settings_button.setup("設定", Color(0.52, 1.0, 0.72), Vector2(160, 56 if input_mode.is_touch_mode() else 42))
 	settings_button.pressed.connect(func(): set_pause_tab(7))
 	pause_action_row.add_child(settings_button)
 	var title_button = CrystalButtonScript.new()
-	title_button.setup("タイトルへ戻る", Color(1.0, 0.34, 0.42), Vector2(180, 42), true)
+	title_button.setup("タイトルへ戻る", Color(1.0, 0.34, 0.42), Vector2(180, 56 if input_mode.is_touch_mode() else 42), true)
 	title_button.pressed.connect(_show_title_confirm)
 	pause_action_row.add_child(title_button)
 	var resume_button = CrystalButtonScript.new()
-	resume_button.setup("ゲームへ戻る", Color(0.42, 0.82, 1.0), Vector2(170, 42))
+	resume_button.setup("ゲームへ戻る", Color(0.42, 0.82, 1.0), Vector2(180, 64 if input_mode.is_touch_mode() else 42))
 	resume_button.pressed.connect(_toggle_pause)
 	pause_action_row.add_child(resume_button)
 
@@ -1192,7 +1390,7 @@ func _pause_field_help_text() -> String:
 	lines.append_array([
 		"",
 		"フィールド対象へ近づくと左下に短い説明が出ます。",
-		"Fキーまたは右クリックで、効果・対処・報酬・危険度をスキャンできます。",
+		"スキャンボタンで、効果・対処・報酬・危険度を確認できます。" if input_mode.is_touch_mode() else "Fキーまたは右クリックで、効果・対処・報酬・危険度をスキャンできます。",
 		"初回発見はセーブされ、図鑑のドロップ/ギミック/イベントへ記録されます。",
 		""
 	])
@@ -1230,6 +1428,15 @@ func _pause_contract_text() -> String:
 
 func _pause_settings_text() -> String:
 	var settings: Dictionary = SaveSystem.new().load_data().get("settings", {})
+	if input_mode.is_touch_mode():
+		return "\n".join([
+			"無限強化だけ自動選択 %s" % ("ON" if state.auto_infinite_enabled else "OFF"),
+			"自動回収ドローン %s" % ("ON" if state.auto_recall_drone_enabled else "OFF"),
+			"倍速ボタン長押し：%s / x%.1f" % ["ON" if bool(settings.get("speed_hold_enabled", true)) else "OFF", float(settings.get("speed_multiplier", 2.0))],
+			"通知ログ：%s　武器HUD：%s　パッシブHUD：%s" % ["ON" if bool(settings.get("notification_log_enabled", true)) else "OFF", "ON" if bool(settings.get("weapon_hud_enabled", true)) else "OFF", "ON" if bool(settings.get("passive_hud_enabled", true)) else "OFF"],
+			"詳細設定はタイトル画面の設定で変更できます。",
+			"再開ボタンでゲームへ戻る"
+		])
 	return "\n".join([
 		"I：無限強化だけ自動選択 %s" % ("ON" if state.auto_infinite_enabled else "OFF"),
 		"R：自動回収ドローン %s" % ("ON" if state.auto_recall_drone_enabled else "OFF"),

@@ -2,6 +2,77 @@
 
 Godot 4.2 + GDScript製のWindows/iOS向けサバイバーアクションです。内部フォルダ名とexe名は既存配布互換のため`ChronoMergeTactics`のままです。iOSはGitHub Actionsで未署名IPAを生成します。
 
+## iOS完全タッチ対応 / UI設計メモ
+
+Apple公式Human Interface Guidelinesの[Layout](https://developer.apple.com/design/human-interface-guidelines/layout)、[Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons)、[Designing for games](https://developer.apple.com/design/human-interface-guidelines/designing-for-games)、[Game controls](https://developer.apple.com/design/human-interface-guidelines/game-controls)、[Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility)を確認しました。Godot側は[DisplayServer](https://docs.godotengine.org/en/4.2/classes/class_displayserver.html)、[InputEventScreenTouch](https://docs.godotengine.org/en/4.2/classes/class_inputeventscreentouch.html)、[InputEventScreenDrag](https://docs.godotengine.org/en/4.2/classes/class_inputeventscreendrag.html)、[Input examples](https://docs.godotengine.org/en/4.2/tutorials/inputs/input_examples.html)を実装根拠にしています。
+
+反映する設計原則:
+
+* iOSではキーボード必須操作とキー前提の案内を表示せず、全操作をタップ、ドラッグ、長押しで完結させる。
+* タップ対象は44pt相当以上とし、ゲーム中の主要ボタンは56px以上、仮想スティック領域は120から160px以上を確保する。
+* 左下を移動、右下をスキャン、回収、倍速、右上をポーズとし、画面中央の戦闘視認性を維持する。
+* `DisplayServer.screen_get_usable_rect()`と端末解像度プリセットを併用し、Dynamic Island、ノッチ、角丸、Home Indicatorを避ける。
+* iPhoneは縦積み、横スクロール、下部タブを優先し、iPadは2カラムを許可する。PC UIを単純縮小しない。
+* 選択カード全体をタップ可能にし、契約スキップ、報酬確認、ポーズ再開、戻るを常時見えるボタンとして用意する。
+* 押下、使用不可、クールダウン、READY、倍速中の状態を色と明度で区別し、必要な操作に短い振動フィードバックを付ける。
+* Windowsでは従来のキーボードとマウスを維持し、設定の「タッチUIプレビュー」で同じタッチ導線をマウス検証できるようにする。
+
+レイアウト検証対象は横画面の`1334x750`、`1792x828`、`2532x1170`、`2556x1179`、`2796x1290`、`2388x1668`、`2732x2048`です。
+
+### iOS完全タップ対応
+
+タイトル、キャラクター選択、ショップ、図鑑、実績、設定、ゲームHUD、レベルアップ、ルーン契約、宝箱、ポーズ、リザルトをタップだけで操作できます。iOS実行時は`ios_touch`を自動選択し、Windowsでは設定の「タッチ操作UI」を`on`にするとマウスで同じ導線を確認できます。
+
+ゲーム中は左下の動的仮想スティックで移動し、右下のスキャン、回収、倍速長押しを使用します。ログ、目標表示、ポーズはSafe Area内の上部ボタンです。回収READY、スキャン対象、使用不可、倍速中を明度と文言で表示します。
+
+レベルアップ、パッシブ、進化候補、過充電、ルーン契約はカード全体をタップできます。再抽選、封印、契約スキップは残り回数付きボタンです。宝箱待機中は「報酬を確認」で即時に進行できます。
+
+ポーズはiPhone向けに中央スクロールと下部タブへ切り替わります。リザルトは「もう一度」「キャラ変更」「強化へ」「図鑑へ」「タイトルへ」を常設し、詳細はスクロールできます。Windows版のWASD/矢印、F/右クリック、R、Shift、Esc、1/2/3、Enter、マウス操作は維持しています。
+
+### iOS設定
+
+設定画面には仮想スティック、タッチボタンサイズ、ボタン透明度、右利き/左利き、HUDサイズ、Safe Area余白、振動、描画品質、エフェクト量、ダメージ数字、画面揺れ、通知ログ量があります。iOS低品質設定はエフェクト、ダメージ数字、通知行、UIアニメーション上限をデスクトップより低くします。
+
+初回タッチ操作説明は3枚だけです。
+
+1. 左下をドラッグして移動
+2. 右下ボタンでスキャン・回収・倍速
+3. カード全体をタップして選択
+
+設定から再表示でき、いつでもスキップできます。
+
+### 操作対応表
+
+| 操作 | Windows | iOS |
+| --- | --- | --- |
+| 移動 | WASD / 矢印 | 仮想スティック |
+| スキャン | F / 右クリック | スキャンボタン |
+| 回収 | R | 回収ボタン |
+| 倍速 | Shift等を長押し | 倍速ボタンを長押し |
+| ポーズ | Esc | ポーズボタン |
+| レベルアップ | 1/2/3 / クリック | カードタップ |
+| 契約 | 1/2/3 / クリック | カードタップ / スキップ |
+| 宝箱 | 自動 / クリック | 報酬を確認 |
+| リザルト | Enter / クリック | タップボタン |
+
+### iOSテスト
+
+```powershell
+& $GODOT --headless --path $PROJECT --script "res://tests/test_runner.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_ios_touch_60sec.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_ios_touch_5min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_ios_levelup_selection.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_ios_menu_flow.gd"
+```
+
+単体テストはキーボード不要導線、選択画面、禁止入力文言、7解像度Safe Area、メニュー、ポーズ、リザルト、iOS性能上限を検査します。GitHub Actionsの標準テストはこれらを`test_runner.gd`経由で実行し、`full_test=true`では4本のiOSタッチ自動プレイも実行します。
+
+### 既知の問題と手動確認
+
+CIとWindowsのタッチプレビューではSafe Areaとタッチ導線を検証できますが、Dynamic Island/Home Indicatorの実表示、端末ごとの指の届きやすさ、振動強度、iPadの余白は実機確認が必要です。iPhoneで仮想スティック、選択カード、契約、宝箱、リザルトが連続操作できること、左右利き手配置、文字サイズ、10分以降の描画負荷を確認してください。
+
+GitHub ActionsはWindows artifactとiOS unsigned IPAを生成します。IPAは未署名で、通常のiPhoneへ直接インストールできません。AltStore、Sideloadly、Xcode、または自身のApple署名フローが必要です。
+
 ## 真ダンジョン・倍速・戦況HUD
 
 フィールドは120x120グリッド、1タイル64pxで生成します。14から20室の矩形、横長、縦長、L字、円形、洞窟、小部屋、金庫、闘技場と、直線、L字、ジグザグ、細道、広道、ループ、破壊ショートカットをseedから決定します。床セル以外は奈落で、プレイヤー、敵、ドロップ、宝箱、イベント生成物は床セル上だけに存在できます。

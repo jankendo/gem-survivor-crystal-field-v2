@@ -6,14 +6,15 @@ const UiNavigation = preload("res://scripts/ui/UiNavigation.gd")
 
 var reward: Dictionary = {}
 
-func setup(value: Dictionary, index: int) -> void:
+func setup(value: Dictionary, index: int, touch_mode: bool = false) -> void:
 	reward = value.duplicate(true)
 	var kind := String(reward.get("kind", ""))
 	var tag := String(reward.get("type_label", "選択"))
 	var evo := String(reward.get("evolution_hint", ""))
 	var suffix := "\n%s" % evo if evo != "" else ""
-	text = "%d　[%s] %s\n%s%s" % [index, tag, JaText.reward_name(reward), JaText.reward_description(reward), suffix]
-	custom_minimum_size = Vector2(520, 108)
+	var prefix := "" if touch_mode else "%d　" % index
+	text = "%s[%s] %s\n%s%s\n%s" % [prefix, tag, JaText.reward_name(reward), JaText.reward_description(reward), suffix, "タップして選択" if touch_mode else "クリックして選択"]
+	custom_minimum_size = Vector2(520, 124 if touch_mode else 108)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	focus_mode = Control.FOCUS_NONE
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND

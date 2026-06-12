@@ -2,8 +2,12 @@ extends SceneTree
 
 var failures: Array = []
 var assertions := 0
+var original_settings: Dictionary = {}
 
 func _initialize() -> void:
+	var save := SaveSystem.new()
+	original_settings = save.load_data().get("settings", {}).duplicate(true)
+	save.update_settings({"touch_ui_mode": "auto"})
 	var suites := [
 		"res://tests/test_player_movement.gd",
 		"res://tests/test_weapon_system.gd",
@@ -38,6 +42,14 @@ func _initialize() -> void:
 		"res://tests/test_layout_settings.gd",
 		"res://tests/test_export_preset.gd",
 		"res://tests/test_touch_controls_config.gd",
+		"res://tests/test_ios_no_keyboard_required.gd",
+		"res://tests/test_ios_touch_selection_screens.gd",
+		"res://tests/test_ios_input_text_audit.gd",
+		"res://tests/test_ios_safe_area_layout.gd",
+		"res://tests/test_ios_menu_layout.gd",
+		"res://tests/test_ios_pause_layout.gd",
+		"res://tests/test_ios_result_layout.gd",
+		"res://tests/test_ios_performance_profile.gd",
 		"res://tests/test_balance_log_system.gd",
 		"res://tests/test_audio_assets.gd",
 		"res://tests/test_japanese_text.gd",
@@ -100,6 +112,7 @@ func _initialize() -> void:
 		var suite = load(suite_path).new()
 		print("Running ", suite_path)
 		suite.run(self)
+	save.update_settings(original_settings)
 	if failures.is_empty():
 		print("All tests passed: ", assertions)
 		quit(0)

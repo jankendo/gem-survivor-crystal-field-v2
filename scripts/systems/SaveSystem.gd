@@ -238,6 +238,13 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 			"touch_ui_mode": "auto",
 			"virtual_joystick_enabled": true,
 			"touch_button_size": "standard",
+			"touch_button_opacity": 0.78,
+			"touch_handedness": "right",
+			"touch_haptics": true,
+			"touch_tutorial_seen": false,
+			"hud_scale": 1.0,
+			"safe_area_margin": 0.0,
+			"notification_log_amount": "standard",
 			"render_quality": "standard"
 		}
 	var stat_defaults := {
@@ -297,6 +304,13 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 		"touch_ui_mode": "auto",
 		"virtual_joystick_enabled": true,
 		"touch_button_size": "standard",
+		"touch_button_opacity": 0.78,
+		"touch_handedness": "right",
+		"touch_haptics": true,
+		"touch_tutorial_seen": false,
+		"hud_scale": 1.0,
+		"safe_area_margin": 0.0,
+		"notification_log_amount": "standard",
 		"render_quality": "standard"
 	}
 	var settings: Dictionary = data.get("settings", {})
