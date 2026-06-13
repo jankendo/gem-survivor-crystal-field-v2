@@ -50,7 +50,8 @@ jobs:
       - name: Run standard tests
         shell: pwsh
         run: |
-          $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_win64.exe" | Select-Object -First 1).FullName
+          $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_win64_console.exe" | Select-Object -First 1).FullName
+          & $godot --headless --editor --path . --quit-after 1000
           & $godot --headless --path . --check-only --script res://tests/test_runner.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/test_runner.gd
@@ -66,7 +67,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.full_test == 'true' }}
         shell: pwsh
         run: |
-          $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_win64.exe" | Select-Object -First 1).FullName
+          $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_win64_console.exe" | Select-Object -First 1).FullName
           $scripts = @(
             "res://tests/auto_play_10min.gd",
             "res://tests/auto_play_30min_balance.gd",
@@ -94,7 +95,7 @@ jobs:
       - name: Export Windows release
         shell: pwsh
         run: |
-          $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_win64.exe" | Select-Object -First 1).FullName
+          $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_win64_console.exe" | Select-Object -First 1).FullName
           New-Item -ItemType Directory -Force -Path builds/windows | Out-Null
           & $godot --headless --path . --export-release "${env:WINDOWS_PRESET}" "builds/windows/${env:EXPORT_NAME}.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

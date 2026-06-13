@@ -2,15 +2,16 @@ extends SceneTree
 
 const JaText = preload("res://scripts/ui/JaText.gd")
 const PlayerScript = preload("res://scripts/systems/Player.gd")
+const SaveSystemScript = preload("res://scripts/systems/SaveSystem.gd")
 
 var failures: Array = []
 var old_settings: Dictionary = {}
 
 func _initialize() -> void:
-	old_settings = SaveSystem.new().load_data().get("settings", {}).duplicate(true)
-	SaveSystem.new().update_settings({"touch_ui_mode": "auto", "desktop_touch_preview": false})
+	old_settings = SaveSystemScript.new().load_data().get("settings", {}).duplicate(true)
+	SaveSystemScript.new().update_settings({"touch_ui_mode": "auto", "desktop_touch_preview": false})
 	await _run()
-	SaveSystem.new().update_settings(old_settings)
+	SaveSystemScript.new().update_settings(old_settings)
 	if failures.is_empty():
 		print("AutoPlay OK: title, help, movement, auto attack, gem pickup, level up, 60s run, result retry.")
 		quit(0)
@@ -22,7 +23,7 @@ func _initialize() -> void:
 func _run() -> void:
 	var packed: PackedScene = load("res://scenes/Main.tscn")
 	_assert(packed != null, "Main scene should load")
-	SaveSystem.new().save_help_seen(false)
+	SaveSystemScript.new().save_help_seen(false)
 	var main: Node = packed.instantiate()
 	root.add_child(main)
 	await process_frame

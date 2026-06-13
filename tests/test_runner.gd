@@ -1,11 +1,13 @@
 extends SceneTree
 
+const SaveSystemScript = preload("res://scripts/systems/SaveSystem.gd")
+
 var failures: Array = []
 var assertions := 0
 var original_settings: Dictionary = {}
 
 func _initialize() -> void:
-	var save := SaveSystem.new()
+	var save := SaveSystemScript.new()
 	original_settings = save.load_data().get("settings", {}).duplicate(true)
 	save.update_settings({"touch_ui_mode": "auto"})
 	var suites := [
