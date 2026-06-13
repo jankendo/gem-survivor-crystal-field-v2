@@ -243,9 +243,21 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 			"touch_haptics": true,
 			"touch_tutorial_seen": false,
 			"hud_scale": 1.0,
-			"safe_area_margin": 0.0,
+			"safe_area_margin": 16.0,
 			"notification_log_amount": "standard",
-			"render_quality": "standard"
+			"render_quality": "standard",
+			"joystick_offset_x": 0.0,
+			"joystick_offset_y": 0.0,
+			"minimap_size": "standard",
+			"minimap_opacity": "standard",
+			"map_tap_expand": true,
+			"camera_view_size": "standard",
+			"equipment_hud_mode": "simple",
+			"developer_overlay": false,
+			"ui_animation_amount": "standard",
+			"minimap_update_hz": 8,
+			"background_particles": true,
+			"low_power_mode": false
 		}
 	var stat_defaults := {
 		"total_kills": 0,
@@ -309,9 +321,21 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 		"touch_haptics": true,
 		"touch_tutorial_seen": false,
 		"hud_scale": 1.0,
-		"safe_area_margin": 0.0,
+		"safe_area_margin": 16.0,
 		"notification_log_amount": "standard",
-		"render_quality": "standard"
+		"render_quality": "standard",
+		"joystick_offset_x": 0.0,
+		"joystick_offset_y": 0.0,
+		"minimap_size": "standard",
+		"minimap_opacity": "standard",
+		"map_tap_expand": true,
+		"camera_view_size": "standard",
+		"equipment_hud_mode": "simple",
+		"developer_overlay": false,
+		"ui_animation_amount": "standard",
+		"minimap_update_hz": 8,
+		"background_particles": true,
+		"low_power_mode": false
 	}
 	var settings: Dictionary = data.get("settings", {})
 	for key in setting_defaults.keys():

@@ -13,17 +13,14 @@ func run(t) -> void:
 	]
 	for size in sizes:
 		var safe: Rect2 = safe_system.safe_rect(size, 8.0)
-		var minimap_dock := Rect2(
-			Vector2(safe.end.x - 184.0, safe.end.y - 184.0),
-			Vector2.ONE * 184.0
-		)
 		for handedness in ["right", "left"]:
 			var layout: Dictionary = hud_system.layout(size, safe, {"touch_handedness": handedness})
 			t.assert_true(safe.encloses(layout["joystick_rect"]), "joystick should stay in safe area at %s" % str(size))
 			t.assert_true(safe.encloses(layout["actions_rect"]), "actions should stay in safe area at %s" % str(size))
 			t.assert_true(safe.encloses(layout["pause_rect"]), "pause should stay in safe area at %s" % str(size))
-			t.assert_true(not layout["joystick_rect"].intersects(minimap_dock), "joystick should not overlap minimap at %s" % str(size))
-			t.assert_true(not layout["actions_rect"].intersects(minimap_dock), "actions should not overlap minimap at %s" % str(size))
-			t.assert_true(float(layout["button_extent"]) >= 56.0, "touch target should remain accessible")
+			t.assert_true(safe.encloses(layout["minimap_rect"]), "minimap should stay in safe area at %s" % str(size))
+			t.assert_true(not layout["joystick_rect"].intersects(layout["minimap_rect"]), "joystick should not overlap minimap at %s" % str(size))
+			t.assert_true(not layout["actions_rect"].intersects(layout["minimap_rect"]), "actions should not overlap minimap at %s" % str(size))
+			t.assert_true(float(layout["button_extent"]) >= 64.0, "touch target should remain accessible")
 	var left_layout: Dictionary = hud_system.layout(Vector2(2556, 1179), safe_system.safe_rect(Vector2(2556, 1179)), {"touch_handedness": "left"})
 	t.assert_true(left_layout["joystick_rect"].position.x > left_layout["actions_rect"].position.x, "left handed layout should swap joystick and actions")

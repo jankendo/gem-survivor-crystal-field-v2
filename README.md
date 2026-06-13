@@ -2,6 +2,38 @@
 
 Godot 4.2 + GDScript製のWindows/iOS向けサバイバーアクションです。内部フォルダ名とexe名は既存配布互換のため`ChronoMergeTactics`のままです。iOSはGitHub Actionsで未署名IPAを生成します。
 
+## iOS実機最適化UI/UX再設計メモ
+
+2026年6月13日にApple公式の[Layout](https://developer.apple.com/design/human-interface-guidelines/layout)、[Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons)、[Designing for games](https://developer.apple.com/design/human-interface-guidelines/designing-for-games)、[Game controls](https://developer.apple.com/design/human-interface-guidelines/game-controls)、[Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility)を再確認しました。実装面ではGodot 4.2の[DisplayServer](https://docs.godotengine.org/en/4.2/classes/class_displayserver.html)、[Control](https://docs.godotengine.org/en/4.2/classes/class_control.html)、[Camera2D](https://docs.godotengine.org/en/4.2/classes/class_camera2d.html)、[InputEventScreenTouch](https://docs.godotengine.org/en/4.2/classes/class_inputeventscreentouch.html)を参照しています。
+
+今回の実機最適化では次を基準にしています。
+
+* 操作対象は44pt相当以上、主要ボタンは64から80px、補助ボタンは52から60pxを下限にする。
+* 仮想スティックは外輪180から220px、ノブ72から96pxとし、入力領域は見た目より30%広くする。
+* Dynamic Island、ノッチ、角丸、Home Indicatorを避けるため、端末別推定値と`screen_get_usable_rect()`の両方からSafe Areaを決定する。
+* iPhoneは親指操作を優先し、左下を移動、右下をアクション、右上をミニマップとポーズに固定する。
+* 小型iPhoneでは長文や詳細を常設せず、横スクロール、折りたたみ、下部シートへ逃がす。
+* キャラクター一覧はコンパクトカードと詳細を分離し、小型iPhoneで3件、標準で4件、Pro Maxで5件、iPadで8件以上を同時に確認できる密度にする。
+* iPadはiPhoneの単純拡大にせず、4:3に近い画面では2カラムまたは4列グリッドを使う。
+* ミニマップはiPhoneで従来の約1.5倍にし、タップで拡大マップを開閉できるようにする。
+* iOS、release、desktop初期状態ではCPU、FPS、メモリ、profiler、safe area、touch pointなどの開発者表示を一切出さない。
+* Windowsでは従来HUDとキー操作を維持し、設定でタッチUIプレビューを有効にした場合だけモバイルUIを表示する。
+
+端末分類は`compact_phone`、`regular_phone`、`large_phone`、`tablet`の4段階です。寸法値は`data/mobile_ui_scale.json`で管理し、メニュー、キャラクター選択、HUD、仮想スティック、ミニマップ、カメラ表示が同じ分類結果を使います。
+
+### iOS実機品質チェックリスト
+
+* キャラクター一覧が2件だけにならず、端末分類ごとの最低表示数を満たす。
+* ボタン、カード、仮想スティックを指で安定して操作できる。
+* ミニマップのピンを識別でき、タップで拡大マップを開閉できる。
+* CPU、FPS、memory、debug、profiler、内部ID、タッチ座標が通常画面に出ない。
+* Dynamic Island、ノッチ、角丸、Home Indicatorに主要UIが重ならない。
+* 1334x750相当でも本文16px以上、主要本文18px以上を維持する。
+* Pro Maxで操作UIが中央へ寄りすぎず、iPadで余白が間延びしない。
+* レベルアップ、契約、宝箱、ポーズ、リザルトをタップだけで連続操作できる。
+* 10分以降も低電力設定、通知件数、ミニマップ更新頻度、背景粒子制限が機能する。
+* Windows標準起動では巨大なタッチUIが表示されず、WASD、F、R、Shift、Escが維持される。
+
 ## iOS完全タッチ対応 / UI設計メモ
 
 Apple公式Human Interface Guidelinesの[Layout](https://developer.apple.com/design/human-interface-guidelines/layout)、[Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons)、[Designing for games](https://developer.apple.com/design/human-interface-guidelines/designing-for-games)、[Game controls](https://developer.apple.com/design/human-interface-guidelines/game-controls)、[Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility)を確認しました。Godot側は[DisplayServer](https://docs.godotengine.org/en/4.2/classes/class_displayserver.html)、[InputEventScreenTouch](https://docs.godotengine.org/en/4.2/classes/class_inputeventscreentouch.html)、[InputEventScreenDrag](https://docs.godotengine.org/en/4.2/classes/class_inputeventscreendrag.html)、[Input examples](https://docs.godotengine.org/en/4.2/tutorials/inputs/input_examples.html)を実装根拠にしています。

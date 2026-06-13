@@ -55,6 +55,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/test_runner.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/inspect_ios_layout.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/auto_play_60sec.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/auto_play_5min.gd
@@ -78,7 +80,8 @@ jobs:
             "res://tests/auto_play_ios_touch_60sec.gd",
             "res://tests/auto_play_ios_touch_5min.gd",
             "res://tests/auto_play_ios_levelup_selection.gd",
-            "res://tests/auto_play_ios_menu_flow.gd"
+            "res://tests/auto_play_ios_menu_flow.gd",
+            "res://tests/auto_play_ios_layout_qa.gd"
           )
           foreach ($script in $scripts) {
             & $godot --headless --path . --script $script
@@ -104,6 +107,13 @@ jobs:
         with:
           name: Balance-Report
           path: balance_report.md
+          if-no-files-found: error
+
+      - name: Upload iOS layout QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS-Layout-QA
+          path: test-output/screenshots/ios_layout/
           if-no-files-found: error
 
   ios-unsigned-build:

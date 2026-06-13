@@ -3,10 +3,32 @@ class_name EquipmentHudSystem
 
 var show_weapons := true
 var show_passives := true
+var display_mode := "simple"
 
 func configure(settings: Dictionary) -> void:
 	show_weapons = bool(settings.get("weapon_hud_enabled", true))
 	show_passives = bool(settings.get("passive_hud_enabled", true))
+	display_mode = String(settings.get("equipment_hud_mode", "simple"))
+	if display_mode == "hidden":
+		show_weapons = false
+		show_passives = false
+
+func compact_text(state) -> String:
+	if display_mode == "hidden":
+		return ""
+	var weapon_parts: Array = []
+	var passive_parts: Array = []
+	for raw_id in state.weapons.keys():
+		var id := String(raw_id)
+		weapon_parts.append("%s%d" % ["◆" if state.evolved_weapons.has(id) else "◇", int(state.weapons[id])])
+	for raw_id in state.passives.keys():
+		passive_parts.append("○%d" % int(state.passives[raw_id]))
+	if display_mode in ["detail", "detailed"]:
+		return "%s\n%s" % [weapon_text(state), passive_text(state)]
+	return "武器 %s　補助 %s" % [
+		" ".join(weapon_parts) if not weapon_parts.is_empty() else "-",
+		" ".join(passive_parts) if not passive_parts.is_empty() else "-"
+	]
 
 func weapon_text(state) -> String:
 	if not show_weapons:

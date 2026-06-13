@@ -7,9 +7,12 @@ const MAX_HISTORY := 50
 var enabled := true
 var entries: Array = []
 var history: Array = []
+var visible_limit := MAX_VISIBLE
 
-func configure(settings: Dictionary) -> void:
+func configure(settings: Dictionary, platform: String = OS.get_name()) -> void:
 	enabled = bool(settings.get("notification_log_enabled", true))
+	var amount := String(settings.get("notification_log_amount", "standard"))
+	visible_limit = 2 if amount == "low" else (3 if platform == "iOS" or String(settings.get("touch_ui_mode", "auto")) == "on" else MAX_VISIBLE)
 
 func ingest(event: Dictionary, elapsed_seconds: float) -> void:
 	if not enabled:
@@ -26,8 +29,8 @@ func ingest(event: Dictionary, elapsed_seconds: float) -> void:
 	}
 	entries.push_front(entry)
 	history.push_front(entry.duplicate(true))
-	if entries.size() > MAX_VISIBLE:
-		entries.resize(MAX_VISIBLE)
+	if entries.size() > visible_limit:
+		entries.resize(visible_limit)
 	if history.size() > MAX_HISTORY:
 		history.resize(MAX_HISTORY)
 

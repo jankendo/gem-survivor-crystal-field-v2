@@ -21,7 +21,7 @@ func _toggle() -> void:
 
 func _refresh() -> void:
 	text = "%s：%s" % [option_name, "ON" if value else "OFF"]
-	custom_minimum_size = Vector2(300, 44)
+	custom_minimum_size = Vector2(300, 56)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	focus_mode = Control.FOCUS_NONE
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND

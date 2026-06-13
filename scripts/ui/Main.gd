@@ -17,6 +17,7 @@ const ShopCategorySystemScript := preload("res://scripts/systems/ShopCategorySys
 const CollectionFilterSystemScript := preload("res://scripts/systems/CollectionFilterSystem.gd")
 const InputModeSystemScript := preload("res://scripts/systems/InputModeSystem.gd")
 const MobileSafeAreaSystemScript := preload("res://scripts/systems/MobileSafeAreaSystem.gd")
+const MobileUiScaleSystemScript := preload("res://scripts/systems/MobileUiScaleSystem.gd")
 const UiNavigation := preload("res://scripts/ui/UiNavigation.gd")
 
 var current_screen: Node = null
@@ -51,6 +52,9 @@ var blessing_expanded := false
 var touch_tutorial_page := 0
 var input_mode = InputModeSystemScript.new()
 var mobile_safe_area = MobileSafeAreaSystemScript.new()
+var mobile_ui_scale = MobileUiScaleSystemScript.new()
+var settings_scroll: ScrollContainer
+var settings_section_nodes: Dictionary = {}
 
 func _ready() -> void:
 	_sync_from_save()
@@ -171,14 +175,17 @@ func show_title() -> void:
 	root.add_theme_constant_override("separation", 12)
 	_add_label(root, JaText.TITLE, 36 if input_mode.is_touch_mode() else 42, Color(0.94, 0.98, 1.0))
 	_add_label(root, JaText.SUBTITLE, 18 if input_mode.is_touch_mode() else 20, Color(0.68, 0.84, 1.0))
+	if input_mode.is_touch_mode():
+		_build_touch_title(root)
+		return
 
-	var body: BoxContainer = VBoxContainer.new() if input_mode.is_touch_mode() else HBoxContainer.new()
+	var body := HBoxContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 18)
 	root.add_child(body)
 
 	var menu := VBoxContainer.new()
-	menu.custom_minimum_size = Vector2(0 if input_mode.is_touch_mode() else 330, 0)
+	menu.custom_minimum_size = Vector2(330, 0)
 	menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	menu.add_theme_constant_override("separation", 8)
 	body.add_child(menu)
@@ -190,8 +197,7 @@ func show_title() -> void:
 	_add_menu_button(menu, "設定", show_settings)
 	_add_menu_button(menu, "セーブ初期化", show_reset, Color(1.0, 0.34, 0.42), true)
 	_add_menu_button(menu, "遊び方", func(): show_help(false), Color(0.70, 0.78, 1.0))
-	if not input_mode.is_ios_touch():
-		_add_menu_button(menu, "終了", func(): get_tree().quit(), Color(0.50, 0.58, 0.70))
+	_add_menu_button(menu, "終了", func(): get_tree().quit(), Color(0.50, 0.58, 0.70))
 
 	var info = CrystalCardScript.new()
 	info.setup(Color(0.42, 0.92, 1.0), false)
@@ -207,6 +213,48 @@ func show_title() -> void:
 	_add_label(info_box, "シード：%s" % ("ランダム" if seed_text == "" else seed_text), 18, Color(0.74, 0.86, 0.96), HORIZONTAL_ALIGNMENT_LEFT)
 	var input_help := "各ボタンをタップして選択できます。" if input_mode.is_touch_mode() else "マウスで開始/選択できます。Enter/C/U/L/A/S/R/H/I/Esc のキーボード操作も有効です。"
 	_add_label(info_box, input_help, 17, Color(0.66, 0.76, 0.88), HORIZONTAL_ALIGNMENT_LEFT)
+
+func _build_touch_title(root: VBoxContainer) -> void:
+	var status = CrystalCardScript.new()
+	status.setup(Color(0.42, 0.92, 1.0), false, Vector2(0, 92))
+	status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_child(status)
+	var status_box := VBoxContainer.new()
+	status_box.add_theme_constant_override("separation", 4)
+	status.add_child(status_box)
+	_add_label(status_box, "現在の遠征準備", 24, Color(0.96, 0.98, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
+	var stats: Dictionary = save_data.get("stats", {})
+	_add_label(
+		status_box,
+		"%s　クリスタル貨 %s　最高生存 %s" % [
+			meta_system.display_name(selected_character_id, save_data),
+			JaText.format_int(int(save_data.get("crystal_currency", 0))),
+			JaText.format_time(float(stats.get("best_survival", 0.0)))
+		],
+		17,
+		Color(0.82, 0.92, 1.0),
+		HORIZONTAL_ALIGNMENT_LEFT
+	)
+	var primary := GridContainer.new()
+	primary.columns = 2
+	primary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	primary.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	primary.add_theme_constant_override("h_separation", 12)
+	primary.add_theme_constant_override("v_separation", 12)
+	root.add_child(primary)
+	_add_menu_button(primary, "開始", request_start, Color(0.52, 1.0, 1.0))
+	_add_menu_button(primary, "キャラクター選択", show_character_select)
+	_add_menu_button(primary, "解放 / 強化", show_shop, Color(1.0, 0.82, 0.28))
+	_add_menu_button(primary, "図鑑", show_collection, Color(0.70, 0.86, 1.0))
+	_add_menu_button(primary, "実績", show_quests, Color(0.48, 1.0, 0.66))
+	_add_menu_button(primary, "設定", show_settings)
+	var footer := HBoxContainer.new()
+	footer.add_theme_constant_override("separation", 12)
+	root.add_child(footer)
+	var help_button := _add_menu_button(footer, "遊び方", func(): show_help(false), Color(0.70, 0.78, 1.0))
+	help_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var reset_button := _add_menu_button(footer, "データ初期化", show_reset, Color(1.0, 0.34, 0.42), true)
+	reset_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func request_start() -> void:
 	var settings: Dictionary = save_data.get("settings", {})
@@ -279,13 +327,64 @@ func show_character_select() -> void:
 	var selected_name = meta_system.display_name(selected_character_id, save_data)
 	var blessing_name = String(meta_system.blessings.get(selected_blessing_id, {}).get("name_ja", "攻撃の祝福"))
 	_add_top_bar(root, "キャラクター選択", "クリスタル貨：%s　現在：%s / %s" % [JaText.format_int(int(save_data.get("crystal_currency", 0))), selected_name, blessing_name], show_title)
-	var body: BoxContainer = VBoxContainer.new() if input_mode.is_touch_mode() and not _is_tablet_layout() else HBoxContainer.new()
+	if input_mode.is_touch_mode() and not _is_tablet_layout():
+		_build_phone_character_select(root, selected_name)
+	elif input_mode.is_touch_mode():
+		_build_tablet_character_select(root, selected_name)
+	else:
+		_build_desktop_character_select(root, selected_name)
+
+func _build_phone_character_select(root: VBoxContainer, selected_name: String) -> void:
+	var metrics := mobile_ui_scale.metrics(_layout_device_size())
+	var selected_data := meta_system.character_data(selected_character_id)
+	var detail = CrystalCardScript.new()
+	detail.setup(Color(1.0, 0.82, 0.34), false, Vector2(0, 96))
+	detail.custom_minimum_size.y = 96
+	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_child(detail)
+	var detail_box := VBoxContainer.new()
+	detail_box.add_theme_constant_override("separation", 3)
+	detail.add_child(detail_box)
+	_add_label(detail_box, "%s　%s" % [selected_name, String(selected_data.get("role_ja", ""))], 24, Color(1.0, 0.88, 0.42), HORIZONTAL_ALIGNMENT_LEFT)
+	_add_label(
+		detail_box,
+		"初期武器：%s　特性：%s" % [_weapon_name(String(selected_data.get("initial_weapon", ""))), String(selected_data.get("trait_ja", ""))],
+		16,
+		Color(0.86, 0.93, 0.98),
+		HORIZONTAL_ALIGNMENT_LEFT
+	)
+	var carousel := ScrollContainer.new()
+	carousel.name = "CharacterCarousel"
+	carousel.custom_minimum_size.y = float(metrics.get("character_card_height", 128.0)) + 12.0
+	carousel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	carousel.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	carousel.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	root.add_child(carousel)
+	var cards := HBoxContainer.new()
+	cards.add_theme_constant_override("separation", 10)
+	carousel.add_child(cards)
+	_populate_compact_character_cards(cards, metrics)
+	var actions := HBoxContainer.new()
+	actions.add_theme_constant_override("separation", 12)
+	root.add_child(actions)
+	var blessing := _add_menu_button(actions, "祝福を選ぶ", func():
+		blessing_expanded = not blessing_expanded
+		show_character_select()
+	, Color(1.0, 0.82, 0.28))
+	blessing.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var start := _add_menu_button(actions, "このキャラで開始", start_game, Color(0.52, 1.0, 1.0))
+	start.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if blessing_expanded:
+		_add_phone_blessing_sheet(root)
+
+func _build_tablet_character_select(root: VBoxContainer, selected_name: String) -> void:
+	var body := HBoxContainer.new()
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 14)
 	root.add_child(body)
 	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else 720
+	left.custom_minimum_size.x = 760
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	left.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	left.add_theme_constant_override("separation", 8)
@@ -293,9 +392,45 @@ func show_character_select() -> void:
 	_add_label(left, "キャラ一覧", 22, Color(0.82, 0.92, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
 	var scroll := _scroll(left)
 	var grid := GridContainer.new()
-	grid.columns = 3 if input_mode.is_touch_mode() and _is_tablet_layout() else 2
+	grid.columns = 4
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else 700
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	scroll.add_child(grid)
+	_populate_compact_character_cards(grid, mobile_ui_scale.metrics(_layout_device_size()))
+	var detail = CrystalCardScript.new()
+	detail.setup(Color(1.0, 0.82, 0.34), false, Vector2(410, 0))
+	detail.custom_minimum_size.x = 410
+	detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_child(detail)
+	var detail_box := VBoxContainer.new()
+	detail_box.add_theme_constant_override("separation", 9)
+	detail.add_child(detail_box)
+	var selected_data = meta_system.character_data(selected_character_id)
+	_add_label(detail_box, "選択中キャラ", 18, Color(0.72, 0.82, 0.94), HORIZONTAL_ALIGNMENT_LEFT)
+	_add_label(detail_box, selected_name, 28, Color(1.0, 0.88, 0.42), HORIZONTAL_ALIGNMENT_LEFT)
+	_add_label(detail_box, _character_detail_text(selected_character_id, selected_data), 17, Color(0.86, 0.93, 0.98), HORIZONTAL_ALIGNMENT_LEFT)
+	_add_blessing_picker(detail_box)
+	_add_menu_button(detail_box, "このキャラで開始", start_game, Color(0.52, 1.0, 1.0))
+
+func _build_desktop_character_select(root: VBoxContainer, selected_name: String) -> void:
+	var body := HBoxContainer.new()
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 14)
+	root.add_child(body)
+	var left := VBoxContainer.new()
+	left.custom_minimum_size.x = 720
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", 8)
+	body.add_child(left)
+	_add_label(left, "キャラ一覧", 22, Color(0.82, 0.92, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
+	var scroll := _scroll(left)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.custom_minimum_size.x = 700
 	grid.add_theme_constant_override("h_separation", 10)
 	grid.add_theme_constant_override("v_separation", 10)
 	scroll.add_child(grid)
@@ -328,8 +463,8 @@ func show_character_select() -> void:
 		card.mouse_entered.connect(func(): character_cursor = i)
 		grid.add_child(card)
 	var detail = CrystalCardScript.new()
-	detail.setup(Color(1.0, 0.82, 0.34), false, Vector2(0 if input_mode.is_touch_mode() else 360, 0))
-	detail.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else 360
+	detail.setup(Color(1.0, 0.82, 0.34), false, Vector2(360, 0))
+	detail.custom_minimum_size.x = 360
 	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_child(detail)
@@ -343,6 +478,62 @@ func show_character_select() -> void:
 	_add_label(detail_box, _character_detail_text(selected_character_id, selected_data), 17, Color(0.86, 0.93, 0.98), HORIZONTAL_ALIGNMENT_LEFT)
 	_add_blessing_picker(detail_box)
 	_add_menu_button(detail_box, "このキャラで開始", start_game, Color(0.52, 1.0, 1.0))
+
+func _populate_compact_character_cards(parent: Container, metrics: Dictionary) -> void:
+	var ids := meta_system.character_ids()
+	character_cursor = clampi(character_cursor, 0, maxi(ids.size() - 1, 0))
+	for i in range(ids.size()):
+		var id := String(ids[i])
+		var data := meta_system.character_data(id)
+		var unlocked := meta_system.is_character_unlocked(save_data, id)
+		var selected := id == selected_character_id
+		var cost_text := meta_system.unlock_text(id, save_data) if not unlocked else ""
+		var card = CharacterCardScript.new()
+		card.setup_compact(
+			meta_system.display_name(id, save_data),
+			String(data.get("role_ja", "")),
+			unlocked,
+			selected,
+			bool(data.get("secret", false)),
+			cost_text,
+			Vector2(float(metrics.get("character_card_width", 176.0)), float(metrics.get("character_card_height", 128.0)))
+		)
+		card.set_icon_path(_character_asset_path(id, data, unlocked))
+		card.pressed.connect(_character_card_clicked.bind(id))
+		card.mouse_entered.connect(func(): character_cursor = i)
+		parent.add_child(card)
+
+func _add_phone_blessing_sheet(root: VBoxContainer) -> void:
+	var sheet = CrystalCardScript.new()
+	sheet.name = "BlessingSheet"
+	sheet.setup(Color(1.0, 0.82, 0.28), false, Vector2(0, 142))
+	sheet.custom_minimum_size.y = minf(142.0, _layout_device_size().y * 0.38)
+	root.add_child(sheet)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	sheet.add_child(box)
+	var heading := HBoxContainer.new()
+	box.add_child(heading)
+	_add_label(heading, "祝福", 22, Color(1.0, 0.90, 0.48), HORIZONTAL_ALIGNMENT_LEFT)
+	var close := _add_menu_button(heading, "閉じる", func():
+		blessing_expanded = false
+		show_character_select()
+	, Color(0.58, 0.72, 0.92))
+	close.custom_minimum_size = Vector2(120, 60)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(scroll)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	scroll.add_child(row)
+	for id in meta_system.unlocked_blessings(save_data):
+		var blessing_id := String(id)
+		var data: Dictionary = meta_system.blessings.get(blessing_id, {})
+		var button = CrystalButtonScript.new()
+		button.setup(String(data.get("name_ja", blessing_id)), Color(1.0, 0.82, 0.28), Vector2(190, 60))
+		button.pressed.connect(_select_blessing.bind(blessing_id))
+		row.add_child(button)
 
 func _character_card_clicked(character_id: String) -> void:
 	if meta_system.is_character_unlocked(save_data, character_id):
@@ -391,16 +582,21 @@ func show_shop() -> void:
 	_add_top_bar(root, "クリスタルショップ", "所持クリスタル貨：%s　%s" % [JaText.format_int(int(save_data.get("crystal_currency", 0))), shop_message], show_title)
 	var category_ids := shop_category_system.category_ids()
 	shop_category_index = clampi(shop_category_index, 0, maxi(0, category_ids.size() - 1))
-	var category_tabs := GridContainer.new()
-	category_tabs.columns = 3 if input_mode.is_touch_mode() else 5
-	category_tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	category_tabs.add_theme_constant_override("h_separation", 8)
-	category_tabs.add_theme_constant_override("v_separation", 6)
-	root.add_child(category_tabs)
+	var category_tabs: Container
+	if input_mode.is_touch_mode():
+		category_tabs = _horizontal_chip_container(root, "ShopCategoryChips")
+	else:
+		var category_grid := GridContainer.new()
+		category_grid.columns = 5
+		category_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		category_grid.add_theme_constant_override("h_separation", 8)
+		category_grid.add_theme_constant_override("v_separation", 6)
+		root.add_child(category_grid)
+		category_tabs = category_grid
 	for i in range(category_ids.size()):
 		var category_id = String(category_ids[i])
 		var tab = CrystalButtonScript.new()
-		tab.setup(shop_category_system.category_name(category_id), Color(1.0, 0.84, 0.30) if i == shop_category_index else Color(0.42, 0.82, 1.0), Vector2(164, 42))
+		tab.setup(shop_category_system.category_name(category_id), Color(1.0, 0.84, 0.30) if i == shop_category_index else Color(0.42, 0.82, 1.0), Vector2(164, 60 if input_mode.is_touch_mode() else 42))
 		tab.pressed.connect(_select_shop_category.bind(i))
 		category_tabs.add_child(tab)
 	var current_category = String(category_ids[shop_category_index]) if not category_ids.is_empty() else "characters"
@@ -408,7 +604,7 @@ func show_shop() -> void:
 	var scroll := _scroll(root)
 	var body := VBoxContainer.new()
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.custom_minimum_size.x = 900
+	body.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else 900
 	body.add_theme_constant_override("separation", 12)
 	scroll.add_child(body)
 	if current_category == "characters":
@@ -473,26 +669,36 @@ func show_collection() -> void:
 	_add_background(Color(0.028, 0.036, 0.054))
 	var root := _page_box(42, 26, 42, 30)
 	_add_top_bar(root, "図鑑", "カテゴリをクリックまたは←/→で切替", show_title)
-	var tabs := GridContainer.new()
-	tabs.columns = 5
-	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tabs.add_theme_constant_override("h_separation", 8)
-	tabs.add_theme_constant_override("v_separation", 6)
-	root.add_child(tabs)
+	var tabs: Container
+	if input_mode.is_touch_mode():
+		tabs = _horizontal_chip_container(root, "CollectionCategoryChips")
+	else:
+		var tabs_grid := GridContainer.new()
+		tabs_grid.columns = 5
+		tabs_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tabs_grid.add_theme_constant_override("h_separation", 8)
+		tabs_grid.add_theme_constant_override("v_separation", 6)
+		root.add_child(tabs_grid)
+		tabs = tabs_grid
 	for i in range(collection_tabs.size()):
 		var button = CrystalButtonScript.new()
-		button.setup(String(collection_tab_names[i]), Color(1.0, 0.86, 0.28) if i == collection_tab_index else Color(0.42, 0.82, 1.0), Vector2(150, 40))
+		button.setup(String(collection_tab_names[i]), Color(1.0, 0.86, 0.28) if i == collection_tab_index else Color(0.42, 0.82, 1.0), Vector2(150, 60 if input_mode.is_touch_mode() else 40))
 		button.pressed.connect(_select_collection_tab.bind(i))
 		tabs.add_child(button)
-	var filters := GridContainer.new()
-	filters.columns = 7
-	filters.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	filters.add_theme_constant_override("h_separation", 6)
-	filters.add_theme_constant_override("v_separation", 5)
-	root.add_child(filters)
+	var filters: Container
+	if input_mode.is_touch_mode():
+		filters = _horizontal_chip_container(root, "CollectionFilterChips")
+	else:
+		var filter_grid := GridContainer.new()
+		filter_grid.columns = 7
+		filter_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		filter_grid.add_theme_constant_override("h_separation", 6)
+		filter_grid.add_theme_constant_override("v_separation", 5)
+		root.add_child(filter_grid)
+		filters = filter_grid
 	for i in range(collection_filter_system.FILTER_IDS.size()):
 		var filter_button = CrystalButtonScript.new()
-		filter_button.setup(String(collection_filter_system.FILTER_NAMES[i]), Color(0.58, 1.0, 0.76) if i == collection_filter_index else Color(0.34, 0.60, 0.82), Vector2(112, 34))
+		filter_button.setup(String(collection_filter_system.FILTER_NAMES[i]), Color(0.58, 1.0, 0.76) if i == collection_filter_index else Color(0.34, 0.60, 0.82), Vector2(124, 56 if input_mode.is_touch_mode() else 34))
 		filter_button.pressed.connect(_select_collection_filter.bind(i))
 		filters.add_child(filter_button)
 	var sorts := HBoxContainer.new()
@@ -501,7 +707,7 @@ func show_collection() -> void:
 	_add_label(sorts, "並び替え", 15, Color(0.82, 0.88, 0.96), HORIZONTAL_ALIGNMENT_LEFT)
 	for i in range(collection_filter_system.SORT_IDS.size()):
 		var sort_button = CrystalButtonScript.new()
-		sort_button.setup(String(collection_filter_system.SORT_NAMES[i]), Color(1.0, 0.84, 0.30) if i == collection_sort_index else Color(0.42, 0.82, 1.0), Vector2(118, 34))
+		sort_button.setup(String(collection_filter_system.SORT_NAMES[i]), Color(1.0, 0.84, 0.30) if i == collection_sort_index else Color(0.42, 0.82, 1.0), Vector2(126 if input_mode.is_touch_mode() else 118, 56 if input_mode.is_touch_mode() else 34))
 		sort_button.pressed.connect(_select_collection_sort.bind(i))
 		sorts.add_child(sort_button)
 	var rows := meta_system.collection_rows(String(collection_tabs[collection_tab_index]), save_data)
@@ -516,7 +722,7 @@ func show_collection() -> void:
 	var grid := GridContainer.new()
 	grid.columns = 2 if input_mode.is_touch_mode() else 3
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.custom_minimum_size.x = 940
+	grid.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else 940
 	grid.add_theme_constant_override("h_separation", 10)
 	grid.add_theme_constant_override("v_separation", 10)
 	scroll.add_child(grid)
@@ -554,7 +760,7 @@ func show_quests() -> void:
 	var scroll := _scroll(root)
 	var body := VBoxContainer.new()
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.custom_minimum_size.x = 920
+	body.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else 920
 	body.add_theme_constant_override("separation", 10)
 	scroll.add_child(body)
 	for id in meta_system.quests.keys():
@@ -575,56 +781,85 @@ func show_settings() -> void:
 	var root := _page_box(90, 40, 90, 46)
 	_add_top_bar(root, "設定", "各項目をタップして変更。シード空欄ならランダム。", show_title)
 	var settings: Dictionary = save_data.get("settings", {})
+	settings_section_nodes.clear()
+	if input_mode.is_touch_mode():
+		var category_row := _horizontal_chip_container(root, "SettingsCategoryChips")
+		for category in ["操作", "表示", "UIサイズ", "マップ", "性能", "音", "データ"]:
+			var category_button = CrystalButtonScript.new()
+			category_button.setup(String(category), Color(0.42, 0.82, 1.0), Vector2(126, 56))
+			category_button.pressed.connect(_scroll_to_settings_section.bind(String(category)))
+			category_row.add_child(category_button)
 	var scroll := _scroll(root)
+	settings_scroll = scroll
 	var settings_body := VBoxContainer.new()
 	settings_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	settings_body.custom_minimum_size.x = 900
+	settings_body.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else 900
 	settings_body.add_theme_constant_override("separation", 10)
 	scroll.add_child(settings_body)
 	var row := GridContainer.new()
 	row.columns = 1 if input_mode.is_touch_mode() else 2
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.custom_minimum_size.x = 840
+	row.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else 840
 	row.add_theme_constant_override("h_separation", 12)
 	row.add_theme_constant_override("v_separation", 10)
 	settings_body.add_child(row)
+	settings_section_nodes["操作"] = _add_label(row, "操作", 24, Color(0.52, 1.0, 0.86), HORIZONTAL_ALIGNMENT_LEFT)
 	_add_toggle(row, "画面揺れ", "screen_shake", bool(settings.get("screen_shake", true)))
-	_add_toggle(row, "ダメージ数字", "damage_numbers", bool(settings.get("damage_numbers", true)))
-	_add_toggle(row, "ジェム吸収音", "gem_sound", bool(settings.get("gem_sound", true)))
 	_add_toggle(row, "無限強化自動", "auto_infinite", bool(settings.get("auto_infinite", true)))
 	_add_toggle(row, "自動回収ドローン", "auto_recall_drone", bool(settings.get("auto_recall_drone", false)))
 	_add_toggle(row, "フルスクリーン", "fullscreen", bool(settings.get("fullscreen", false)))
 	_add_toggle(row, "長押し倍速", "speed_hold_enabled", bool(settings.get("speed_hold_enabled", true)))
-	_add_toggle(row, "通知ログ", "notification_log_enabled", bool(settings.get("notification_log_enabled", true)))
-	_add_toggle(row, "武器HUD", "weapon_hud_enabled", bool(settings.get("weapon_hud_enabled", true)))
-	_add_toggle(row, "パッシブHUD", "passive_hud_enabled", bool(settings.get("passive_hud_enabled", true)))
 	_add_toggle(row, "仮想スティック", "virtual_joystick_enabled", bool(settings.get("virtual_joystick_enabled", true)))
 	if not input_mode.is_touch_mode():
 		_add_choice(row, "倍速キー", "speed_hold_key", String(settings.get("speed_hold_key", "left_shift")), ["left_shift", "tab", "space", "middle_mouse"])
 	_add_choice(row, "倍速倍率", "speed_multiplier", float(settings.get("speed_multiplier", 2.0)), [1.5, 2.0])
-	_add_choice(row, "ボス警告", "boss_alert_intensity", String(settings.get("boss_alert_intensity", "strong")), ["normal", "strong"])
-	_add_choice(row, "エフェクト量", "effect_density", String(settings.get("effect_density", "normal")), ["low", "normal", "high"])
 	_add_choice(row, "タッチ操作UI", "touch_ui_mode", String(settings.get("touch_ui_mode", "auto")), ["auto", "on", "off"])
 	_add_choice(row, "タッチボタンサイズ", "touch_button_size", String(settings.get("touch_button_size", "standard")), ["small", "standard", "large"])
 	_add_choice(row, "利き手", "touch_handedness", String(settings.get("touch_handedness", "right")), ["right", "left"])
 	_add_toggle(row, "タッチ振動", "touch_haptics", bool(settings.get("touch_haptics", true)))
+	settings_section_nodes["表示"] = _add_label(row, "表示 / HUD", 24, Color(0.52, 1.0, 0.86), HORIZONTAL_ALIGNMENT_LEFT)
+	_add_toggle(row, "ダメージ数字", "damage_numbers", bool(settings.get("damage_numbers", true)))
+	_add_toggle(row, "通知ログ", "notification_log_enabled", bool(settings.get("notification_log_enabled", true)))
 	_add_choice(row, "通知ログ量", "notification_log_amount", String(settings.get("notification_log_amount", "standard")), ["low", "standard"])
+	_add_choice(row, "装備HUD", "equipment_hud_mode", String(settings.get("equipment_hud_mode", "simple")), ["simple", "detail", "hidden"])
+	_add_toggle(row, "武器HUD", "weapon_hud_enabled", bool(settings.get("weapon_hud_enabled", true)))
+	_add_toggle(row, "パッシブHUD", "passive_hud_enabled", bool(settings.get("passive_hud_enabled", true)))
+	_add_choice(row, "ボス警告", "boss_alert_intensity", String(settings.get("boss_alert_intensity", "strong")), ["normal", "strong"])
+	_add_choice(row, "UIアニメーション量", "ui_animation_amount", String(settings.get("ui_animation_amount", "standard")), ["low", "standard", "high"])
+	settings_section_nodes["マップ"] = _add_label(row, "マップ", 24, Color(0.52, 1.0, 0.86), HORIZONTAL_ALIGNMENT_LEFT)
+	_add_choice(row, "ミニマップサイズ", "minimap_size", String(settings.get("minimap_size", "standard")), ["small", "standard", "large"])
+	_add_choice(row, "ミニマップ透明度", "minimap_opacity", String(settings.get("minimap_opacity", "standard")), ["low", "standard", "high"])
+	_add_toggle(row, "マップタップ拡大", "map_tap_expand", bool(settings.get("map_tap_expand", true)))
+	_add_choice(row, "カメラ表示サイズ", "camera_view_size", String(settings.get("camera_view_size", "standard")), ["near", "standard", "wide"])
+	settings_section_nodes["性能"] = _add_label(row, "パフォーマンス", 24, Color(0.52, 1.0, 0.86), HORIZONTAL_ALIGNMENT_LEFT)
+	_add_choice(row, "エフェクト量", "effect_density", String(settings.get("effect_density", "normal")), ["low", "normal", "high"])
 	_add_choice(row, "描画品質", "render_quality", String(settings.get("render_quality", "standard")), ["low", "standard", "high"])
+	_add_choice(row, "ミニマップ更新頻度", "minimap_update_hz", int(settings.get("minimap_update_hz", 8)), [4, 8, 12])
+	_add_toggle(row, "背景粒子", "background_particles", bool(settings.get("background_particles", true)))
+	_add_toggle(row, "低電力モード", "low_power_mode", bool(settings.get("low_power_mode", false)))
+	settings_section_nodes["音"] = _add_label(row, "音", 24, Color(0.52, 1.0, 0.86), HORIZONTAL_ALIGNMENT_LEFT)
+	_add_toggle(row, "ジェム吸収音", "gem_sound", bool(settings.get("gem_sound", true)))
 	_add_slider(settings_body, "BGM音量", "bgm_volume", float(settings.get("bgm_volume", 0.85)))
 	_add_slider(settings_body, "SE音量", "se_volume", float(settings.get("se_volume", 0.90)))
+	settings_section_nodes["UIサイズ"] = _add_label(settings_body, "UIサイズ", 24, Color(0.52, 1.0, 0.86), HORIZONTAL_ALIGNMENT_LEFT)
 	_add_slider(settings_body, "UI拡大率", "ui_scale", float(settings.get("ui_scale", 1.0)), 0.85, 1.25)
 	_add_slider(settings_body, "HUDサイズ", "hud_scale", float(settings.get("hud_scale", 1.0)), 0.9, 1.3)
 	_add_slider(settings_body, "ボタン透明度", "touch_button_opacity", float(settings.get("touch_button_opacity", 0.78)), 0.35, 1.0)
-	_add_slider(settings_body, "Safe Area余白", "safe_area_margin", float(settings.get("safe_area_margin", 0.0)), 0.0, 36.0)
+	_add_slider(settings_body, "Safe Area余白", "safe_area_margin", float(settings.get("safe_area_margin", 16.0)), 0.0, 36.0)
+	_add_slider(settings_body, "スティック左右位置", "joystick_offset_x", float(settings.get("joystick_offset_x", 0.0)), -80.0, 80.0)
+	_add_slider(settings_body, "スティック上下位置", "joystick_offset_y", float(settings.get("joystick_offset_y", 0.0)), -80.0, 80.0)
 	if input_mode.is_touch_mode():
 		_add_menu_button(settings_body, "タッチ操作説明を再表示", func():
 			touch_tutorial_page = 0
 			show_help(false)
 		, Color(0.70, 0.86, 1.0))
+	else:
+		_add_label(settings_body, "開発者", 22, Color(0.72, 0.78, 0.88), HORIZONTAL_ALIGNMENT_LEFT)
+		_add_toggle(settings_body, "開発者表示（Ctrl+F12で解除）", "developer_overlay", bool(settings.get("developer_overlay", false)))
 	var seed_row := HBoxContainer.new()
 	seed_row.add_theme_constant_override("separation", 10)
 	settings_body.add_child(seed_row)
-	_add_label(seed_row, "シード入力", 18, Color(0.88, 0.94, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
+	settings_section_nodes["データ"] = _add_label(seed_row, "シード入力", 18, Color(0.88, 0.94, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
 	seed_input = LineEdit.new()
 	seed_input.text = String(settings.get("seed_text", ""))
 	seed_input.placeholder_text = "空欄ならランダム"
@@ -633,6 +868,14 @@ func show_settings() -> void:
 	seed_row.add_child(seed_input)
 	_add_menu_button(seed_row, "保存", func(): _set_seed_text(seed_input.text), Color(0.52, 1.0, 1.0))
 	_add_menu_button(settings_body, "セーブ初期化へ", show_reset, Color(1.0, 0.34, 0.42), true)
+
+func _scroll_to_settings_section(section: String) -> void:
+	await get_tree().process_frame
+	if settings_scroll == null or not settings_section_nodes.has(section):
+		return
+	var target: Control = settings_section_nodes[section]
+	var delta := target.global_position.y - settings_scroll.global_position.y
+	settings_scroll.scroll_vertical = maxi(0, settings_scroll.scroll_vertical + int(delta) - 8)
 
 func show_reset() -> void:
 	_clear()
@@ -854,7 +1097,7 @@ func _add_top_bar(parent: VBoxContainer, title: String, subtitle: String, back_c
 
 func _add_menu_button(parent: Control, label: String, action: Callable, accent: Color = Color(0.40, 0.92, 1.0), danger: bool = false) -> Button:
 	var button = CrystalButtonScript.new()
-	button.setup(label, accent, Vector2(0, 56 if input_mode.is_touch_mode() else 48), danger)
+	button.setup(label, accent, Vector2(0, 64 if input_mode.is_touch_mode() else 48), danger)
 	button.pressed.connect(action)
 	parent.add_child(button)
 	return button
@@ -873,7 +1116,7 @@ func _add_slider(parent: Control, title: String, key: String, value: float, min_
 
 func _add_choice(parent: Control, title: String, key: String, value, choices: Array) -> void:
 	var button = CrystalButtonScript.new()
-	button.setup("%s: %s" % [title, str(value)], Color(0.42, 0.82, 1.0), Vector2(0, 48))
+	button.setup("%s: %s" % [title, str(value)], Color(0.42, 0.82, 1.0), Vector2(0, 60 if input_mode.is_touch_mode() else 48))
 	button.pressed.connect(func():
 		var index = choices.find(value)
 		var next_value = choices[(index + 1) % choices.size()]
@@ -920,14 +1163,35 @@ func _page_box(left: int, top: int, right: int, bottom: int) -> VBoxContainer:
 	return box
 
 func _is_tablet_layout() -> bool:
+	return mobile_ui_scale.classify(_layout_device_size()) == "tablet"
+
+func _layout_device_size() -> Vector2:
 	var viewport_size := get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
-	return viewport_size.y >= 900.0 or viewport_size.x / maxf(viewport_size.y, 1.0) < 1.55
+	if not input_mode.is_ios_touch():
+		return viewport_size
+	var screen_size := Vector2(DisplayServer.screen_get_size())
+	if screen_size.x <= 0.0 or screen_size.y <= 0.0:
+		return viewport_size
+	return Vector2(maxf(screen_size.x, screen_size.y), minf(screen_size.x, screen_size.y))
 
 func _scroll(parent: Control) -> ScrollContainer:
 	var scroll := ScrollContainer.new()
 	ui_layout_fix.prepare_scroll(scroll)
 	parent.add_child(scroll)
 	return scroll
+
+func _horizontal_chip_container(parent: Control, node_name: String) -> HBoxContainer:
+	var scroll := ScrollContainer.new()
+	scroll.name = node_name
+	scroll.custom_minimum_size.y = 64
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	parent.add_child(scroll)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	scroll.add_child(row)
+	return row
 
 func _add_label(parent: Control, text: String, size: int, color: Color, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER) -> Label:
 	var label := Label.new()

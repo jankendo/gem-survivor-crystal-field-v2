@@ -2,6 +2,9 @@
 builds/
 *.log
 test-output/
+!test-output/
+test-output/*
+!test-output/.gdignore
 *.pck
 *.ipa
 *.xcarchive

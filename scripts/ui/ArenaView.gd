@@ -3,8 +3,18 @@ class_name ArenaView
 
 const ObjectiveIndicatorSystemScript = preload("res://scripts/systems/ObjectiveIndicatorSystem.gd")
 
+signal minimap_tapped
+
 var state = null
 var objective_indicator_system = ObjectiveIndicatorSystemScript.new()
+var camera_zoom := 1.0
+var minimap_rect := Rect2()
+var expanded_map_rect := Rect2()
+var minimap_opacity := 0.76
+var minimap_icon_size := 8.0
+var minimap_tap_enabled := false
+var map_expanded := false
+var world_transform_active := false
 
 const ENEMY_COLORS = {
 	"slime": Color(0.36, 0.92, 0.55),
@@ -32,10 +42,37 @@ func bind_state(value) -> void:
 	state = value
 	queue_redraw()
 
+func configure_mobile(layout: Dictionary) -> void:
+	camera_zoom = float(layout.get("camera_zoom", 1.0))
+	minimap_rect = layout.get("minimap_rect", Rect2())
+	expanded_map_rect = layout.get("expanded_map_rect", Rect2())
+	minimap_opacity = float(layout.get("minimap_opacity", 0.76))
+	minimap_icon_size = float(layout.get("minimap_icon", 8.0))
+	minimap_tap_enabled = bool(layout.get("map_tap_expand", true))
+	queue_redraw()
+
+func set_map_expanded(value: bool) -> void:
+	map_expanded = value
+	queue_redraw()
+
+func _gui_input(event: InputEvent) -> void:
+	var point := Vector2(-1, -1)
+	if event is InputEventScreenTouch and event.pressed:
+		point = event.position
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		point = event.position
+	if point.x < 0.0 or not minimap_tap_enabled:
+		return
+	if (map_expanded and expanded_map_rect.has_point(point)) or (not map_expanded and minimap_rect.has_point(point)):
+		minimap_tapped.emit()
+		accept_event()
+
 func _draw() -> void:
 	if state == null:
 		return
 	_draw_background()
+	world_transform_active = true
+	draw_set_transform(size * 0.5, 0.0, Vector2.ONE * camera_zoom)
 	_draw_terrain_layout()
 	_draw_danger_zones()
 	_draw_boundary()
@@ -54,6 +91,8 @@ func _draw() -> void:
 	_draw_effect_lines()
 	_draw_hit_flashes()
 	_draw_floating_texts()
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	world_transform_active = false
 	_draw_chest_indicators()
 	_draw_navigation_indicators()
 	_draw_minimap()
@@ -90,7 +129,7 @@ func _draw_background() -> void:
 
 func _draw_terrain_layout() -> void:
 	var tile_size = float(state.map_data.get("tile_size", 64.0))
-	var viewport_world = Rect2(_camera_origin() - Vector2(tile_size, tile_size), size + Vector2(tile_size * 2.0, tile_size * 2.0))
+	var viewport_world = Rect2(_camera_origin() - Vector2(tile_size, tile_size), size / camera_zoom + Vector2(tile_size * 2.0, tile_size * 2.0))
 	for corridor in state.map_data.get("corridors", []):
 		for raw_key in corridor.get("cells", []):
 			var world_rect = _cell_world_rect(String(raw_key), tile_size)
@@ -491,12 +530,15 @@ func _draw_screen_alerts() -> void:
 		draw_rect(Rect2(Vector2.ZERO, size), Color(0.42, 0.24, 1.0, 0.08), true)
 
 func world_to_screen(world_pos: Vector2) -> Vector2:
-	return world_pos - _camera_origin()
+	if world_transform_active:
+		return world_pos - state.camera_position
+	return (world_pos - _camera_origin()) * camera_zoom
 
 func _camera_origin() -> Vector2:
-	var origin = state.camera_position - size * 0.5
-	origin.x = clampf(origin.x, 0.0, maxf(0.0, state.field_size.x - size.x))
-	origin.y = clampf(origin.y, 0.0, maxf(0.0, state.field_size.y - size.y))
+	var visible_world := size / camera_zoom
+	var origin = state.camera_position - visible_world * 0.5
+	origin.x = clampf(origin.x, 0.0, maxf(0.0, state.field_size.x - visible_world.x))
+	origin.y = clampf(origin.y, 0.0, maxf(0.0, state.field_size.y - visible_world.y))
 	return origin
 
 func _wall_fill(wall) -> Color:
@@ -578,10 +620,18 @@ func _navigation_indicator_targets() -> Array:
 	return objective_indicator_system.targets_for_state(state, int(state.ui_layout_defs.get("indicator_max_count", 3)))
 
 func _draw_minimap() -> void:
-	var map_size = float(state.ui_layout_defs.get("minimap_size", 144.0))
-	var rect = Rect2(size - Vector2(map_size + 24.0, map_size + 58.0), Vector2(map_size, map_size))
-	draw_rect(rect, Color(0.02, 0.03, 0.05, 0.72), true)
-	draw_rect(rect, Color(0.42, 0.82, 1.0, 0.72), false, 2.0)
+	var rect := minimap_rect
+	if rect.size == Vector2.ZERO:
+		var map_size = float(state.ui_layout_defs.get("minimap_size", 144.0))
+		rect = Rect2(size - Vector2(map_size + 24.0, map_size + 58.0), Vector2(map_size, map_size))
+	if map_expanded and expanded_map_rect.size != Vector2.ZERO:
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0.01, 0.015, 0.025, 0.72), true)
+		rect = expanded_map_rect
+	_draw_minimap_content(rect, map_expanded)
+
+func _draw_minimap_content(rect: Rect2, show_legend: bool) -> void:
+	draw_rect(rect, Color(0.02, 0.03, 0.05, minimap_opacity), true)
+	draw_rect(rect, Color(0.42, 0.82, 1.0, 0.88), false, 3.0 if show_legend else 2.0)
 	var scale = Vector2(rect.size.x / state.field_size.x, rect.size.y / state.field_size.y)
 	var player = rect.position + state.player_position * scale
 	var font = get_theme_default_font()
@@ -606,7 +656,7 @@ func _draw_minimap() -> void:
 		draw_rect(room_rect, Color(0.58, 0.82, 0.92, 0.42) if explored else Color(0.32, 0.36, 0.42, 0.35), false, 1.0)
 		if bool(room.get("important", false)):
 			var icon = _terrain_minimap_icon(terrain_id)
-			draw_string(font, p + Vector2(-6, 4), icon if explored else "?", HORIZONTAL_ALIGNMENT_CENTER, 12.0, 10, color.lightened(0.35) if explored else Color(0.54, 0.56, 0.62))
+			draw_string(font, p + Vector2(-minimap_icon_size * 0.6, minimap_icon_size * 0.45), icon if explored else "?", HORIZONTAL_ALIGNMENT_CENTER, minimap_icon_size * 1.2, int(maxf(10.0, minimap_icon_size)), color.lightened(0.35) if explored else Color(0.54, 0.56, 0.62))
 	for wall in state.crystal_walls:
 		var p = rect.position + wall.position * scale
 		var wall_size = Vector2(maxf(1.0, wall.size.x * scale.x), maxf(1.0, wall.size.y * scale.y))
@@ -617,22 +667,23 @@ func _draw_minimap() -> void:
 		draw_circle(p, maxf(4.0, float(zone.get("radius", 0.0)) * scale.x), Color(1.0, 0.12, 0.42, 0.18))
 	for chest in state.chests:
 		var p = rect.position + chest.position * scale
-		draw_rect(Rect2(p - Vector2(3, 3), Vector2(6, 6)), _chest_color(String(chest.rarity)), true)
+		draw_rect(Rect2(p - Vector2.ONE * minimap_icon_size * 0.5, Vector2.ONE * minimap_icon_size), _chest_color(String(chest.rarity)), true)
 	for drop in state.field_drops:
 		if not bool(drop.get("collected", false)):
-			draw_circle(rect.position + (drop.get("position", Vector2.ZERO) as Vector2) * scale, 3.0, _data_color(drop, Color.WHITE))
+			draw_circle(rect.position + (drop.get("position", Vector2.ZERO) as Vector2) * scale, minimap_icon_size * 0.45, _data_color(drop, Color.WHITE))
 	for gimmick in state.field_gimmicks:
 		if not bool(gimmick.get("destroyed", false)):
-			draw_rect(Rect2(rect.position + (gimmick.get("position", Vector2.ZERO) as Vector2) * scale - Vector2(2, 2), Vector2(4, 4)), _data_color(gimmick, Color.WHITE), true)
+			draw_rect(Rect2(rect.position + (gimmick.get("position", Vector2.ZERO) as Vector2) * scale - Vector2.ONE * minimap_icon_size * 0.35, Vector2.ONE * minimap_icon_size * 0.7), _data_color(gimmick, Color.WHITE), true)
 	var boss = state.active_boss()
 	if boss != null:
-		draw_circle(rect.position + boss.position * scale, 5.0, Color(1.0, 0.20, 0.18))
+		draw_circle(rect.position + boss.position * scale, minimap_icon_size * 0.65, Color(1.0, 0.20, 0.18))
 	elif state.boss_warning_timer > 0.0:
-		draw_circle(rect.position + state.boss_room_position() * scale, 5.0, Color(1.0, 0.20, 0.18))
-	draw_circle(player, 4.0, Color(1.0, 0.92, 0.34))
-	var legend_y = rect.end.y + 16.0
-	draw_string(font, Vector2(rect.position.x, legend_y), "黄 破壊壁  灰 構造壁  緑 回復", HORIZONTAL_ALIGNMENT_LEFT, map_size + 42.0, 10, Color(0.90, 0.94, 0.98))
-	draw_string(font, Vector2(rect.position.x, legend_y + 14.0), "赤 危険/ボス  紫 イベント  青 ドロップ", HORIZONTAL_ALIGNMENT_LEFT, map_size + 42.0, 10, Color(0.90, 0.94, 0.98))
+		draw_circle(rect.position + state.boss_room_position() * scale, minimap_icon_size * 0.65, Color(1.0, 0.20, 0.18))
+	draw_circle(player, minimap_icon_size * 0.55, Color(1.0, 0.92, 0.34))
+	if show_legend:
+		draw_string(font, rect.position + Vector2(16, 28), "拡大マップ　上部の「閉じる」で戻る", HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 32.0, 18, Color(0.94, 0.98, 1.0))
+		var legend_y = rect.end.y - 34.0
+		draw_string(font, Vector2(rect.position.x + 16.0, legend_y), "黄 破壊壁　灰 構造壁　緑 回復　赤 ボス　青 ドロップ", HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 32.0, 16, Color(0.90, 0.94, 0.98))
 
 func _terrain_minimap_icon(terrain_id: String) -> String:
 	match terrain_id:

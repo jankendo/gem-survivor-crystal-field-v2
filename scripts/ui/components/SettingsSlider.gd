@@ -8,7 +8,7 @@ var slider: HSlider
 
 func setup(title: String, value: float, min_value: float = 0.0, max_value: float = 1.0) -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	custom_minimum_size.x = 520
+	custom_minimum_size = Vector2(520, 56)
 	if label == null:
 		label = Label.new()
 		label.custom_minimum_size = Vector2(190, 30)

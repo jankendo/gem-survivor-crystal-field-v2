@@ -11,6 +11,8 @@ var knob_position := Vector2.ZERO
 var dynamic_origin := true
 var visual_opacity := 0.72
 var origin := Vector2.ZERO
+var visual_extent := 196.0
+var knob_extent := 82.0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -19,9 +21,11 @@ func _ready() -> void:
 	origin = knob_position
 	queue_redraw()
 
-func configure(opacity: float = 0.72, use_dynamic_origin: bool = true) -> void:
+func configure(opacity: float = 0.72, use_dynamic_origin: bool = true, outer_extent: float = 196.0, knob_size: float = 82.0) -> void:
 	visual_opacity = clampf(opacity, 0.35, 1.0)
 	dynamic_origin = use_dynamic_origin
+	visual_extent = maxf(180.0, outer_extent)
+	knob_extent = clampf(knob_size, 72.0, 96.0)
 	queue_redraw()
 
 func set_enabled(value: bool) -> void:
@@ -63,7 +67,7 @@ func _gui_input(event: InputEvent) -> void:
 
 func _update_pointer(local_position: Vector2) -> void:
 	var center = origin if dynamic_origin and dragging else size * 0.5
-	var radius = maxf(24.0, minf(size.x, size.y) * 0.34)
+	var radius = maxf(44.0, visual_extent * 0.36)
 	var offset = local_position - center
 	if offset.length() > radius:
 		offset = offset.normalized() * radius
@@ -83,8 +87,8 @@ func _release() -> void:
 
 func _draw() -> void:
 	var center = origin if dynamic_origin and dragging else size * 0.5
-	var base_radius = minf(size.x, size.y) * 0.42
-	var knob_radius = base_radius * 0.38
+	var base_radius = visual_extent * 0.5
+	var knob_radius = knob_extent * 0.5
 	var opacity = visual_opacity if dragging else visual_opacity * 0.42
 	draw_circle(center, base_radius, Color(0.05, 0.13, 0.22, opacity))
 	draw_arc(center, base_radius, 0.0, TAU, 72, Color(0.34, 0.88, 1.0, opacity + 0.18), 3.0)

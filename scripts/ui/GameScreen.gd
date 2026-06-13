@@ -36,6 +36,7 @@ const PerformanceProfileSystemScript = preload("res://scripts/systems/Performanc
 const InputModeSystemScript = preload("res://scripts/systems/InputModeSystem.gd")
 const MobileSafeAreaSystemScript = preload("res://scripts/systems/MobileSafeAreaSystem.gd")
 const MobileHudLayoutSystemScript = preload("res://scripts/systems/MobileHudLayoutSystem.gd")
+const DebugOverlaySystemScript = preload("res://scripts/systems/DebugOverlaySystem.gd")
 const ArenaViewScript = preload("res://scripts/ui/ArenaView.gd")
 const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.gd")
 const ConfirmDialogScript = preload("res://scripts/ui/components/ConfirmDialog.gd")
@@ -79,6 +80,7 @@ var performance_profile_system
 var input_mode
 var mobile_safe_area_system
 var mobile_hud_layout_system
+var debug_overlay_system
 var arena_view
 var audio_manager: AudioManager
 var reward_popup: RewardPopup
@@ -96,6 +98,9 @@ var field_help_label: Label
 var exploration_label: Label
 var speed_label: Label
 var notification_label: Label
+var notification_panel: PanelContainer
+var mobile_equipment_label: Label
+var debug_overlay_label: Label
 var boss_alert_label: Label
 var boss_hp_label: Label
 var boss_hp_bar: ProgressBar
@@ -132,6 +137,9 @@ var runtime_settings: Dictionary = {}
 var last_reward_signature := ""
 var touch_rerolls_remaining := 0
 var touch_banishes_remaining := 0
+var mobile_layout: Dictionary = {}
+var map_expanded := false
+var runtime_ui_limits: Dictionary = {}
 
 func _ready() -> void:
 	state = SurvivorStateScript.new()
@@ -168,16 +176,25 @@ func _ready() -> void:
 	input_mode = InputModeSystemScript.new()
 	mobile_safe_area_system = MobileSafeAreaSystemScript.new()
 	mobile_hud_layout_system = MobileHudLayoutSystemScript.new()
+	debug_overlay_system = DebugOverlaySystemScript.new()
 	state.start_new_run(0, initial_seed_text)
 	var save_data = initial_save_data if not initial_save_data.is_empty() else SaveSystem.new().load_data()
 	var settings: Dictionary = save_data.get("settings", {})
 	runtime_settings = settings.duplicate(true)
 	input_mode.configure(settings)
 	speed_hold_system.configure(settings)
-	notification_log_system.configure(settings)
+	notification_log_system.configure(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
 	equipment_hud_system.configure(settings)
 	touch_control_system.configure(settings)
+	debug_overlay_system.configure(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name(), OS.has_feature("release"))
 	performance_profile_system.apply_to_state(state, settings)
+	runtime_ui_limits = performance_profile_system.ui_limits(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
+	state.balance_data["max_effects"] = mini(state.max_effects(), int(runtime_ui_limits.get("max_effects", state.max_effects())))
+	state.balance_data["max_texts"] = int(runtime_ui_limits.get("max_damage_numbers", state.max_texts())) if bool(runtime_ui_limits.get("damage_numbers_enabled", true)) else 0
+	if not bool(runtime_ui_limits.get("background_particles_enabled", true)):
+		state.background_particles.clear()
+	elif state.background_particles.size() > state.max_background_particles():
+		state.background_particles.resize(state.max_background_particles())
 	state.effect_density = String(settings.get("effect_density", "normal"))
 	meta_system.apply_to_state(state, initial_character_id, initial_blessing_id, save_data)
 	state.auto_infinite_enabled = initial_auto_infinite_enabled
@@ -247,6 +264,12 @@ func _process(delta: float) -> void:
 	_refresh()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.ctrl_pressed and event.keycode == KEY_F12:
+		if debug_overlay_system.toggle_hidden():
+			debug_overlay_label.show()
+		else:
+			debug_overlay_label.hide()
+		return
 	if input_mode.is_ios_touch():
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT and not state.paused:
@@ -291,10 +314,13 @@ func _build_ui() -> void:
 	var viewport_size = get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
 	var ui_scale = ui_safe_area_system.ui_scale_for(viewport_size, requested_scale, state.ui_layout_defs)
 	var safe_margin = float(state.ui_layout_defs.get("safe_margin", 24.0))
-	var mobile_safe: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 0.0)))
+	var mobile_safe: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 16.0)))
 	var safe_left: float = mobile_safe.position.x if input_mode.is_touch_mode() else safe_margin
 	var safe_right: float = viewport_size.x - mobile_safe.end.x if input_mode.is_touch_mode() else safe_margin
 	var safe_top: float = mobile_safe.position.y if input_mode.is_touch_mode() else float(state.ui_layout_defs.get("hud_top_margin", 18.0))
+	var layout_settings := runtime_settings.duplicate(true)
+	layout_settings["_device_size"] = _layout_device_size()
+	mobile_layout = mobile_hud_layout_system.layout(viewport_size, mobile_safe, layout_settings) if input_mode.is_touch_mode() else {}
 	var bg = ColorRect.new()
 	bg.color = Color(0.020, 0.030, 0.052)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -304,6 +330,9 @@ func _build_ui() -> void:
 	arena_view.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(arena_view)
 	arena_view.bind_state(state)
+	if input_mode.is_touch_mode():
+		arena_view.configure_mobile(mobile_layout)
+		arena_view.minimap_tapped.connect(_toggle_expanded_map)
 
 	low_hp_overlay = ColorRect.new()
 	low_hp_overlay.color = Color(0.88, 0.04, 0.03, 0.0)
@@ -379,10 +408,17 @@ func _build_ui() -> void:
 
 	goal_panel = PanelContainer.new()
 	goal_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	goal_panel.offset_left = -float(state.ui_layout_defs.get("goal_panel_width", 330.0)) - safe_right
-	goal_panel.offset_right = -safe_right
-	goal_panel.offset_top = 132.0 * ui_scale
-	goal_panel.offset_bottom = 302.0 * ui_scale
+	if input_mode.is_touch_mode():
+		goal_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		goal_panel.offset_left = safe_left
+		goal_panel.offset_right = safe_left + minf(330.0, viewport_size.x * 0.28)
+		goal_panel.offset_top = 132.0 * ui_scale
+		goal_panel.offset_bottom = 236.0 * ui_scale
+	else:
+		goal_panel.offset_left = -float(state.ui_layout_defs.get("goal_panel_width", 330.0)) - safe_right
+		goal_panel.offset_right = -safe_right
+		goal_panel.offset_top = 132.0 * ui_scale
+		goal_panel.offset_bottom = 302.0 * ui_scale
 	goal_panel.add_theme_stylebox_override("panel", _hud_panel_style(Color(0.42, 0.82, 1.0)))
 	add_child(goal_panel)
 	var goal_box = VBoxContainer.new()
@@ -390,19 +426,19 @@ func _build_ui() -> void:
 	goal_panel.add_child(goal_box)
 	goal_label = Label.new()
 	goal_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	goal_label.custom_minimum_size.x = 285
-	goal_label.add_theme_font_size_override("font_size", int(16.0 * ui_scale))
+	goal_label.custom_minimum_size.x = 250 if input_mode.is_touch_mode() else 285
+	goal_label.add_theme_font_size_override("font_size", int((17.0 if input_mode.is_touch_mode() else 16.0) * ui_scale))
 	goal_label.add_theme_color_override("font_color", Color(0.92, 0.98, 1.0))
 	goal_box.add_child(goal_label)
 	event_label = Label.new()
 	event_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	event_label.custom_minimum_size.x = 285
+	event_label.custom_minimum_size.x = 250 if input_mode.is_touch_mode() else 285
 	event_label.add_theme_font_size_override("font_size", int(14.0 * ui_scale))
 	event_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.36))
 	goal_box.add_child(event_label)
 	exploration_label = Label.new()
 	exploration_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	exploration_label.custom_minimum_size.x = 285
+	exploration_label.custom_minimum_size.x = 250 if input_mode.is_touch_mode() else 285
 	exploration_label.add_theme_font_size_override("font_size", int(14.0 * ui_scale))
 	exploration_label.add_theme_color_override("font_color", Color(0.52, 1.0, 0.72))
 	goal_box.add_child(exploration_label)
@@ -445,17 +481,26 @@ func _build_ui() -> void:
 	boss_hp_bar.show_percentage = false
 	add_child(boss_hp_bar)
 
+	notification_panel = PanelContainer.new()
+	notification_panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	notification_panel.offset_left = -390.0
+	notification_panel.offset_right = -safe_right
+	notification_panel.offset_top = 318.0
+	notification_panel.offset_bottom = 494.0
+	if input_mode.is_touch_mode():
+		var minimap: Rect2 = mobile_layout.get("minimap_rect", Rect2(Vector2(viewport_size.x - 220.0, 90.0), Vector2.ONE * 204.0))
+		notification_panel.offset_left = minimap.position.x
+		notification_panel.offset_right = -(viewport_size.x - minimap.end.x)
+		notification_panel.offset_top = minimap.end.y + 10.0
+		notification_panel.offset_bottom = minf(viewport_size.y - 210.0, minimap.end.y + 112.0)
+	notification_panel.add_theme_stylebox_override("panel", _hud_panel_style(Color(0.62, 0.78, 1.0)))
+	add_child(notification_panel)
 	notification_label = Label.new()
-	notification_label.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
-	notification_label.offset_left = -390.0
-	notification_label.offset_right = -safe_margin
-	notification_label.offset_top = 318.0
-	notification_label.offset_bottom = 494.0
 	notification_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	notification_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	notification_label.add_theme_font_size_override("font_size", int(14.0 * ui_scale))
+	notification_label.add_theme_font_size_override("font_size", int((16.0 if input_mode.is_touch_mode() else 14.0) * ui_scale))
 	notification_label.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0))
-	add_child(notification_label)
+	notification_panel.add_child(notification_label)
 
 	help_panel = PanelContainer.new()
 	help_panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -491,6 +536,29 @@ func _build_ui() -> void:
 	message_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.34))
 	message_label.text = "左下をドラッグして移動　右下でスキャン・回収・倍速" if input_mode.is_touch_mode() else "移動 WASD/矢印　F/右クリック スキャン　R ドローン　Esc ポーズ"
 	add_child(message_label)
+
+	mobile_equipment_label = Label.new()
+	mobile_equipment_label.visible = input_mode.is_touch_mode()
+	mobile_equipment_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	mobile_equipment_label.offset_left = viewport_size.x * 0.30
+	mobile_equipment_label.offset_right = -viewport_size.x * 0.30
+	mobile_equipment_label.offset_top = -112.0
+	mobile_equipment_label.offset_bottom = -72.0
+	mobile_equipment_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mobile_equipment_label.add_theme_font_size_override("font_size", int(16.0 * ui_scale))
+	mobile_equipment_label.add_theme_color_override("font_color", Color(0.84, 0.96, 1.0))
+	add_child(mobile_equipment_label)
+
+	debug_overlay_label = Label.new()
+	debug_overlay_label.visible = false
+	debug_overlay_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	debug_overlay_label.offset_left = safe_left
+	debug_overlay_label.offset_top = safe_top + 150.0
+	debug_overlay_label.offset_right = safe_left + 220.0
+	debug_overlay_label.offset_bottom = safe_top + 280.0
+	debug_overlay_label.add_theme_font_size_override("font_size", 14)
+	debug_overlay_label.add_theme_color_override("font_color", Color(1.0, 0.76, 0.30))
+	add_child(debug_overlay_label)
 
 	audio_manager = AudioManager.new()
 	add_child(audio_manager)
@@ -651,8 +719,13 @@ func _refresh() -> void:
 	passive_label.text = equipment_hud_system.passive_text(state)
 	weapon_label.visible = not input_mode.is_touch_mode() and equipment_hud_system.show_weapons
 	passive_label.visible = not input_mode.is_touch_mode() and equipment_hud_system.show_passives
+	mobile_equipment_label.text = equipment_hud_system.compact_text(state)
+	mobile_equipment_label.visible = input_mode.is_touch_mode() and not map_expanded and mobile_equipment_label.text != ""
 	speed_label.text = speed_hold_system.display_text(speed_active)
 	notification_label.text = notification_log_system.visible_text()
+	notification_panel.visible = not map_expanded and notification_log_system.enabled and notification_label.text != ""
+	debug_overlay_label.text = debug_overlay_system.overlay_text()
+	debug_overlay_label.visible = debug_overlay_system.should_show()
 	boss_alert_label.text = boss_alert_system.warning_text if boss_alert_system.warning_timer > 0.0 else ""
 	var boss_snapshot = boss_alert_system.active_boss_snapshot(state)
 	boss_hp_label.visible = not boss_snapshot.is_empty()
@@ -714,15 +787,25 @@ func _refresh_goal_hud() -> void:
 	else:
 		var main: Dictionary = state.current_goals[0]
 		var distance = int(round(float(main.get("distance", 0.0)) / 10.0))
-		var lines: Array = [
-			"次の目標",
-			String(main.get("title", "周辺を探索")),
-			"理由：%s" % String(main.get("reason", "")),
-			"距離：%dm" % distance if distance > 0 else "現在地点"
-		]
-		for i in range(1, mini(3, state.current_goals.size())):
-			lines.append("副：%s" % String(state.current_goals[i].get("title", "")))
+		var lines: Array
+		if input_mode.is_touch_mode():
+			lines = [
+				"目標　%s" % String(main.get("title", "周辺を探索")),
+				"%dm" % distance if distance > 0 else "現在地点"
+			]
+		else:
+			lines = [
+				"次の目標",
+				String(main.get("title", "周辺を探索")),
+				"理由：%s" % String(main.get("reason", "")),
+				"距離：%dm" % distance if distance > 0 else "現在地点"
+			]
+			for i in range(1, mini(3, state.current_goals.size())):
+				lines.append("副：%s" % String(state.current_goals[i].get("title", "")))
 		goal_label.text = "\n".join(lines)
+	if input_mode.is_touch_mode():
+		event_label.visible = not state.active_field_event.is_empty()
+		exploration_label.visible = false
 	if not state.active_field_event.is_empty():
 		event_label.text = "イベント：%s　残り%.0f秒\n目標：%s" % [
 			String(state.active_field_event.get("name_ja", "イベント")),
@@ -742,6 +825,8 @@ func _refresh_field_help_hud() -> void:
 	if field_help_label == null:
 		return
 	var target: Dictionary = state.scanned_field_help if state.field_scan_timer > 0.0 and not state.scanned_field_help.is_empty() else state.nearby_field_help
+	if input_mode.is_touch_mode():
+		help_panel.visible = not map_expanded and not target.is_empty()
 	if target.is_empty():
 		var scan_hint := "スキャンボタンで周辺を調査" if input_mode.is_touch_mode() else "F / 右クリックで周辺をスキャン"
 		field_help_label.text = "現在地：%s\n%s\n%s" % [state.current_terrain_name, state.current_terrain_guide(), scan_hint]
@@ -1092,12 +1177,21 @@ func _build_touch_controls(ui_scale: float) -> void:
 	touch_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(touch_root)
 	var viewport_size := get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
-	var safe_rect: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 0.0)))
-	var layout: Dictionary = mobile_hud_layout_system.layout(viewport_size, safe_rect, runtime_settings)
+	var layout: Dictionary = mobile_layout
+	if layout.is_empty():
+		var safe_rect: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 16.0)))
+		var layout_settings := runtime_settings.duplicate(true)
+		layout_settings["_device_size"] = _layout_device_size()
+		layout = mobile_hud_layout_system.layout(viewport_size, safe_rect, layout_settings)
 	var joystick_rect: Rect2 = layout["joystick_rect"]
 	virtual_joystick = VirtualJoystickScript.new()
 	_place_touch_rect(virtual_joystick, joystick_rect)
-	virtual_joystick.configure(touch_control_system.touch_button_opacity, true)
+	virtual_joystick.configure(
+		touch_control_system.touch_button_opacity,
+		true,
+		float(layout.get("joystick_visual_extent", 196.0)),
+		float(layout.get("joystick_knob_extent", 82.0))
+	)
 	virtual_joystick.direction_changed.connect(func(value: Vector2):
 		touch_direction = value
 		touch_control_system.set_move_vector(value)
@@ -1142,7 +1236,7 @@ func _build_touch_controls(ui_scale: float) -> void:
 	touch_log_button.action_started.connect(_on_touch_action_started)
 	touch_root.add_child(touch_log_button)
 	touch_map_button = TouchActionButtonScript.new()
-	touch_map_button.setup("action_open_map", "目標", Color(0.58, 1.0, 0.76), float(layout["map_rect"].size.x), false, touch_control_system.touch_button_opacity)
+	touch_map_button.setup("action_open_map", "マップ", Color(0.58, 1.0, 0.76), float(layout["map_rect"].size.x), false, touch_control_system.touch_button_opacity)
 	_place_touch_rect(touch_map_button, layout["map_rect"])
 	touch_map_button.action_started.connect(_on_touch_action_started)
 	touch_root.add_child(touch_map_button)
@@ -1167,7 +1261,7 @@ func _refresh_touch_controls() -> void:
 		touch_direction = Vector2.ZERO
 		touch_control_system.set_speed_pressed(false)
 		return
-	var action_blocked = state.paused or state.level_up_pending or state.chest_pending or state.rune_contract_pending or state.game_over
+	var action_blocked = map_expanded or state.paused or state.level_up_pending or state.chest_pending or state.rune_contract_pending or state.game_over
 	virtual_joystick.visible = touch_control_system.should_show_joystick() and not action_blocked
 	virtual_joystick.set_enabled(virtual_joystick.visible)
 	touch_scan_button.visible = not action_blocked
@@ -1177,6 +1271,7 @@ func _refresh_touch_controls() -> void:
 	touch_scan_button.set_active_state(not state.nearby_field_help.is_empty())
 	touch_speed_button.text = "×%.1f" % speed_hold_system.speed_multiplier if speed_active else "倍速\n長押し"
 	touch_pause_button.text = "再開" if state.paused else "ポーズ"
+	touch_map_button.text = "閉じる" if map_expanded else "マップ"
 	touch_log_button.visible = not state.game_over
 	touch_map_button.visible = not state.game_over
 	touch_chest_button.visible = state.chest_pending
@@ -1204,8 +1299,7 @@ func _on_touch_action_started(action: String) -> void:
 				_toggle_pause()
 			set_pause_tab(8)
 		"action_open_map":
-			if goal_panel != null:
-				goal_panel.visible = not goal_panel.visible
+			_toggle_expanded_map()
 		"action_confirm":
 			if state.chest_pending:
 				state.chest_pending = false
@@ -1216,6 +1310,28 @@ func _on_touch_action_ended(action: String) -> void:
 	touch_control_system.set_action_pressed(action, false, false)
 	if action == "action_speed_hold":
 		touch_control_system.set_speed_pressed(false)
+
+func _toggle_expanded_map() -> void:
+	if not bool(mobile_layout.get("map_tap_expand", true)):
+		return
+	map_expanded = not map_expanded
+	arena_view.set_map_expanded(map_expanded)
+	if goal_panel != null:
+		goal_panel.visible = not map_expanded
+	if notification_panel != null:
+		notification_panel.visible = not map_expanded and notification_label.text != ""
+	if message_label != null:
+		message_label.visible = not map_expanded
+	_refresh_touch_controls()
+
+func _layout_device_size() -> Vector2:
+	var viewport_size := get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
+	if not input_mode.is_ios_touch():
+		return viewport_size
+	var screen_size := Vector2(DisplayServer.screen_get_size())
+	if screen_size.x <= 0.0 or screen_size.y <= 0.0:
+		return viewport_size
+	return Vector2(maxf(screen_size.x, screen_size.y), minf(screen_size.x, screen_size.y))
 
 func set_pause_tab(index: int) -> void:
 	pause_tab_index = clampi(index, 0, pause_tabs.size() - 1)
