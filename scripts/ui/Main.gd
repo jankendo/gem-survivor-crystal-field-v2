@@ -18,6 +18,7 @@ const CollectionFilterSystemScript := preload("res://scripts/systems/CollectionF
 const InputModeSystemScript := preload("res://scripts/systems/InputModeSystem.gd")
 const MobileSafeAreaSystemScript := preload("res://scripts/systems/MobileSafeAreaSystem.gd")
 const MobileUiScaleSystemScript := preload("res://scripts/systems/MobileUiScaleSystem.gd")
+const MobileScrollSystemScript := preload("res://scripts/systems/MobileScrollSystem.gd")
 const UiNavigation := preload("res://scripts/ui/UiNavigation.gd")
 
 var current_screen: Node = null
@@ -46,6 +47,7 @@ var seed_input: LineEdit
 var collection_tab_index := 0
 var collection_filter_index := 0
 var collection_sort_index := 0
+var quest_filter_index := 0
 var collection_tabs := ["characters", "weapons", "passives", "evolutions", "enemies", "bosses", "field_drops", "field_gimmicks", "field_events"]
 var collection_tab_names := ["キャラ", "武器", "パッシブ", "進化", "敵", "ボス", "ドロップ", "ギミック", "イベント"]
 var blessing_expanded := false
@@ -53,11 +55,16 @@ var touch_tutorial_page := 0
 var input_mode = InputModeSystemScript.new()
 var mobile_safe_area = MobileSafeAreaSystemScript.new()
 var mobile_ui_scale = MobileUiScaleSystemScript.new()
+var mobile_scroll_system
 var settings_scroll: ScrollContainer
 var settings_section_nodes: Dictionary = {}
 
 func _ready() -> void:
 	_sync_from_save()
+	_configure_mobile_viewport()
+	mobile_scroll_system = MobileScrollSystemScript.new()
+	add_child(mobile_scroll_system)
+	_configure_mobile_scroll()
 	show_title()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -360,6 +367,7 @@ func _build_phone_character_select(root: VBoxContainer, selected_name: String) -
 	carousel.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	carousel.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	root.add_child(carousel)
+	_register_mobile_scroll(carousel, MobileScrollSystemScript.AXIS_HORIZONTAL)
 	var cards := HBoxContainer.new()
 	cards.add_theme_constant_override("separation", 10)
 	carousel.add_child(cards)
@@ -524,6 +532,7 @@ func _add_phone_blessing_sheet(root: VBoxContainer) -> void:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	box.add_child(scroll)
+	_register_mobile_scroll(scroll, MobileScrollSystemScript.AXIS_HORIZONTAL)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	scroll.add_child(row)
@@ -757,6 +766,24 @@ func show_quests() -> void:
 		if bool(completed[id]):
 			done_count += 1
 	_add_top_bar(root, "実績 / クエスト", "達成率：%d / %d　報酬は達成時に自動受取" % [done_count, meta_system.quests.keys().size()], show_title)
+	var quest_filters: Container
+	if input_mode.is_touch_mode():
+		quest_filters = _horizontal_chip_container(root, "AchievementFilterChips")
+	else:
+		var filter_row := HBoxContainer.new()
+		filter_row.add_theme_constant_override("separation", 8)
+		root.add_child(filter_row)
+		quest_filters = filter_row
+	var filter_names := ["すべて", "未達成", "達成済み"]
+	for i in range(filter_names.size()):
+		var filter_index := i
+		var filter_button = CrystalButtonScript.new()
+		filter_button.setup(filter_names[i], Color(0.48, 1.0, 0.66) if i == quest_filter_index else Color(0.42, 0.82, 1.0), Vector2(150, 56 if input_mode.is_touch_mode() else 40))
+		filter_button.pressed.connect(func():
+			quest_filter_index = filter_index
+			show_quests()
+		)
+		quest_filters.add_child(filter_button)
 	var scroll := _scroll(root)
 	var body := VBoxContainer.new()
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -767,6 +794,10 @@ func show_quests() -> void:
 		var quest_id := String(id)
 		var quest: Dictionary = meta_system.quests[quest_id]
 		var done := bool(completed.get(quest_id, false))
+		if quest_filter_index == 1 and done:
+			continue
+		if quest_filter_index == 2 and not done:
+			continue
 		var card = AchievementCardScript.new()
 		card.setup(String(quest.get("name_ja", quest_id)), String(quest.get("description_ja", "")), _reward_text(quest.get("reward", {})), done)
 		body.add_child(card)
@@ -853,9 +884,6 @@ func show_settings() -> void:
 			touch_tutorial_page = 0
 			show_help(false)
 		, Color(0.70, 0.86, 1.0))
-	else:
-		_add_label(settings_body, "開発者", 22, Color(0.72, 0.78, 0.88), HORIZONTAL_ALIGNMENT_LEFT)
-		_add_toggle(settings_body, "開発者表示（Ctrl+F12で解除）", "developer_overlay", bool(settings.get("developer_overlay", false)))
 	var seed_row := HBoxContainer.new()
 	seed_row.add_theme_constant_override("separation", 10)
 	settings_body.add_child(seed_row)
@@ -1017,6 +1045,8 @@ func _sync_from_save() -> void:
 	auto_infinite_enabled = bool(save_data.get("settings", {}).get("auto_infinite", true))
 	auto_recall_enabled = bool(save_data.get("settings", {}).get("auto_recall_drone", false))
 	input_mode.configure(save_data.get("settings", {}))
+	_configure_mobile_viewport()
+	_configure_mobile_scroll()
 
 func _title_status_text() -> String:
 	var character_name := meta_system.display_name(selected_character_id, save_data)
@@ -1129,6 +1159,7 @@ func _draw_neon_background() -> void:
 	for i in range(5):
 		var rect := ColorRect.new()
 		rect.color = Color(0.05 + 0.02 * i, 0.12, 0.22 + 0.08 * i, 0.09)
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 		rect.offset_left = -120 + i * 170
 		rect.offset_top = 80 + i * 38
@@ -1139,6 +1170,7 @@ func _draw_neon_background() -> void:
 func _add_background(color: Color) -> void:
 	var bg := ColorRect.new()
 	bg.color = color
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -1178,6 +1210,7 @@ func _scroll(parent: Control) -> ScrollContainer:
 	var scroll := ScrollContainer.new()
 	ui_layout_fix.prepare_scroll(scroll)
 	parent.add_child(scroll)
+	_register_mobile_scroll(scroll, MobileScrollSystemScript.AXIS_VERTICAL)
 	return scroll
 
 func _horizontal_chip_container(parent: Control, node_name: String) -> HBoxContainer:
@@ -1188,6 +1221,7 @@ func _horizontal_chip_container(parent: Control, node_name: String) -> HBoxConta
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	parent.add_child(scroll)
+	_register_mobile_scroll(scroll, MobileScrollSystemScript.AXIS_HORIZONTAL)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	scroll.add_child(row)
@@ -1196,6 +1230,7 @@ func _horizontal_chip_container(parent: Control, node_name: String) -> HBoxConta
 func _add_label(parent: Control, text: String, size: int, color: Color, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER) -> Label:
 	var label := Label.new()
 	label.text = text
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.horizontal_alignment = align
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.custom_minimum_size.x = 150
@@ -1226,7 +1261,26 @@ func _json_dict(path: String) -> Dictionary:
 	return parsed if parsed is Dictionary else {}
 
 func _clear() -> void:
+	if mobile_scroll_system != null:
+		mobile_scroll_system.clear_registrations()
 	for child in get_children():
+		if child == mobile_scroll_system:
+			continue
 		remove_child(child)
 		child.queue_free()
 	current_screen = null
+
+func _register_mobile_scroll(scroll: ScrollContainer, axis: String) -> void:
+	if mobile_scroll_system != null and input_mode.is_touch_mode():
+		mobile_scroll_system.register_scroll(scroll, axis)
+
+func _configure_mobile_scroll() -> void:
+	if mobile_scroll_system == null:
+		return
+	var preview := input_mode.is_touch_mode() and not input_mode.is_ios_touch()
+	mobile_scroll_system.configure(input_mode.is_touch_mode(), preview)
+
+func _configure_mobile_viewport() -> void:
+	if not is_inside_tree():
+		return
+	get_window().content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND if input_mode.is_touch_mode() else Window.CONTENT_SCALE_ASPECT_KEEP

@@ -2,6 +2,72 @@
 
 Godot 4.2 + GDScript製のWindows/iOS向けサバイバーアクションです。内部フォルダ名とexe名は既存配布互換のため`ChronoMergeTactics`のままです。iOSはGitHub Actionsで未署名IPAを生成します。
 
+## iOS実機UX最終調整メモ
+
+2026年6月14日の実機映像では、ポーズ中の一部ボタンが押せない、一覧をスクロールバーからしか動かせない、CPU/FPS/GPU/Memory系の開発者表示が通常画面へ残る、HUDとモーダルの入力優先順位が不明確という問題を確認しました。
+
+設計と実装はApple公式の[Layout](https://developer.apple.com/design/human-interface-guidelines/layout)、[Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons)、[Designing for games](https://developer.apple.com/design/human-interface-guidelines/designing-for-games)、[Game controls](https://developer.apple.com/design/human-interface-guidelines/game-controls)、[Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility)を基準にしています。Godot側は4.2公式の[Control](https://docs.godotengine.org/en/4.2/classes/class_control.html)、[ScrollContainer](https://docs.godotengine.org/en/4.2/classes/class_scrollcontainer.html)、[InputEventScreenTouch](https://docs.godotengine.org/en/4.2/classes/class_inputeventscreentouch.html)、[InputEventScreenDrag](https://docs.godotengine.org/en/4.2/classes/class_inputeventscreendrag.html)を参照しています。
+
+### 映像解析で確認した問題と修正
+
+* ポーズ中にアクションボタンを毎フレーム破棄・再生成していたため、押下から解放までの間に対象Buttonが消えていました。アクション構成が変わった時だけ再構築する方式へ変更しています。
+* タッチHUDがポーズ画面と確認ダイアログより後に追加されていました。現在はゲームHUD、暗幕、ポーズ本体、確認ダイアログの順で入力優先度を固定し、ポーズ中はタッチHUD全体を非表示にします。
+* 全ScrollContainerを`MobileScrollSystem.gd`へ登録し、コンテンツ領域の指ドラッグで縦横スクロールできるようにしました。移動量12px未満はタップ、12px以上はドラッグです。
+* ドラッグ開始時は対象ScrollContainer配下のButtonを一時的に無効化し、指を離した後に元の状態へ戻します。購入、キャラ選択、フィルタ切替の誤発火を防ぎます。
+* iOS、Release、Windows標準、Windowsタッチプレビューでは開発者Overlayを生成しません。PCデバッグビルドだけ、隠し操作`Ctrl+F12`で有効化できます。
+* iPhone/iPadのタッチUIでは`content_scale_aspect`を`expand`へ切り替え、16:9固定による余分な黒帯を避けつつSafe Area内へUIを配置します。Windows標準は従来の`keep`です。
+
+### iOS入力レイヤー
+
+入力順は以下で固定しています。
+
+1. タイトル復帰確認ダイアログ
+2. ポーズメニュー本体
+3. ポーズ暗幕
+4. タッチHUD
+5. ゲーム画面
+
+Buttonは`MOUSE_FILTER_STOP`、装飾ラベル・カード背景・HUD表示は`MOUSE_FILTER_IGNORE`を基本にします。ポーズ暗幕と確認ダイアログ背景だけが全画面入力を停止します。非表示デバッグOverlayが入力を吸うことはありません。
+
+### MobileScrollSystem
+
+キャラクター、祝福、ショップカテゴリ、ショップ商品、図鑑カテゴリ・フィルタ・一覧、実績フィルタ・一覧、設定カテゴリ・項目、ポーズタブ・本文・ログ、リザルト詳細を共通処理しています。横スクロールと縦スクロールがネストしている場合は、ドラッグの主方向と最も深いScrollContainerから操作対象を決めます。軽い慣性と端位置クランプを持ち、スクロールバーは表示補助であり必須操作ではありません。WindowsのタッチUIプレビューではマウスドラッグで同じ経路を確認できます。
+
+### 入力監査と性能ログ
+
+* `TouchHitTestDebugSystem.gd`: 開発時だけタップ座標、最前面Control、Button、`mouse_filter`、表示状態、矩形、CanvasLayer、`z_index`を`user://touch_hit_test_log.csv`へ記録します。通常iOSでは生成・表示しません。
+* `TouchActionAuditSystem.gd`: iOSテスト時の画面、Control、操作、座標、期待結果、実結果、遮蔽Control、矩形を`user://ios_touch_action_audit.csv`へ記録します。CIでは同内容を`iOS-Touch-Audit` artifactとして保存します。
+* `IosPerformanceLogSystem.gd`: iOSで5秒ごとにFPS、frame time、敵、エフェクト、Projectile、UIノード数、メモリ推定を`user://ios_performance_log.csv`へ記録します。性能値は画面には表示しません。
+
+### iOS実機映像QAチェック
+
+1. 起動直後にCPU/FPS/GPU表示がない
+2. タイトルのボタンが大きく押せる
+3. キャラ一覧を指で横スクロールできる
+4. ショップを指で縦スクロールできる
+5. 図鑑/実績を指でスクロールできる
+6. ポーズの全ボタンが押せる
+7. ポーズ内の内容を指でスクロールできる
+8. レベルアップカードをタップ選択できる
+9. 契約スキップできる
+10. 宝箱画面をタップで閉じられる
+11. リザルトのボタンが押せる
+12. Home Indicatorに重要UIが被らない
+13. Dynamic Islandに重要UIが被らない
+14. 10分プレイして操作不能にならない
+
+### 最終入力テスト
+
+```powershell
+& $GODOT --headless --path $PROJECT --script "res://tests/test_runner.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_ios_pause_scroll_flow.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_ios_full_ui_flow.gd"
+```
+
+Windows/CIではタッチUIプレビューのGUIアクション配信とマウスドラッグを検査します。Dynamic Island、Home Indicator、端末固有の座標変換、実指での慣性の感触、振動、10分以上の熱・電力状態はiPhone/iPad実機映像で最終確認が必要です。
+
+GitHub ActionsのIPAは未署名です。通常のiPhoneへ直接インストールできないため、AltStore、Sideloadly、Xcode、または自身のApple署名フローを使用してください。
+
 ## iOS実機最適化UI/UX再設計メモ
 
 2026年6月13日にApple公式の[Layout](https://developer.apple.com/design/human-interface-guidelines/layout)、[Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons)、[Designing for games](https://developer.apple.com/design/human-interface-guidelines/designing-for-games)、[Game controls](https://developer.apple.com/design/human-interface-guidelines/game-controls)、[Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility)を再確認しました。実装面ではGodot 4.2の[DisplayServer](https://docs.godotengine.org/en/4.2/classes/class_displayserver.html)、[Control](https://docs.godotengine.org/en/4.2/classes/class_control.html)、[Camera2D](https://docs.godotengine.org/en/4.2/classes/class_camera2d.html)、[InputEventScreenTouch](https://docs.godotengine.org/en/4.2/classes/class_inputeventscreentouch.html)を参照しています。

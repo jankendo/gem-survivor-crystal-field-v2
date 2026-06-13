@@ -10,8 +10,10 @@ func setup(data: Dictionary) -> void:
 	var unlocked = bool(data.get("unlocked", known))
 	custom_minimum_size = Vector2(310, 132)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_theme_stylebox_override("panel", UiNavigation.card_style(Color(0.42, 0.82, 1.0) if known else Color(0.44, 0.34, 0.62), false, not known))
 	label = Label.new()
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var detail = String(data.get("detail_ja", ""))
 	var unlock_text = String(data.get("unlock_text_ja", ""))
 	label.text = "%s\n%s\n%s%s" % [
@@ -26,4 +28,3 @@ func setup(data: Dictionary) -> void:
 	label.add_theme_font_size_override("font_size", 17)
 	label.add_theme_color_override("font_color", Color(0.88, 0.94, 0.98) if known else Color(0.68, 0.66, 0.78))
 	add_child(label)
-

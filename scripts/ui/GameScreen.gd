@@ -36,7 +36,10 @@ const PerformanceProfileSystemScript = preload("res://scripts/systems/Performanc
 const InputModeSystemScript = preload("res://scripts/systems/InputModeSystem.gd")
 const MobileSafeAreaSystemScript = preload("res://scripts/systems/MobileSafeAreaSystem.gd")
 const MobileHudLayoutSystemScript = preload("res://scripts/systems/MobileHudLayoutSystem.gd")
+const MobileScrollSystemScript = preload("res://scripts/systems/MobileScrollSystem.gd")
 const DebugOverlaySystemScript = preload("res://scripts/systems/DebugOverlaySystem.gd")
+const TouchHitTestDebugSystemScript = preload("res://scripts/systems/TouchHitTestDebugSystem.gd")
+const IosPerformanceLogSystemScript = preload("res://scripts/systems/IosPerformanceLogSystem.gd")
 const ArenaViewScript = preload("res://scripts/ui/ArenaView.gd")
 const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.gd")
 const ConfirmDialogScript = preload("res://scripts/ui/components/ConfirmDialog.gd")
@@ -80,7 +83,10 @@ var performance_profile_system
 var input_mode
 var mobile_safe_area_system
 var mobile_hud_layout_system
+var mobile_scroll_system
 var debug_overlay_system
+var touch_hit_test_debug_system
+var ios_performance_log_system
 var arena_view
 var audio_manager: AudioManager
 var reward_popup: RewardPopup
@@ -112,14 +118,19 @@ var initial_blessing_id = "attack"
 var initial_save_data: Dictionary = {}
 var initial_seed_text := ""
 var pause_overlay: PanelContainer
+var pause_backdrop: ColorRect
 var pause_content: Label
+var pause_content_scroll: ScrollContainer
+var pause_tab_scroll: ScrollContainer
 var pause_action_row: Container
 var pause_confirm_dialog
+var pause_dialog_layer: Control
 var pause_title_label: Label
 var pause_summary: Label
 var pause_tab_buttons: Array = []
 var pause_tab_index := 0
 var pause_tabs := ["ステータス", "武器", "パッシブ", "進化条件", "ビルド相性", "フィールドヘルプ", "契約/過充電", "設定", "ログ"]
+var pause_actions_signature := ""
 var speed_active := false
 var touch_root: Control
 var virtual_joystick
@@ -176,17 +187,32 @@ func _ready() -> void:
 	input_mode = InputModeSystemScript.new()
 	mobile_safe_area_system = MobileSafeAreaSystemScript.new()
 	mobile_hud_layout_system = MobileHudLayoutSystemScript.new()
+	mobile_scroll_system = MobileScrollSystemScript.new()
 	debug_overlay_system = DebugOverlaySystemScript.new()
+	touch_hit_test_debug_system = TouchHitTestDebugSystemScript.new()
+	ios_performance_log_system = IosPerformanceLogSystemScript.new()
 	state.start_new_run(0, initial_seed_text)
 	var save_data = initial_save_data if not initial_save_data.is_empty() else SaveSystem.new().load_data()
 	var settings: Dictionary = save_data.get("settings", {})
 	runtime_settings = settings.duplicate(true)
 	input_mode.configure(settings)
+	add_child(mobile_scroll_system)
+	mobile_scroll_system.configure(input_mode.is_touch_mode(), input_mode.is_touch_mode() and not input_mode.is_ios_touch())
 	speed_hold_system.configure(settings)
 	notification_log_system.configure(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
 	equipment_hud_system.configure(settings)
 	touch_control_system.configure(settings)
-	debug_overlay_system.configure(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name(), OS.has_feature("release"))
+	debug_overlay_system.configure(
+		settings,
+		"iOS" if input_mode.is_ios_touch() else OS.get_name(),
+		OS.has_feature("release"),
+		input_mode.is_touch_mode(),
+		input_mode.is_touch_mode() and not input_mode.is_ios_touch()
+	)
+	var touch_debug_enabled: bool = bool(settings.get("touch_hit_test_debug", false)) and debug_overlay_system.can_create_overlay_node()
+	add_child(touch_hit_test_debug_system)
+	touch_hit_test_debug_system.configure(self, touch_debug_enabled, not input_mode.is_ios_touch())
+	ios_performance_log_system.configure(input_mode.is_ios_touch())
 	performance_profile_system.apply_to_state(state, settings)
 	runtime_ui_limits = performance_profile_system.ui_limits(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
 	state.balance_data["max_effects"] = mini(state.max_effects(), int(runtime_ui_limits.get("max_effects", state.max_effects())))
@@ -207,6 +233,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	notification_log_system.tick(delta)
 	boss_alert_system.tick(delta)
+	ios_performance_log_system.tick(delta, state, self)
 	if state.game_over:
 		speed_active = false
 		return
@@ -266,8 +293,9 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.ctrl_pressed and event.keycode == KEY_F12:
 		if debug_overlay_system.toggle_hidden():
-			debug_overlay_label.show()
-		else:
+			if debug_overlay_label != null:
+				debug_overlay_label.show()
+		elif debug_overlay_label != null:
 			debug_overlay_label.hide()
 		return
 	if input_mode.is_ios_touch():
@@ -323,6 +351,7 @@ func _build_ui() -> void:
 	mobile_layout = mobile_hud_layout_system.layout(viewport_size, mobile_safe, layout_settings) if input_mode.is_touch_mode() else {}
 	var bg = ColorRect.new()
 	bg.color = Color(0.020, 0.030, 0.052)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -549,16 +578,21 @@ func _build_ui() -> void:
 	mobile_equipment_label.add_theme_color_override("font_color", Color(0.84, 0.96, 1.0))
 	add_child(mobile_equipment_label)
 
-	debug_overlay_label = Label.new()
-	debug_overlay_label.visible = false
-	debug_overlay_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	debug_overlay_label.offset_left = safe_left
-	debug_overlay_label.offset_top = safe_top + 150.0
-	debug_overlay_label.offset_right = safe_left + 220.0
-	debug_overlay_label.offset_bottom = safe_top + 280.0
-	debug_overlay_label.add_theme_font_size_override("font_size", 14)
-	debug_overlay_label.add_theme_color_override("font_color", Color(1.0, 0.76, 0.30))
-	add_child(debug_overlay_label)
+	if debug_overlay_system.can_create_overlay_node():
+		debug_overlay_label = Label.new()
+		debug_overlay_label.visible = false
+		debug_overlay_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		debug_overlay_label.process_mode = Node.PROCESS_MODE_DISABLED
+		debug_overlay_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		debug_overlay_label.offset_left = safe_left
+		debug_overlay_label.offset_top = safe_top + 150.0
+		debug_overlay_label.offset_right = safe_left + 220.0
+		debug_overlay_label.offset_bottom = safe_top + 280.0
+		debug_overlay_label.add_theme_font_size_override("font_size", 14)
+		debug_overlay_label.add_theme_color_override("font_color", Color(1.0, 0.76, 0.30))
+		add_child(debug_overlay_label)
+	else:
+		debug_overlay_label = null
 
 	audio_manager = AudioManager.new()
 	add_child(audio_manager)
@@ -574,8 +608,8 @@ func _build_ui() -> void:
 	reward_popup.reroll_requested.connect(_on_touch_reroll)
 	reward_popup.banish_requested.connect(_on_touch_banish)
 	reward_popup.skip_requested.connect(_on_touch_skip)
-	_build_pause_ui()
 	_build_touch_controls(ui_scale)
+	_build_pause_ui()
 
 func _handle_events(events: Array) -> void:
 	for event in events:
@@ -724,8 +758,10 @@ func _refresh() -> void:
 	speed_label.text = speed_hold_system.display_text(speed_active)
 	notification_label.text = notification_log_system.visible_text()
 	notification_panel.visible = not map_expanded and notification_log_system.enabled and notification_label.text != ""
-	debug_overlay_label.text = debug_overlay_system.overlay_text()
-	debug_overlay_label.visible = debug_overlay_system.should_show()
+	if debug_overlay_label != null:
+		debug_overlay_label.text = debug_overlay_system.overlay_text()
+		debug_overlay_label.visible = debug_overlay_system.should_show()
+		debug_overlay_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	boss_alert_label.text = boss_alert_system.warning_text if boss_alert_system.warning_timer > 0.0 else ""
 	var boss_snapshot = boss_alert_system.active_boss_snapshot(state)
 	boss_hp_label.visible = not boss_snapshot.is_empty()
@@ -1067,8 +1103,15 @@ func _build_pause_ui() -> void:
 	var safe_margin = float(state.ui_layout_defs.get("safe_margin", 24.0))
 	var viewport_size := get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
 	var mobile_safe: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 0.0)))
+	pause_backdrop = ColorRect.new()
+	pause_backdrop.visible = false
+	pause_backdrop.color = Color(0.005, 0.009, 0.018, 0.78)
+	pause_backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	pause_backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(pause_backdrop)
 	pause_overlay = PanelContainer.new()
 	pause_overlay.visible = false
+	pause_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	pause_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	pause_overlay.offset_left = mobile_safe.position.x if input_mode.is_touch_mode() else safe_margin * 2.0
 	pause_overlay.offset_right = -(viewport_size.x - mobile_safe.end.x) if input_mode.is_touch_mode() else -safe_margin * 2.0
@@ -1088,6 +1131,7 @@ func _build_pause_ui() -> void:
 	pause_overlay.add_child(root)
 	pause_title_label = Label.new()
 	pause_title_label.text = "ポーズ"
+	pause_title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pause_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	pause_title_label.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else 700
 	pause_title_label.add_theme_font_size_override("font_size", 26 if input_mode.is_touch_mode() else 30)
@@ -1098,9 +1142,7 @@ func _build_pause_ui() -> void:
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 12)
 	root.add_child(body)
-	var tabs: Container = GridContainer.new() if input_mode.is_touch_mode() else VBoxContainer.new()
-	if tabs is GridContainer:
-		(tabs as GridContainer).columns = 4
+	var tabs: Container = HBoxContainer.new() if input_mode.is_touch_mode() else VBoxContainer.new()
 	tabs.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else float(state.ui_layout_defs.get("pause_tab_width", 178.0))
 	tabs.add_theme_constant_override("separation", 6)
 	if not input_mode.is_touch_mode():
@@ -1115,23 +1157,29 @@ func _build_pause_ui() -> void:
 		button.pressed.connect(func(): set_pause_tab(index))
 		tabs.add_child(button)
 		pause_tab_buttons.append(button)
-	var scroll = ScrollContainer.new()
-	ui_layout_fix_system.prepare_scroll(scroll)
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_child(scroll)
+	pause_content_scroll = ScrollContainer.new()
+	pause_content_scroll.name = "PauseContentScroll"
+	ui_layout_fix_system.prepare_scroll(pause_content_scroll)
+	pause_content_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(pause_content_scroll)
+	if input_mode.is_touch_mode():
+		mobile_scroll_system.register_scroll(pause_content_scroll, MobileScrollSystemScript.AXIS_VERTICAL)
 	pause_content = Label.new()
+	pause_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pause_content.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	pause_content.custom_minimum_size.x = float(state.ui_layout_defs.get("pause_content_min_width", 520.0))
 	pause_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pause_content.add_theme_font_size_override("font_size", 18)
 	pause_content.add_theme_color_override("font_color", Color(0.86, 0.92, 0.98))
-	scroll.add_child(pause_content)
+	pause_content_scroll.add_child(pause_content)
 	var summary_panel = PanelContainer.new()
+	summary_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	summary_panel.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else float(state.ui_layout_defs.get("pause_summary_width", 286.0))
 	summary_panel.visible = not input_mode.is_touch_mode()
 	summary_panel.add_theme_stylebox_override("panel", _hud_panel_style(Color(1.0, 0.82, 0.34)))
 	body.add_child(summary_panel)
 	pause_summary = Label.new()
+	pause_summary.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pause_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	pause_summary.custom_minimum_size.x = float(state.ui_layout_defs.get("pause_summary_width", 286.0)) - 24.0
 	pause_summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1139,14 +1187,32 @@ func _build_pause_ui() -> void:
 	pause_summary.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0))
 	summary_panel.add_child(pause_summary)
 	if input_mode.is_touch_mode():
-		root.add_child(tabs)
+		pause_tab_scroll = ScrollContainer.new()
+		pause_tab_scroll.name = "PauseTabScroll"
+		pause_tab_scroll.custom_minimum_size.y = 64
+		pause_tab_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		pause_tab_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+		pause_tab_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		root.add_child(pause_tab_scroll)
+		pause_tab_scroll.add_child(tabs)
+		mobile_scroll_system.register_scroll(pause_tab_scroll, MobileScrollSystemScript.AXIS_HORIZONTAL)
 	pause_action_row = GridContainer.new() if input_mode.is_touch_mode() else HBoxContainer.new()
 	if pause_action_row is GridContainer:
-		(pause_action_row as GridContainer).columns = 2
+		(pause_action_row as GridContainer).columns = 3
 	else:
 		pause_action_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	pause_action_row.add_theme_constant_override("separation", 10)
 	root.add_child(pause_action_row)
+	pause_dialog_layer = Control.new()
+	pause_dialog_layer.visible = false
+	pause_dialog_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	pause_dialog_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(pause_dialog_layer)
+	var dialog_backdrop := ColorRect.new()
+	dialog_backdrop.color = Color(0.0, 0.0, 0.0, 0.72)
+	dialog_backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	dialog_backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pause_dialog_layer.add_child(dialog_backdrop)
 	pause_confirm_dialog = ConfirmDialogScript.new()
 	pause_confirm_dialog.visible = false
 	pause_confirm_dialog.set_anchors_preset(Control.PRESET_CENTER)
@@ -1154,18 +1220,19 @@ func _build_pause_ui() -> void:
 	pause_confirm_dialog.offset_right = 250
 	pause_confirm_dialog.offset_top = -120
 	pause_confirm_dialog.offset_bottom = 120
-	pause_confirm_dialog.setup("タイトルへ戻りますか？", "現在のランは終了します。誤操作防止のため確認してください。", "タイトルへ", "キャンセル")
+	pause_confirm_dialog.setup("タイトルへ戻りますか？", "現在のランは終了します。誤操作防止のため確認してください。", "タイトルへ", "キャンセル", input_mode.is_touch_mode())
 	pause_confirm_dialog.confirmed.connect(func(): title_requested.emit())
-	pause_confirm_dialog.canceled.connect(func(): pause_confirm_dialog.hide())
-	add_child(pause_confirm_dialog)
+	pause_confirm_dialog.canceled.connect(_hide_title_confirm)
+	pause_dialog_layer.add_child(pause_confirm_dialog)
 
 func _toggle_pause() -> void:
 	state.paused = not state.paused
 	pause_overlay.visible = state.paused
+	pause_backdrop.visible = state.paused
 	touch_control_system.set_speed_pressed(false)
-	if pause_confirm_dialog != null:
-		pause_confirm_dialog.hide()
+	_hide_title_confirm()
 	if state.paused:
+		pause_actions_signature = ""
 		_refresh_pause_ui()
 	else:
 		message_label.text = "左下をドラッグして移動　右下でスキャン・回収・倍速" if input_mode.is_touch_mode() else "移動 WASD/矢印　F/右クリック スキャン　R ドローン　Esc ポーズ"
@@ -1256,10 +1323,11 @@ func _refresh_touch_controls() -> void:
 	if touch_root == null:
 		return
 	var show_touch = touch_control_system.should_show()
-	touch_root.visible = show_touch
-	if not show_touch:
+	touch_root.visible = show_touch and not state.paused
+	if not show_touch or state.paused:
 		touch_direction = Vector2.ZERO
 		touch_control_system.set_speed_pressed(false)
+	if not show_touch:
 		return
 	var action_blocked = map_expanded or state.paused or state.level_up_pending or state.chest_pending or state.rune_contract_pending or state.game_over
 	virtual_joystick.visible = touch_control_system.should_show_joystick() and not action_blocked
@@ -1375,6 +1443,10 @@ func _refresh_pause_ui() -> void:
 func _refresh_pause_actions() -> void:
 	if pause_action_row == null:
 		return
+	var signature := "%d:%s:%s" % [pause_tab_index, str(state.auto_infinite_enabled), str(state.auto_recall_drone_enabled)]
+	if signature == pause_actions_signature:
+		return
+	pause_actions_signature = signature
 	for child in pause_action_row.get_children():
 		child.queue_free()
 	if pause_tab_index == 7:
@@ -1408,8 +1480,15 @@ func _refresh_pause_actions() -> void:
 	pause_action_row.add_child(resume_button)
 
 func _show_title_confirm() -> void:
-	if pause_confirm_dialog != null:
+	if pause_confirm_dialog != null and pause_dialog_layer != null:
+		pause_dialog_layer.show()
 		pause_confirm_dialog.show()
+
+func _hide_title_confirm() -> void:
+	if pause_confirm_dialog != null:
+		pause_confirm_dialog.hide()
+	if pause_dialog_layer != null:
+		pause_dialog_layer.hide()
 
 func _pause_status_text() -> String:
 	return "\n".join([

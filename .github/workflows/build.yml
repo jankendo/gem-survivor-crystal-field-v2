@@ -82,7 +82,9 @@ jobs:
             "res://tests/auto_play_ios_touch_5min.gd",
             "res://tests/auto_play_ios_levelup_selection.gd",
             "res://tests/auto_play_ios_menu_flow.gd",
-            "res://tests/auto_play_ios_layout_qa.gd"
+            "res://tests/auto_play_ios_layout_qa.gd",
+            "res://tests/auto_play_ios_pause_scroll_flow.gd",
+            "res://tests/auto_play_ios_full_ui_flow.gd"
           )
           foreach ($script in $scripts) {
             & $godot --headless --path . --script $script
@@ -115,6 +117,13 @@ jobs:
         with:
           name: iOS-Layout-QA
           path: test-output/screenshots/ios_layout/
+          if-no-files-found: error
+
+      - name: Upload iOS touch audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS-Touch-Audit
+          path: test-output/ios_touch_action_audit.csv
           if-no-files-found: error
 
   ios-unsigned-build:

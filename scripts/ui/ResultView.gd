@@ -5,6 +5,7 @@ const JaText = preload("res://scripts/ui/JaText.gd")
 const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.gd")
 const InputModeSystemScript = preload("res://scripts/systems/InputModeSystem.gd")
 const MobileSafeAreaSystemScript = preload("res://scripts/systems/MobileSafeAreaSystem.gd")
+const MobileScrollSystemScript = preload("res://scripts/systems/MobileScrollSystem.gd")
 
 signal retry_requested
 signal title_requested
@@ -18,12 +19,17 @@ var best_update_label: Label
 var scroll: ScrollContainer
 var input_mode = InputModeSystemScript.new()
 var mobile_safe_area = MobileSafeAreaSystemScript.new()
+var mobile_scroll_system
 
 func _ready() -> void:
 	var settings: Dictionary = SaveSystem.new().load_data().get("settings", {})
 	input_mode.configure(settings)
+	mobile_scroll_system = MobileScrollSystemScript.new()
+	add_child(mobile_scroll_system)
+	mobile_scroll_system.configure(input_mode.is_touch_mode(), input_mode.is_touch_mode() and not input_mode.is_ios_touch())
 	var bg = ColorRect.new()
 	bg.color = Color(0.018, 0.024, 0.040)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -40,6 +46,7 @@ func _ready() -> void:
 	add_child(center)
 
 	var title = Label.new()
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	title.text = "ゲームオーバー"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 42 if input_mode.is_touch_mode() else 56)
@@ -47,12 +54,14 @@ func _ready() -> void:
 	center.add_child(title)
 
 	score_line = Label.new()
+	score_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	score_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	score_line.add_theme_font_size_override("font_size", 34 if input_mode.is_touch_mode() else 42)
 	score_line.add_theme_color_override("font_color", Color(1.0, 0.82, 0.32))
 	center.add_child(score_line)
 
 	best_update_label = Label.new()
+	best_update_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	best_update_label.visible = false
 	best_update_label.text = "最高スコア更新！"
 	best_update_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -65,8 +74,11 @@ func _ready() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	center.add_child(scroll)
+	if input_mode.is_touch_mode():
+		mobile_scroll_system.register_scroll(scroll, MobileScrollSystemScript.AXIS_VERTICAL)
 
 	lines = Label.new()
+	lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lines.custom_minimum_size.x = 0 if input_mode.is_touch_mode() else 880
 	lines.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lines.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

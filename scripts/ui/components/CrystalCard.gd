@@ -14,7 +14,7 @@ func setup(accent: Color = Color(0.40, 0.92, 1.0), secret: bool = false, min_siz
 	secret_style = secret
 	custom_minimum_size = Vector2(maxf(240.0, min_size.x), min_size.y)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mouse_filter = Control.MOUSE_FILTER_PASS
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	apply_theme()
 
 func apply_theme() -> void:

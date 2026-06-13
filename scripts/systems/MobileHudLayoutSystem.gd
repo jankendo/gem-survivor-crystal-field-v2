@@ -36,7 +36,7 @@ func layout(viewport_size: Vector2, safe_rect: Rect2, settings: Dictionary = {})
 	joystick_position.x = clampf(joystick_position.x, safe_rect.position.x, safe_rect.end.x - joystick_touch_extent)
 	joystick_position.y = clampf(joystick_position.y, safe_rect.position.y, safe_rect.end.y - joystick_touch_extent)
 	var minimap_size := minf(float(map_settings.get("minimap_size", 204.0)), safe_rect.size.y * 0.38)
-	var top_button_extent := maxf(60.0, float(metrics.get("pause_button_px", 60.0)) * scale)
+	var top_button_extent := maxf(64.0, float(metrics.get("pause_button_px", 64.0)) * scale)
 	var minimap_rect := Rect2(
 		Vector2(safe_rect.end.x - minimap_size, safe_rect.position.y + top_button_extent + gap),
 		Vector2.ONE * minimap_size
