@@ -14,6 +14,9 @@ var hit_targets: Array = []
 var bounce_left: int = 0
 
 func _init(projectile_kind: String = "bolt", pos: Vector2 = Vector2.ZERO, vel: Vector2 = Vector2.ZERO, dmg: int = 1, pierce: int = 0, life: float = 2.0, hit_radius: float = 8.0, splash: float = 0.0, is_evolved: bool = false) -> void:
+	reset(projectile_kind, pos, vel, dmg, pierce, life, hit_radius, splash, is_evolved)
+
+func reset(projectile_kind: String = "bolt", pos: Vector2 = Vector2.ZERO, vel: Vector2 = Vector2.ZERO, dmg: int = 1, pierce: int = 0, life: float = 2.0, hit_radius: float = 8.0, splash: float = 0.0, is_evolved: bool = false) -> void:
 	kind = projectile_kind
 	position = pos
 	velocity = vel
@@ -23,3 +26,5 @@ func _init(projectile_kind: String = "bolt", pos: Vector2 = Vector2.ZERO, vel: V
 	radius = hit_radius
 	splash_radius = splash
 	evolved = is_evolved
+	hit_targets.clear()
+	bounce_left = 0

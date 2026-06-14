@@ -8,6 +8,9 @@ var enabled := true
 var entries: Array = []
 var history: Array = []
 var visible_limit := MAX_VISIBLE
+var revision := 0
+var cached_visible_text := ""
+var cached_revision := -1
 
 func configure(settings: Dictionary, platform: String = OS.get_name()) -> void:
 	enabled = bool(settings.get("notification_log_enabled", true))
@@ -33,18 +36,24 @@ func ingest(event: Dictionary, elapsed_seconds: float) -> void:
 		entries.resize(visible_limit)
 	if history.size() > MAX_HISTORY:
 		history.resize(MAX_HISTORY)
+	revision += 1
 
 func tick(delta: float) -> void:
 	for entry in entries.duplicate():
 		entry["life"] = float(entry.get("life", 0.0)) - delta
 		if float(entry.get("life", 0.0)) <= 0.0:
 			entries.erase(entry)
+			revision += 1
 
 func visible_text() -> String:
+	if cached_revision == revision:
+		return cached_visible_text
 	var lines: Array = []
 	for entry in entries:
 		lines.append("[%s] %s" % [_category_label(String(entry.get("category", "info"))), String(entry.get("text", ""))])
-	return "\n".join(lines)
+	cached_visible_text = "\n".join(lines)
+	cached_revision = revision
+	return cached_visible_text
 
 func history_text() -> String:
 	if history.is_empty():

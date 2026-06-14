@@ -124,6 +124,17 @@ func _initialize() -> void:
 		,"res://tests/test_boss_alert_system.gd"
 		,"res://tests/test_equipment_hud_system.gd"
 		,"res://tests/test_effect_completeness.gd"
+		,"res://tests/test_ios_dynamic_joystick_anywhere_left.gd"
+		,"res://tests/test_ios_safe_area_notch_landscape.gd"
+		,"res://tests/test_ios_ui_overlap_regression.gd"
+		,"res://tests/test_ios_hud_layout_profiles.gd"
+		,"res://tests/test_ios_menu_safe_area_overlap.gd"
+		,"res://tests/test_ios_ui_update_throttling.gd"
+		,"res://tests/test_ios_effect_budget_no_quality_drop.gd"
+		,"res://tests/test_ios_object_pooling_stability.gd"
+		,"res://tests/test_ios_spatial_optimization.gd"
+		,"res://tests/test_ios_performance_logging.gd"
+		,"res://tests/test_desktop_unchanged_after_ios_optimization.gd"
 	]
 	for suite_path in suites:
 		var suite = load(suite_path).new()

@@ -37,7 +37,7 @@ Buttonは`MOUSE_FILTER_STOP`、装飾ラベル・カード背景・HUD表示は`
 
 * `TouchHitTestDebugSystem.gd`: 開発時だけタップ座標、最前面Control、Button、`mouse_filter`、表示状態、矩形、CanvasLayer、`z_index`を`user://touch_hit_test_log.csv`へ記録します。通常iOSでは生成・表示しません。
 * `TouchActionAuditSystem.gd`: iOSテスト時の画面、Control、操作、座標、期待結果、実結果、遮蔽Control、矩形を`user://ios_touch_action_audit.csv`へ記録します。CIでは同内容を`iOS-Touch-Audit` artifactとして保存します。
-* `IosPerformanceLogSystem.gd`: iOSで5秒ごとにFPS、frame time、敵、エフェクト、Projectile、UIノード数、メモリ推定を`user://ios_performance_log.csv`へ記録します。性能値は画面には表示しません。
+* `IosPerformanceLogSystem.gd`: iOSで5秒ごとにFPS、frame time平均/p95/p99、長時間フレーム、表示内外の敵、エフェクト、Projectile、UI/Controlノード、経路更新、プール数、メモリ推定を`user://ios_performance_log.csv`へ記録します。性能値は画面には表示しません。
 
 ### iOS実機映像QAチェック
 
@@ -793,6 +793,7 @@ Artifacts:
 | `ChronoMergeTactics-Windows` | `ChronoMergeTactics-Windows.zip`（中に`ChronoMergeTactics.exe`と`README.md`） |
 | `GemSurvivor-iOS-unsigned-IPA` | `GemSurvivor-unsigned.ipa`, `README.md`, `IOS_UNSIGNED_README.md` |
 | `Balance-Report` | `balance_report.md` |
+| `iOS-Performance-Report` | 5分標準ログ、`full_test=true`時の10/20/30分ログ、解析Markdown |
 
 GitHubの`Actions`から対象runを開き、画面下部の`Artifacts`から取得します。
 
@@ -812,20 +813,39 @@ Export mode: Xcode project only
 
 生成される`GemSurvivor-unsigned.ipa`は未署名です。通常のiPhoneへそのままインストールできません。AltStore、Sideloadly、またはXcodeと自分のApple accountで署名/サイドロードしてください。無料Apple ID署名は期限切れ後に再署名が必要になる場合があります。App Store/TestFlight配布物ではありません。
 
-## iOSタッチ操作 / パフォーマンス
+## iOSタッチ操作 / 長時間パフォーマンス
 
-iOSでは左下の仮想スティックと、右下のスキャン、回収ドローン、倍速ホールド、ポーズを表示します。仮想スティックはマウスドラッグでも確認できます。Windowsでは自動設定時に非表示で、WASD/矢印、F/右クリック、R、Shift、Escを維持します。
+iOS実機で時間経過とともに重くなる問題に対し、機能や見えるエフェクトを削らず、計測結果から内部処理を軽量化しています。単一Canvas描画の画面外カリング、近傍検索の`SpatialHashGrid`化、敵/弾/ジェムの`PoolManager`再利用、`UiDirtyFlagSystem`によるHUD差分更新、`EffectBatchSystem`による画面外抑制とダメージ数字集約を行います。
+
+移動は固定位置を探す方式ではなく、右利き設定ではSafe Area内の左半分、左利き設定では右半分のどこからでも開始できる動的スティックです。上・中央・下から開始でき、移動用touch IDを右側ボタンのtouch IDと分離しているため、移動中にスキャン、回収、倍速長押しを別指で操作できます。設定で固定スティック、表示方法、デッドゾーン、感度へ切り替えられます。ポーズ、カード選択、マップ表示中は移動入力を解除し、ボタンとスクロール領域を優先します。
+
+`MobileSafeAreaSystem`はlandscapeLeft/landscapeRightを分け、ノッチ、Dynamic Island、角丸、Home Indicatorに追加余白を持たせます。`IosSafeAreaGuardSystem`と`IosLayoutOverlapSystem`が重要UIの範囲外配置と重なりを検査します。iPhoneは右下アクション、右上ミニマップ、中央下の簡易装備、iPadは利用可能な余白を広げたHUDプロファイルです。
+
+Windowsでは自動設定時にタッチHUDを表示せず、WASD/矢印、F/右クリック、R、Shift、Esc、マウス操作を維持します。`touch_ui_mode=on`のプレビュー時だけ動的スティックを有効にします。
 
 設定:
 
 * タッチ操作UI: 自動 / ON / OFF
 * 仮想スティック: ON / OFF
+* 移動方式: 動的 / 固定
+* スティック表示: 常時 / 操作中 / 非表示
+* デッドゾーン / 感度
 * タッチボタンサイズ: 小 / 標準 / 大
 * 描画品質: 低 / 標準 / 高
 * エフェクト量: 控えめ / 標準 / 多い
 * ダメージ数字、画面揺れ: ON / OFF
 
 `data/balance.json`の`desktop_low/standard/high`と`ios_low/standard/high`で敵、ジェム、弾、敵弾、エフェクト、文字、背景粒子の上限を分離します。iOS初期値は`ios_standard`で、Windowsの上限は従来の`desktop_standard`を維持します。
+
+`data/ios_performance_budget.json`は60 FPS目標、33 ms警告、表示数、通知履歴、ミニマップ/装備/目標/遠距離AIの更新間隔を管理します。`IosPerformanceLogSystem`は5秒ごとにFPS、5秒平均、30秒p95/p99、長時間フレーム、敵/エフェクト/ジェム/弾/UI node、node生成率、メモリ、ログ件数を`user://ios_performance_log.csv`へ保存します。
+
+実機ログの解析:
+
+```powershell
+python tools/analyze_ios_performance.py ios_performance_log.csv --output ios_performance_report.md
+```
+
+10/20/30分相当のヘッドレス試験は`auto_play_ios_perf_10min.gd`、`auto_play_ios_perf_20min.gd`、`auto_play_ios_perf_30min.gd`です。CI標準実行は5分ログと解析結果を`iOS-Performance-Report` artifactへ保存し、`full_test=true`では10/20/30分試験も追加します。ヘッドレス値は回帰検出用であり、実機のMetal描画、発熱、バッテリーを代替しません。
 
 ## 2026-06 バランス再調整
 

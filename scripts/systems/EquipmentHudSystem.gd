@@ -4,6 +4,7 @@ class_name EquipmentHudSystem
 var show_weapons := true
 var show_passives := true
 var display_mode := "simple"
+var cache: Dictionary = {}
 
 func configure(settings: Dictionary) -> void:
 	show_weapons = bool(settings.get("weapon_hud_enabled", true))
@@ -14,6 +15,9 @@ func configure(settings: Dictionary) -> void:
 		show_passives = false
 
 func compact_text(state) -> String:
+	var signature := _signature(state, "compact")
+	if cache.has(signature):
+		return cache[signature]
 	if display_mode == "hidden":
 		return ""
 	var weapon_parts: Array = []
@@ -24,11 +28,15 @@ func compact_text(state) -> String:
 	for raw_id in state.passives.keys():
 		passive_parts.append("○%d" % int(state.passives[raw_id]))
 	if display_mode in ["detail", "detailed"]:
-		return "%s\n%s" % [weapon_text(state), passive_text(state)]
-	return "武器 %s　補助 %s" % [
+		var detailed := "%s\n%s" % [weapon_text(state), passive_text(state)]
+		cache[signature] = detailed
+		return detailed
+	var text := "武器 %s　補助 %s" % [
 		" ".join(weapon_parts) if not weapon_parts.is_empty() else "-",
 		" ".join(passive_parts) if not passive_parts.is_empty() else "-"
 	]
+	cache[signature] = text
+	return text
 
 func weapon_text(state) -> String:
 	if not show_weapons:
@@ -48,3 +56,6 @@ func passive_text(state) -> String:
 		var id = String(raw_id)
 		lines.append("%s Lv%d" % [state.passive_name(id), int(state.passives[id])])
 	return "\n".join(lines)
+
+func _signature(state, prefix: String) -> String:
+	return "%s:%s:%s:%s" % [prefix, str(state.weapons), str(state.passives), str(state.evolved_weapons)]

@@ -1,6 +1,8 @@
 extends Control
 class_name VirtualJoystick
 
+const DynamicVirtualJoystickSystemScript = preload("res://scripts/systems/DynamicVirtualJoystickSystem.gd")
+
 signal direction_changed(direction: Vector2)
 
 var direction := Vector2.ZERO
@@ -13,9 +15,11 @@ var visual_opacity := 0.72
 var origin := Vector2.ZERO
 var visual_extent := 196.0
 var knob_extent := 82.0
+var dynamic_system = DynamicVirtualJoystickSystemScript.new()
+var blocked_rects: Array = []
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	focus_mode = Control.FOCUS_NONE
 	knob_position = size * 0.5
 	origin = knob_position
@@ -28,42 +32,43 @@ func configure(opacity: float = 0.72, use_dynamic_origin: bool = true, outer_ext
 	knob_extent = clampf(knob_size, 72.0, 96.0)
 	queue_redraw()
 
+func configure_anywhere(viewport_size: Vector2, safe_rect: Rect2, settings: Dictionary, fixed_rect: Rect2, exclusions: Array = []) -> void:
+	blocked_rects = exclusions.duplicate()
+	dynamic_system.configure(viewport_size, safe_rect, settings, fixed_rect)
+	dynamic_origin = dynamic_system.mode == "dynamic"
+	visual_extent = dynamic_system.radius * 2.0
+	origin = dynamic_system.origin
+	knob_position = dynamic_system.pointer
+	queue_redraw()
+
 func set_enabled(value: bool) -> void:
 	enabled = value
 	if not enabled:
 		_release()
-	mouse_filter = Control.MOUSE_FILTER_STOP if enabled else Control.MOUSE_FILTER_IGNORE
+	set_process_input(enabled)
 	queue_redraw()
 
-func _gui_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if not enabled:
 		return
 	if event is InputEventScreenTouch:
-		if event.pressed and touch_index < 0:
+		if event.pressed and dynamic_system.begin_touch(event.index, event.position, _is_blocked(event.position)):
 			touch_index = event.index
 			dragging = true
-			if dynamic_origin:
-				origin = event.position
-			_update_pointer(event.position)
-			accept_event()
-		elif not event.pressed and event.index == touch_index:
+			_sync_dynamic()
+		elif not event.pressed and dynamic_system.end_touch(event.index):
 			_release()
-			accept_event()
-	elif event is InputEventScreenDrag and event.index == touch_index:
-		_update_pointer(event.position)
-		accept_event()
+	elif event is InputEventScreenDrag and dynamic_system.drag_touch(event.index, event.position):
+		_sync_dynamic()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
+		if event.pressed and dynamic_system.begin_touch(0, event.position, _is_blocked(event.position)):
+			touch_index = 0
 			dragging = true
-			if dynamic_origin:
-				origin = event.position
-			_update_pointer(event.position)
-		else:
+			_sync_dynamic()
+		elif not event.pressed and dynamic_system.end_touch(0):
 			_release()
-		accept_event()
-	elif event is InputEventMouseMotion and dragging:
-		_update_pointer(event.position)
-		accept_event()
+	elif event is InputEventMouseMotion and dragging and dynamic_system.drag_touch(0, event.position):
+		_sync_dynamic()
 
 func _update_pointer(local_position: Vector2) -> void:
 	var center = origin if dynamic_origin and dragging else size * 0.5
@@ -77,6 +82,7 @@ func _update_pointer(local_position: Vector2) -> void:
 	queue_redraw()
 
 func _release() -> void:
+	dynamic_system.cancel()
 	dragging = false
 	touch_index = -1
 	direction = Vector2.ZERO
@@ -86,7 +92,14 @@ func _release() -> void:
 	queue_redraw()
 
 func _draw() -> void:
+	if dynamic_system != null:
+		if not dynamic_system.should_draw():
+			return
+		origin = dynamic_system.visual_origin()
+		knob_position = dynamic_system.visual_pointer()
 	var center = origin if dynamic_origin and dragging else size * 0.5
+	if dynamic_system.mode == "fixed":
+		center = dynamic_system.origin
 	var base_radius = visual_extent * 0.5
 	var knob_radius = knob_extent * 0.5
 	var opacity = visual_opacity if dragging else visual_opacity * 0.42
@@ -94,3 +107,16 @@ func _draw() -> void:
 	draw_arc(center, base_radius, 0.0, TAU, 72, Color(0.34, 0.88, 1.0, opacity + 0.18), 3.0)
 	draw_circle(knob_position if dragging else center, knob_radius, Color(0.30, 0.94, 1.0, opacity + 0.18))
 	draw_arc(knob_position if dragging else center, knob_radius, 0.0, TAU, 48, Color(0.92, 1.0, 1.0, opacity + 0.25), 2.0)
+
+func _sync_dynamic() -> void:
+	origin = dynamic_system.visual_origin()
+	knob_position = dynamic_system.visual_pointer()
+	direction = dynamic_system.direction
+	direction_changed.emit(direction)
+	queue_redraw()
+
+func _is_blocked(point: Vector2) -> bool:
+	for rect in blocked_rects:
+		if (rect as Rect2).has_point(point):
+			return true
+	return false

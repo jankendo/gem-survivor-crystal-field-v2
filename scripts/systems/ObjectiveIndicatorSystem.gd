@@ -1,7 +1,12 @@
 extends RefCounted
 class_name ObjectiveIndicatorSystem
 
+var cached_targets: Array = []
+var next_refresh_time := 0.0
+
 func targets_for_state(state, max_count: int = 3) -> Array:
+	if state.elapsed_seconds < next_refresh_time and not cached_targets.is_empty():
+		return cached_targets.slice(0, max_count)
 	var targets: Array = []
 	_add_goals(state, targets)
 	_add_drops(state, targets)
@@ -18,7 +23,9 @@ func targets_for_state(state, max_count: int = 3) -> Array:
 			return float(a.get("distance", 0.0)) < float(b.get("distance", 0.0))
 		return pa < pb
 	)
-	return targets.slice(0, max_count)
+	cached_targets = targets
+	next_refresh_time = state.elapsed_seconds + 0.25
+	return cached_targets.slice(0, max_count)
 
 func _add_goals(state, targets: Array) -> void:
 	for i in range(mini(3, state.current_goals.size())):

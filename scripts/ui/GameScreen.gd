@@ -40,6 +40,9 @@ const MobileScrollSystemScript = preload("res://scripts/systems/MobileScrollSyst
 const DebugOverlaySystemScript = preload("res://scripts/systems/DebugOverlaySystem.gd")
 const TouchHitTestDebugSystemScript = preload("res://scripts/systems/TouchHitTestDebugSystem.gd")
 const IosPerformanceLogSystemScript = preload("res://scripts/systems/IosPerformanceLogSystem.gd")
+const UiDirtyFlagSystemScript = preload("res://scripts/systems/UiDirtyFlagSystem.gd")
+const IosPerformanceBudgetSystemScript = preload("res://scripts/systems/IosPerformanceBudgetSystem.gd")
+const EffectBatchSystemScript = preload("res://scripts/systems/EffectBatchSystem.gd")
 const ArenaViewScript = preload("res://scripts/ui/ArenaView.gd")
 const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.gd")
 const ConfirmDialogScript = preload("res://scripts/ui/components/ConfirmDialog.gd")
@@ -87,6 +90,9 @@ var mobile_scroll_system
 var debug_overlay_system
 var touch_hit_test_debug_system
 var ios_performance_log_system
+var ui_dirty_flag_system
+var ios_performance_budget_system
+var effect_batch_system
 var arena_view
 var audio_manager: AudioManager
 var reward_popup: RewardPopup
@@ -191,6 +197,9 @@ func _ready() -> void:
 	debug_overlay_system = DebugOverlaySystemScript.new()
 	touch_hit_test_debug_system = TouchHitTestDebugSystemScript.new()
 	ios_performance_log_system = IosPerformanceLogSystemScript.new()
+	ui_dirty_flag_system = UiDirtyFlagSystemScript.new()
+	ios_performance_budget_system = IosPerformanceBudgetSystemScript.new()
+	effect_batch_system = EffectBatchSystemScript.new()
 	state.start_new_run(0, initial_seed_text)
 	var save_data = initial_save_data if not initial_save_data.is_empty() else SaveSystem.new().load_data()
 	var settings: Dictionary = save_data.get("settings", {})
@@ -213,6 +222,11 @@ func _ready() -> void:
 	add_child(touch_hit_test_debug_system)
 	touch_hit_test_debug_system.configure(self, touch_debug_enabled, not input_mode.is_ios_touch())
 	ios_performance_log_system.configure(input_mode.is_ios_touch())
+	ui_dirty_flag_system.configure({
+		"equipment": ios_performance_budget_system.get_float("equipment_hud_update_interval", 0.20),
+		"notifications": 0.10,
+		"goal": ios_performance_budget_system.get_float("goal_hint_update_interval", 0.25)
+	})
 	performance_profile_system.apply_to_state(state, settings)
 	runtime_ui_limits = performance_profile_system.ui_limits(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
 	state.balance_data["max_effects"] = mini(state.max_effects(), int(runtime_ui_limits.get("max_effects", state.max_effects())))
@@ -231,6 +245,7 @@ func _ready() -> void:
 	_refresh()
 
 func _process(delta: float) -> void:
+	ui_dirty_flag_system.tick(delta)
 	notification_log_system.tick(delta)
 	boss_alert_system.tick(delta)
 	ios_performance_log_system.tick(delta, state, self)
@@ -749,14 +764,17 @@ func _refresh() -> void:
 	]
 	if input_mode.is_touch_mode():
 		hud_label.text += "　武器 %d/%d　パッシブ %d/%d" % [state.weapons.size(), state.max_owned_weapons(), state.passives.size(), state.max_owned_passives()]
-	weapon_label.text = equipment_hud_system.weapon_text(state)
-	passive_label.text = equipment_hud_system.passive_text(state)
+	var equipment_signature := "%s:%s:%s" % [str(state.weapons), str(state.passives), str(state.evolved_weapons)]
+	if ui_dirty_flag_system.should_update("equipment", equipment_signature):
+		_set_label_text(weapon_label, equipment_hud_system.weapon_text(state))
+		_set_label_text(passive_label, equipment_hud_system.passive_text(state))
+		_set_label_text(mobile_equipment_label, equipment_hud_system.compact_text(state))
 	weapon_label.visible = not input_mode.is_touch_mode() and equipment_hud_system.show_weapons
 	passive_label.visible = not input_mode.is_touch_mode() and equipment_hud_system.show_passives
-	mobile_equipment_label.text = equipment_hud_system.compact_text(state)
 	mobile_equipment_label.visible = input_mode.is_touch_mode() and not map_expanded and mobile_equipment_label.text != ""
 	speed_label.text = speed_hold_system.display_text(speed_active)
-	notification_label.text = notification_log_system.visible_text()
+	if ui_dirty_flag_system.should_update("notifications", str(notification_log_system.revision)):
+		_set_label_text(notification_label, notification_log_system.visible_text())
 	notification_panel.visible = not map_expanded and notification_log_system.enabled and notification_label.text != ""
 	if debug_overlay_label != null:
 		debug_overlay_label.text = debug_overlay_system.overlay_text()
@@ -794,7 +812,9 @@ func _refresh() -> void:
 	if not state.active_synergies.is_empty():
 		combo_label.text += "　%s" % state.active_synergy_label()
 	exp_bar.value = exp_percent
-	_refresh_goal_hud()
+	var goal_signature := "%s:%d:%d:%d" % [str(state.current_goals), int(state.player_position.x / 16.0), int(state.player_position.y / 16.0), int(state.elapsed_seconds * 4.0)]
+	if ui_dirty_flag_system.should_update("goal", goal_signature):
+		_refresh_goal_hud()
 	_refresh_field_help_hud()
 	_refresh_low_hp_overlay()
 	if state.level_up_pending:
@@ -856,6 +876,10 @@ func _refresh_goal_hud() -> void:
 		state.exploration_chain,
 		state.exploration_chain_timer
 	]
+
+func _set_label_text(label: Label, value: String) -> void:
+	if label != null and label.text != value:
+		label.text = value
 
 func _refresh_field_help_hud() -> void:
 	if field_help_label == null:
@@ -962,14 +986,40 @@ func _tick_flashes(delta: float) -> void:
 		flash["life"] = float(flash.get("life", 0.0)) - delta
 		if float(flash.get("life", 0.0)) <= 0.0:
 			state.hit_flashes.erase(flash)
+			state.release_runtime("hit_flash", flash)
 	for line in state.effect_lines.duplicate():
 		line["life"] = float(line.get("life", 0.0)) - delta
 		if float(line.get("life", 0.0)) <= 0.0:
 			state.effect_lines.erase(line)
+			state.release_runtime("effect_line", line)
 	for text_data in state.floating_texts.duplicate():
 		text_data["life"] = float(text_data.get("life", 0.0)) - delta
 		if float(text_data.get("life", 0.0)) <= 0.0:
 			state.floating_texts.erase(text_data)
+			state.release_runtime("damage_text", text_data)
+	if input_mode.is_ios_touch() and arena_view != null:
+		var visible_world: Vector2 = arena_view.size / maxf(arena_view.camera_zoom, 0.01)
+		var visible_flashes: Array = effect_batch_system.visible_items(state.hit_flashes, state.camera_position, visible_world, 128.0)
+		var visible_lines: Array = effect_batch_system.visible_items(state.effect_lines, state.camera_position, visible_world, 128.0)
+		var visible_texts: Array = effect_batch_system.merge_damage_numbers(
+			effect_batch_system.visible_items(state.floating_texts, state.camera_position, visible_world, 128.0)
+		)
+		_release_removed_effects("hit_flash", state.hit_flashes, visible_flashes)
+		_release_removed_effects("effect_line", state.effect_lines, visible_lines)
+		_release_removed_effects("damage_text", state.floating_texts, visible_texts)
+		state.hit_flashes = visible_flashes
+		state.effect_lines = visible_lines
+		state.floating_texts = visible_texts
+
+func _release_removed_effects(type_id: String, previous: Array, current: Array) -> void:
+	for value in previous:
+		var retained := false
+		for candidate in current:
+			if is_same(value, candidate):
+				retained = true
+				break
+		if not retained:
+			state.release_runtime(type_id, value)
 
 func _finish_game(events: Array) -> void:
 	pending_finish = true
@@ -1252,13 +1302,17 @@ func _build_touch_controls(ui_scale: float) -> void:
 		layout = mobile_hud_layout_system.layout(viewport_size, safe_rect, layout_settings)
 	var joystick_rect: Rect2 = layout["joystick_rect"]
 	virtual_joystick = VirtualJoystickScript.new()
-	_place_touch_rect(virtual_joystick, joystick_rect)
+	virtual_joystick.set_anchors_preset(Control.PRESET_FULL_RECT)
 	virtual_joystick.configure(
 		touch_control_system.touch_button_opacity,
 		true,
 		float(layout.get("joystick_visual_extent", 196.0)),
 		float(layout.get("joystick_knob_extent", 82.0))
 	)
+	var joystick_safe_rect: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 16.0)))
+	virtual_joystick.configure_anywhere(viewport_size, joystick_safe_rect, runtime_settings, joystick_rect, [
+		layout["actions_rect"], layout["pause_rect"], layout["log_rect"], layout["map_rect"], layout["minimap_rect"]
+	])
 	virtual_joystick.direction_changed.connect(func(value: Vector2):
 		touch_direction = value
 		touch_control_system.set_move_vector(value)

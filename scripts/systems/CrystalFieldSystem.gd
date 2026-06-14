@@ -69,7 +69,7 @@ func damage_wall(state, wall, damage: int, events: Array, source: String) -> boo
 		return false
 	wall.hp -= damage
 	state.record_damage(damage)
-	state.hit_flashes.append({"pos": wall.position, "life": 0.18, "source": source})
+	state.add_hit_flash({"pos": wall.position, "life": 0.18, "source": source})
 	events.append({"type": "crystal_hit", "id": wall.id, "damage": damage, "hp": wall.hp, "source": source, "pos": wall.position})
 	if wall.hp > 0:
 		return false

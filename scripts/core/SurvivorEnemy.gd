@@ -30,9 +30,14 @@ var attack_direction: Vector2 = Vector2.ZERO
 var shock_stacks: int = 0
 var shock_timer: float = 0.0
 var poison_timer: float = 0.0
+var ai_update_timer: float = 0.0
+var ai_accumulator: float = 0.0
 var data: Dictionary = {}
 
 func _init(enemy_type: String = "slime", data: Dictionary = {}, pos: Vector2 = Vector2.ZERO, hp_bonus: int = 0, speed_bonus: float = 1.0) -> void:
+	reset(enemy_type, data, pos, hp_bonus, speed_bonus)
+
+func reset(enemy_type: String = "slime", data: Dictionary = {}, pos: Vector2 = Vector2.ZERO, hp_bonus: int = 0, speed_bonus: float = 1.0) -> void:
 	type = enemy_type
 	self.data = data.duplicate(true)
 	name_ja = String(data.get("name_ja", "スライム"))
@@ -50,6 +55,21 @@ func _init(enemy_type: String = "slime", data: Dictionary = {}, pos: Vector2 = V
 	guaranteed_chest = bool(data.get("guaranteed_chest", false))
 	splits = int(data.get("splits", 0))
 	split_type = String(data.get("split_type", ""))
+	slow_timer = 0.0
+	contact_cooldown = 0.0
+	hit_cooldowns.clear()
+	action_timer = 0.0
+	charge_timer = 0.0
+	telegraph_timer = 0.0
+	recovery_timer = 0.0
+	special_phase = ""
+	attack_target = Vector2.ZERO
+	attack_direction = Vector2.ZERO
+	shock_stacks = 0
+	shock_timer = 0.0
+	poison_timer = 0.0
+	ai_update_timer = 0.0
+	ai_accumulator = 0.0
 
 func tick_cooldowns(delta: float) -> void:
 	contact_cooldown = maxf(0.0, contact_cooldown - delta)

@@ -12,8 +12,22 @@ const LANDSCAPE_PRESETS := {
 }
 
 func insets_for(viewport_size: Vector2, extra_margin: float = 0.0) -> Vector4:
+	return insets_for_orientation(viewport_size, "landscape_left", extra_margin)
+
+func insets_for_orientation(viewport_size: Vector2, orientation: String, extra_margin: float = 0.0) -> Vector4:
 	var key := "%dx%d" % [int(viewport_size.x), int(viewport_size.y)]
 	var insets: Vector4 = LANDSCAPE_PRESETS.get(key, _estimated_insets(viewport_size))
+	var is_tablet := viewport_size.y >= 1500.0
+	if not is_tablet:
+		var notch := maxf(insets.x, insets.z) + clampf(viewport_size.y * 0.025, 24.0, 48.0)
+		var quiet_side := maxf(24.0, minf(insets.x, insets.z))
+		if orientation == "landscape_right":
+			insets.x = quiet_side
+			insets.z = notch
+		else:
+			insets.x = notch
+			insets.z = quiet_side
+	insets.w += clampf(viewport_size.y * 0.018, 24.0, 40.0)
 	return Vector4(
 		insets.x + extra_margin,
 		insets.y + extra_margin,
@@ -22,14 +36,18 @@ func insets_for(viewport_size: Vector2, extra_margin: float = 0.0) -> Vector4:
 	)
 
 func safe_rect(viewport_size: Vector2, extra_margin: float = 0.0) -> Rect2:
-	var insets := insets_for(viewport_size, extra_margin)
+	return safe_rect_for_orientation(viewport_size, "landscape_left", extra_margin)
+
+func safe_rect_for_orientation(viewport_size: Vector2, orientation: String, extra_margin: float = 0.0) -> Rect2:
+	var insets := insets_for_orientation(viewport_size, orientation, extra_margin)
 	return Rect2(
 		Vector2(insets.x, insets.y),
 		Vector2(maxf(1.0, viewport_size.x - insets.x - insets.z), maxf(1.0, viewport_size.y - insets.y - insets.w))
 	)
 
 func runtime_safe_rect(viewport_size: Vector2, extra_margin: float = 0.0) -> Rect2:
-	var fallback := safe_rect(viewport_size, extra_margin)
+	var orientation := "landscape_right" if DisplayServer.screen_get_orientation() == DisplayServer.SCREEN_LANDSCAPE else "landscape_left"
+	var fallback := safe_rect_for_orientation(viewport_size, orientation, extra_margin)
 	if OS.get_name() != "iOS":
 		return fallback
 	var usable := DisplayServer.screen_get_usable_rect()

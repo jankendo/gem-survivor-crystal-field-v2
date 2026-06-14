@@ -6,6 +6,7 @@ const EnemyScript = preload("res://scripts/core/SurvivorEnemy.gd")
 var field_system = preload("res://scripts/systems/CrystalFieldSystem.gd").new()
 var projectile_policy = preload("res://scripts/systems/EnemyProjectilePolicySystem.gd").new()
 var pathing = preload("res://scripts/systems/EnemyPathingSystem.gd").new()
+var ios_budget = preload("res://scripts/systems/IosPerformanceBudgetSystem.gd").new()
 
 func process(state, delta: float, events: Array) -> void:
 	if state.game_over or state.level_up_pending or state.chest_pending:
@@ -27,6 +28,7 @@ func process(state, delta: float, events: Array) -> void:
 	state.trim_runtime_arrays()
 
 func process_enemies(state, delta: float, events: Array) -> void:
+	state.ios_pathing_update_count = 0
 	for enemy in state.enemies.duplicate():
 		enemy.tick_cooldowns(delta)
 		enemy.action_timer = maxf(0.0, enemy.action_timer - delta)
@@ -36,6 +38,14 @@ func process_enemies(state, delta: float, events: Array) -> void:
 		if enemy.slow_timer > 0.0:
 			enemy.slow_timer = maxf(0.0, enemy.slow_timer - delta)
 		_process_enemy_special(state, enemy, delta, events)
+		enemy.ai_accumulator += delta
+		enemy.ai_update_timer -= delta
+		if enemy.ai_update_timer > 0.0:
+			continue
+		var movement_delta: float = enemy.ai_accumulator
+		enemy.ai_accumulator = 0.0
+		enemy.ai_update_timer = _ai_update_interval(state, enemy)
+		state.ios_pathing_update_count += 1
 		var previous = enemy.position
 		var direction = pathing.direction_to_target(state, enemy.position, state.player_position, enemy.radius)
 		if enemy.charge_timer > 0.0 and enemy.attack_direction.length_squared() > 0.01:
@@ -46,13 +56,23 @@ func process_enemies(state, delta: float, events: Array) -> void:
 		var charge_multiplier = 2.35 if enemy.charge_timer > 0.0 else 1.0
 		if enemy.recovery_timer > 0.0:
 			charge_multiplier = 0.18
-		enemy.position += direction * enemy.speed * slow_multiplier * charge_multiplier * delta
+		enemy.position += direction * enemy.speed * slow_multiplier * charge_multiplier * movement_delta
 		enemy.position = field_system.resolve_circle_position(state, enemy.position, enemy.radius)
 		if enemy.position.distance_to(previous) < 0.1 and enemy.behavior == "charger":
 			enemy.charge_timer = 0.0
 		if enemy.position.distance_to(state.player_position) > 1650.0:
 			enemy.position = pathing.recycle_position(state, state.player_position)
 			events.append({"type": "enemy_recycle", "enemy": enemy.type})
+
+func _ai_update_interval(state, enemy) -> float:
+	if not String(state.performance_profile_id).begins_with("ios") or enemy.boss:
+		return 0.0
+	var distance: float = enemy.position.distance_to(state.player_position)
+	if distance <= 720.0:
+		return ios_budget.get_float("near_enemy_ai_update_interval", 0.05)
+	if distance <= 1280.0:
+		return ios_budget.get_float("far_enemy_ai_update_interval", 0.20)
+	return ios_budget.get_float("offscreen_ai_update_interval", 0.35)
 
 func spawn_interval(seconds: float) -> float:
 	var phases = _curve_phases_from_file()
@@ -106,7 +126,7 @@ func spawn_enemy(state, enemy_type: String, events: Array, pos_override = null):
 	pos = field_system.resolve_circle_position(state, pos, float(state.enemy_defs.get(enemy_type, {}).get("radius", 18.0)))
 	var hp_bonus = int(floor(maxf(0.0, state.elapsed_seconds - 180.0) / 55.0))
 	var speed_bonus = state.enemy_speed_multiplier()
-	var enemy = EnemyScript.new(enemy_type, state.enemy_defs.get(enemy_type, {}), pos, hp_bonus, speed_bonus)
+	var enemy = state.acquire_enemy([enemy_type, state.enemy_defs.get(enemy_type, {}), pos, hp_bonus, speed_bonus])
 	enemy.max_hp = maxi(1, int(round(float(enemy.max_hp) * state.enemy_hp_multiplier())))
 	enemy.hp = enemy.max_hp
 	enemy.damage = maxi(1, int(round(float(enemy.damage) * state.enemy_damage_multiplier() * state.terrain_enemy_damage_multiplier())))
@@ -121,7 +141,7 @@ func spawn_boss(state, boss_id: String, events: Array, scheduled_minute: int = -
 	if data.is_empty():
 		return null
 	while state.enemies.size() >= state.max_enemies() and not state.enemies.is_empty():
-		state.enemies.pop_front()
+		state.release_runtime("enemy", state.enemies.pop_front())
 	data["boss"] = true
 	data["elite"] = true
 	data["guaranteed_chest"] = true
@@ -131,7 +151,7 @@ func spawn_boss(state, boss_id: String, events: Array, scheduled_minute: int = -
 	data["damage"] = int(round(float(data.get("damage", 28)) * state.enemy_damage_multiplier() * state.terrain_enemy_damage_multiplier()))
 	var pos = state.boss_room_position()
 	pos = field_system.resolve_circle_position(state, pos, float(data.get("radius", 54.0)))
-	var enemy = EnemyScript.new(boss_id, data, pos, 0, 1.0)
+	var enemy = state.acquire_enemy([boss_id, data, pos, 0, 1.0])
 	enemy.action_timer = 1.2
 	state.enemies.append(enemy)
 	if not state.enemy_seen.has(enemy.type):
@@ -295,7 +315,7 @@ func _process_crystal_spike(state, enemy, events: Array) -> void:
 			enemy.special_phase = "recovery"
 			enemy.recovery_timer = 1.0
 			var radius = 52.0 if not enemy.elite else 66.0
-			state.hit_flashes.append({"pos": enemy.attack_target, "life": 0.35, "source": "crystal_spike", "radius": radius})
+			state.add_hit_flash({"pos": enemy.attack_target, "life": 0.35, "source": "crystal_spike", "radius": radius})
 			events.append({"type": "enemy_ground_attack", "enemy": enemy.type, "pos": enemy.attack_target, "radius": radius})
 			if state.player_position.distance_to(enemy.attack_target) <= radius + 18.0 and state.invincible_timer <= 0.0:
 				var damage = maxi(1, int(round(float(enemy.damage) * 0.85 * state.rune_contract_damage_taken_multiplier() * state.modifier_mult("damage_taken_mult", 1.0))))

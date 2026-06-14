@@ -8,9 +8,14 @@ const MapGeneratorScript = preload("res://scripts/systems/MapGenerator.gd")
 const TerrainRoomSystemScript = preload("res://scripts/systems/TerrainRoomSystem.gd")
 const TerrainAchievementSystemScript = preload("res://scripts/systems/TerrainAchievementSystem.gd")
 const TileCollisionSystemScript = preload("res://scripts/systems/TileCollisionSystem.gd")
+const PoolManagerScript = preload("res://scripts/systems/PoolManager.gd")
+const SurvivorEnemyScript = preload("res://scripts/core/SurvivorEnemy.gd")
+const ProjectileScript = preload("res://scripts/core/Projectile.gd")
+const ExpGemScript = preload("res://scripts/core/ExpGem.gd")
 const DEFAULT_FIELD_SIZE = Vector2(6600, 6600)
 
 var field_size: Vector2 = DEFAULT_FIELD_SIZE
+var pool_manager = PoolManagerScript.new()
 var player_position: Vector2 = DEFAULT_FIELD_SIZE * 0.5
 var camera_position: Vector2 = DEFAULT_FIELD_SIZE * 0.5
 var player_velocity: Vector2 = Vector2.ZERO
@@ -25,6 +30,8 @@ var score: int = 0
 var best_score: int = 0
 var kills: int = 0
 var elapsed_seconds: float = 0.0
+var ios_pathing_update_count: int = 0
+var ios_physics_query_count: int = 0
 var gems_collected: int = 0
 var gem_exp_collected: int = 0
 var evolved_weapon_count: int = 0
@@ -78,6 +85,36 @@ var terrain_kills: Dictionary = {}
 var terrain_crystals: Dictionary = {}
 var shortcut_walls_broken: int = 0
 var oasis_healing: int = 0
+
+func _init() -> void:
+	pool_manager.register("enemy", func(): return SurvivorEnemyScript.new(), func(value, args): value.reset.callv(args), 720)
+	pool_manager.register("projectile", func(): return ProjectileScript.new(), func(value, args): value.reset.callv(args), 360)
+	pool_manager.register("gem", func(): return ExpGemScript.new(), func(value, args): value.reset.callv(args), 960)
+	pool_manager.register("hit_flash", func(): return {}, Callable(self, "_reset_pool_dictionary"), 220)
+	pool_manager.register("effect_line", func(): return {}, Callable(self, "_reset_pool_dictionary"), 220)
+	pool_manager.register("damage_text", func(): return {}, Callable(self, "_reset_pool_dictionary"), 100)
+
+func acquire_enemy(args: Array):
+	return pool_manager.acquire("enemy", args)
+
+func acquire_projectile(args: Array):
+	return pool_manager.acquire("projectile", args)
+
+func acquire_gem(args: Array):
+	return pool_manager.acquire("gem", args)
+
+func release_runtime(type_id: String, value) -> void:
+	pool_manager.release(type_id, value)
+
+func add_hit_flash(data: Dictionary) -> void:
+	hit_flashes.append(pool_manager.acquire("hit_flash", [data]))
+
+func add_effect_line(data: Dictionary) -> void:
+	effect_lines.append(pool_manager.acquire("effect_line", [data]))
+
+func _reset_pool_dictionary(value: Dictionary, args: Array) -> void:
+	value.clear()
+	value.merge(args[0], true)
 var terrain_heal_meter: float = 0.0
 var rng: RunRng = RunRng.new()
 var biome_system = BiomeSystemScript.new()
@@ -252,6 +289,8 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	best_score = SaveSystem.new().load_best_score()
 	kills = 0
 	elapsed_seconds = 0.0
+	ios_pathing_update_count = 0
+	ios_physics_query_count = 0
 	gems_collected = 0
 	gem_exp_collected = 0
 	evolved_weapon_count = 0
@@ -1112,25 +1151,25 @@ func record_damage_taken(amount: int) -> void:
 	damage_taken_last_minute += amount
 
 func add_floating_text(text: String, pos: Vector2, color: Color) -> void:
-	floating_texts.append({"text": text, "pos": pos, "life": 1.0, "color": color})
+	floating_texts.append(pool_manager.acquire("damage_text", [{"text": text, "pos": pos, "life": 1.0, "color": color}]))
 	while floating_texts.size() > max_texts():
-		floating_texts.pop_front()
+		release_runtime("damage_text", floating_texts.pop_front())
 
 func trim_runtime_arrays() -> void:
 	while projectiles.size() > max_projectiles():
-		projectiles.pop_front()
+		release_runtime("projectile", projectiles.pop_front())
 	while enemy_projectiles.size() > max_enemy_projectiles():
 		enemy_projectiles.pop_front()
 	while enemy_attack_warnings.size() > 80:
 		enemy_attack_warnings.pop_front()
 	while gems.size() > max_gems():
-		gems.pop_front()
+		release_runtime("gem", gems.pop_front())
 	while hit_flashes.size() > max_effects():
-		hit_flashes.pop_front()
+		release_runtime("hit_flash", hit_flashes.pop_front())
 	while effect_lines.size() > max_effects():
-		effect_lines.pop_front()
+		release_runtime("effect_line", effect_lines.pop_front())
 	while floating_texts.size() > max_texts():
-		floating_texts.pop_front()
+		release_runtime("damage_text", floating_texts.pop_front())
 
 func _exp_needed_for_level(value: int) -> int:
 	var required = 20.0 + floor(12.0 * pow(float(value), 1.55)) + floor(float(value * value) * 0.28)

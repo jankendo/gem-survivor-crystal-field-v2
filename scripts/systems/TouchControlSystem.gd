@@ -22,6 +22,10 @@ var touch_button_size := "standard"
 var touch_button_opacity := 0.78
 var handedness := "right"
 var haptics_enabled := true
+var move_control_mode := "dynamic"
+var joystick_visual_mode := "active"
+var joystick_deadzone := 0.12
+var joystick_sensitivity := 1.0
 var speed_pressed := false
 var platform_name := ""
 var move_vector := Vector2.ZERO
@@ -36,6 +40,14 @@ func configure(settings: Dictionary, platform: String = OS.get_name()) -> void:
 	if not handedness in ["right", "left"]:
 		handedness = "right"
 	haptics_enabled = bool(settings.get("touch_haptics", true))
+	move_control_mode = String(settings.get("move_control_mode", "dynamic"))
+	if not move_control_mode in ["dynamic", "fixed"]:
+		move_control_mode = "dynamic"
+	joystick_visual_mode = String(settings.get("joystick_visual_mode", "active"))
+	if not joystick_visual_mode in ["always", "active", "hidden"]:
+		joystick_visual_mode = "active"
+	joystick_deadzone = clampf(float(settings.get("joystick_deadzone", 0.12)), 0.0, 0.45)
+	joystick_sensitivity = clampf(float(settings.get("joystick_sensitivity", 1.0)), 0.5, 1.8)
 	platform_name = platform
 	speed_pressed = false
 	move_vector = Vector2.ZERO

@@ -11,11 +11,13 @@ var rune_contract_system = preload("res://scripts/systems/RuneContractSystem.gd"
 var shock_stack_system = preload("res://scripts/systems/ShockStackSystem.gd").new()
 var melee_rush_system = preload("res://scripts/systems/MeleeRushSystem.gd").new()
 var field_gimmick_system = preload("res://scripts/systems/FieldGimmickSystem.gd").new()
+var enemy_grid = preload("res://scripts/systems/SpatialHashGrid.gd").new(160.0)
 
 func process(state, delta: float, events: Array) -> void:
 	if state.game_over or state.level_up_pending or state.chest_pending:
 		return
 	var event_start = events.size()
+	enemy_grid.rebuild(state.enemies)
 	for enemy in state.enemies:
 		enemy.tick_cooldowns(delta)
 	_update_cooldowns(state, delta)
@@ -52,7 +54,7 @@ func _emit_attack_visuals(state, events: Array, event_start: int) -> void:
 		var target = _nearest_damageable(state, state.player_position, float(state.weapon_defs.get(weapon_id, {}).get("range", 420.0)))
 		var pos = target.position if target != null else state.player_position
 		var density_mult = 0.72 if state.effect_density == "low" else (1.28 if state.effect_density == "high" else 1.0)
-		state.hit_flashes.append({
+		state.add_hit_flash({
 			"pos": pos,
 			"life": 0.24 * density_mult,
 			"source": weapon_id,
@@ -104,7 +106,7 @@ func _process_magic_bolt(state, events: Array) -> void:
 		var spread = (float(i) - float(count - 1) * 0.5) * 0.12
 		var direction = base_dir.rotated(spread)
 		var speed = 560.0 + float(level) * 20.0
-		var projectile = ProjectileScript.new("magic_bolt", state.player_position, direction * speed, damage, pierce, 2.2, 8.0, splash, evolved)
+		var projectile = _projectile(state, "magic_bolt", state.player_position, direction * speed, damage, pierce, 2.2, 8.0, splash, evolved)
 		state.projectiles.append(projectile)
 	events.append({"type": "attack", "weapon": "magic_bolt", "count": count})
 	var interval = (0.62 if level < 4 else 0.48) * state.get_cooldown_multiplier_for_weapon("magic_bolt")
@@ -129,7 +131,7 @@ func _process_ice_orbit(state, delta: float, events: Array) -> void:
 	for i in range(orbit_count):
 		var angle = state.orbit_angle + TAU * float(i) / float(orbit_count)
 		var orb_pos = state.player_position + Vector2(cos(angle), sin(angle)) * radius
-		for enemy in state.enemies.duplicate():
+		for enemy in enemy_grid.query_radius(orb_pos, 96.0):
 			if enemy.position.distance_to(orb_pos) <= enemy.radius + 19.0 and enemy.can_take_periodic_hit("ice_orbit", 0.30 if not evolved else 0.22):
 				enemy.slow_timer = maxf(enemy.slow_timer, 1.0 + float(level) * 0.12)
 				var actual_damage = damage * (2 if state.has_overclock("ice_orbit", "absolute_zero") and enemy.slow_timer > 0.0 else 1)
@@ -161,7 +163,7 @@ func _process_thunder_chain(state, events: Array) -> void:
 		if target == null:
 			break
 		hit.append(target)
-		state.effect_lines.append({"start": origin, "end": target.position, "life": 0.18 + float(i) * 0.025, "source": "thunder_chain", "index": i, "evolved": evolved})
+		state.add_effect_line({"start": origin, "end": target.position, "life": 0.18 + float(i) * 0.025, "source": "thunder_chain", "index": i, "evolved": evolved})
 		_damage_enemy(state, target, damage, events, "thunder_chain", target.position)
 		field_system.damage_walls_in_radius(state, target.position, 34.0 * state.get_area_multiplier_for_weapon("thunder_chain"), max(1, int(damage * 0.45)), events, "thunder_chain")
 		origin = target.position
@@ -189,7 +191,7 @@ func _process_bomb_seed(state, events: Array) -> void:
 			offset = (target.position - state.player_position) + Vector2(cos(angle), sin(angle)) * state.rng.range_float(0.0, 34.0)
 		var damage = int(round(float(5 + level * 2) * state.get_damage_multiplier_for_weapon("bomb_seed")))
 		var radius = (84.0 + level * 8.0) * state.get_area_multiplier_for_weapon("bomb_seed") * (1.35 if evolved else 1.0)
-		var bomb = ProjectileScript.new("bomb_seed", state.player_position + offset, Vector2.ZERO, damage, 0, 0.78 if not evolved else 0.52, 12.0, radius, evolved)
+		var bomb = _projectile(state, "bomb_seed", state.player_position + offset, Vector2.ZERO, damage, 0, 0.78 if not evolved else 0.52, 12.0, radius, evolved)
 		state.bombs.append(bomb)
 	events.append({"type": "attack", "weapon": "bomb_seed", "count": count})
 	state.weapon_cooldowns["bomb_seed"] = maxf(0.75, (2.15 - float(level) * 0.08) * state.get_cooldown_multiplier_for_weapon("bomb_seed") * (0.78 if evolved else 1.0))
@@ -210,7 +212,7 @@ func _process_blade_fan(state, events: Array) -> void:
 	for i in range(count):
 		var spread = (float(i) - float(count - 1) * 0.5) * (0.18 if not evolved else 0.14)
 		var direction = base_dir.rotated(spread)
-		var projectile = ProjectileScript.new("blade_fan", state.player_position + direction * 18.0, direction * (610.0 + level * 16.0 + (160.0 if evolved else 0.0)), damage, 1 + (2 if evolved else 0), 1.15, 15.0 if evolved else 12.0, 0.0, evolved)
+		var projectile = _projectile(state, "blade_fan", state.player_position + direction * 18.0, direction * (610.0 + level * 16.0 + (160.0 if evolved else 0.0)), damage, 1 + (2 if evolved else 0), 1.15, 15.0 if evolved else 12.0, 0.0, evolved)
 		state.projectiles.append(projectile)
 	events.append({"type": "attack", "weapon": "blade_fan", "count": count})
 	state.weapon_cooldowns["blade_fan"] = maxf(0.34, (0.86 - float(level) * 0.025) * state.get_cooldown_multiplier_for_weapon("blade_fan") * (0.75 if evolved else 1.0))
@@ -236,8 +238,8 @@ func _process_laser_lance(state, events: Array) -> void:
 			_damage_enemy(state, enemy, damage, events, "laser_lance", enemy.position)
 	field_system.damage_walls_in_radius(state, start + direction * range * 0.5, range * 0.5 + width, damage, events, "laser_lance")
 	field_gimmick_system.damage_gimmicks_in_radius(state, start + direction * range * 0.5, range * 0.5 + width, damage, events, "laser_lance")
-	state.effect_lines.append({"start": start, "end": end, "life": 0.16, "source": "laser_lance", "evolved": evolved})
-	state.hit_flashes.append({"pos": end, "life": 0.20, "source": "laser_lance"})
+	state.add_effect_line({"start": start, "end": end, "life": 0.16, "source": "laser_lance", "evolved": evolved})
+	state.add_hit_flash({"pos": end, "life": 0.20, "source": "laser_lance"})
 	events.append({"type": "attack", "weapon": "laser_lance", "count": 1, "start": start, "end": end})
 	state.weapon_cooldowns["laser_lance"] = maxf(0.55, (1.35 - float(level) * 0.045) * state.get_cooldown_multiplier_for_weapon("laser_lance") * (0.72 if evolved else 1.0))
 
@@ -272,7 +274,7 @@ func _process_drone_bit(state, events: Array) -> void:
 			continue
 		var direction = (target.position - origin).normalized()
 		var damage = int(round(float(3 + level) * state.get_damage_multiplier_for_weapon("drone_bit")))
-		var projectile = ProjectileScript.new("drone_bit", origin, direction * 650.0, damage, 0 + (1 if evolved else 0), 1.4, 7.5, 0.0, evolved)
+		var projectile = _projectile(state, "drone_bit", origin, direction * 650.0, damage, 0 + (1 if evolved else 0), 1.4, 7.5, 0.0, evolved)
 		state.projectiles.append(projectile)
 		fired += 1
 	if fired > 0:
@@ -288,7 +290,7 @@ func _process_crystal_mine(state, events: Array) -> void:
 	for i in range(count):
 		var angle = state.rng.range_float(0.0, TAU)
 		var offset = Vector2(cos(angle), sin(angle)) * state.rng.range_float(26.0, 120.0)
-		var mine = ProjectileScript.new("crystal_mine", state.player_position + offset, Vector2.ZERO, damage, 0, 1.15, 10.0, (92.0 + level * 9.0) * state.get_area_multiplier_for_weapon("crystal_mine"), false)
+		var mine = _projectile(state, "crystal_mine", state.player_position + offset, Vector2.ZERO, damage, 0, 1.15, 10.0, (92.0 + level * 9.0) * state.get_area_multiplier_for_weapon("crystal_mine"), false)
 		state.bombs.append(mine)
 	events.append({"type": "attack", "weapon": "crystal_mine", "count": count})
 	state.weapon_cooldowns["crystal_mine"] = maxf(0.78, (1.85 - float(level) * 0.06) * state.get_cooldown_multiplier_for_weapon("crystal_mine"))
@@ -303,7 +305,7 @@ func _process_black_hole(state, events: Array) -> void:
 	var evolved = state.is_weapon_evolved("black_hole")
 	var damage = int(round(float(2 + level) * state.get_damage_multiplier_for_weapon("black_hole")))
 	var radius = (95.0 + level * 12.0) * state.get_area_multiplier_for_weapon("black_hole") * (1.25 if evolved else 1.0)
-	var projectile = ProjectileScript.new("black_hole", target.position, Vector2.ZERO, damage, 99, 2.2 + float(level) * 0.06, 24.0, radius, evolved)
+	var projectile = _projectile(state, "black_hole", target.position, Vector2.ZERO, damage, 99, 2.2 + float(level) * 0.06, 24.0, radius, evolved)
 	state.projectiles.append(projectile)
 	events.append({"type": "attack", "weapon": "black_hole", "count": 1})
 	state.weapon_cooldowns["black_hole"] = maxf(1.05, (3.2 - float(level) * 0.11) * state.get_cooldown_multiplier_for_weapon("black_hole") * (0.76 if evolved else 1.0))
@@ -321,7 +323,7 @@ func _process_rune_gate(state, events: Array) -> void:
 			pos = target.position + Vector2(60.0, 0).rotated(state.rng.range_float(0.0, TAU))
 		var radius = (70.0 + level * 8.0) * state.get_area_multiplier_for_weapon("rune_gate") * (1.35 if evolved else 1.0) * (1.35 if state.has_overclock("rune_gate", "wide_gate") else 1.0)
 		var damage = int(round(float(4 + level) * state.get_damage_multiplier_for_weapon("rune_gate") * (1.4 if state.has_overclock("rune_gate", "hot_rune") else 1.0)))
-		state.projectiles.append(ProjectileScript.new("rune_gate", pos, Vector2.ZERO, damage, 99, 3.0 + float(level) * 0.08, 22.0, radius, evolved))
+		state.projectiles.append(_projectile(state, "rune_gate", pos, Vector2.ZERO, damage, 99, 3.0 + float(level) * 0.08, 22.0, radius, evolved))
 	events.append({"type": "attack", "weapon": "rune_gate", "count": count})
 	state.weapon_cooldowns["rune_gate"] = maxf(1.05, (2.45 - float(level) * 0.08) * state.get_cooldown_multiplier_for_weapon("rune_gate") * (0.78 if evolved else 1.0))
 
@@ -338,7 +340,7 @@ func _process_comet_staff(state, events: Array) -> void:
 			pos = target.position + Vector2(state.rng.range_float(-70.0, 70.0), state.rng.range_float(-70.0, 70.0))
 		var damage = int(round(float(8 + level * 2) * state.get_damage_multiplier_for_weapon("comet_staff")))
 		var radius = (86.0 + level * 9.0) * state.get_area_multiplier_for_weapon("comet_staff") * (1.25 if evolved else 1.0)
-		state.bombs.append(ProjectileScript.new("comet_staff", pos, Vector2.ZERO, damage, 0, 0.62, 18.0, radius, evolved))
+		state.bombs.append(_projectile(state, "comet_staff", pos, Vector2.ZERO, damage, 0, 0.62, 18.0, radius, evolved))
 	events.append({"type": "attack", "weapon": "comet_staff", "count": count})
 	state.weapon_cooldowns["comet_staff"] = maxf(1.1, (3.0 - float(level) * 0.10) * state.get_cooldown_multiplier_for_weapon("comet_staff") * (0.82 if evolved else 1.0))
 
@@ -358,7 +360,7 @@ func _process_soul_scythe(state, events: Array) -> void:
 			hit_count += 1
 	field_system.damage_walls_in_radius(state, state.player_position + direction * radius * 0.45, radius * 0.55, damage, events, "soul_scythe")
 	field_gimmick_system.damage_gimmicks_in_radius(state, state.player_position + direction * radius * 0.45, radius * 0.55, damage, events, "soul_scythe")
-	state.hit_flashes.append({"pos": state.player_position + direction * radius * 0.50, "life": 0.20, "source": "soul_scythe", "radius": radius, "direction": direction})
+	state.add_hit_flash({"pos": state.player_position + direction * radius * 0.50, "life": 0.20, "source": "soul_scythe", "radius": radius, "direction": direction})
 	events.append({"type": "attack", "weapon": "soul_scythe", "count": hit_count, "radius": radius})
 	state.weapon_cooldowns["soul_scythe"] = maxf(0.62, (1.45 - float(level) * 0.045) * state.get_cooldown_multiplier_for_weapon("soul_scythe") * (0.78 if evolved else 1.0))
 
@@ -375,7 +377,7 @@ func _process_mirror_shard(state, events: Array) -> void:
 	for i in range(count):
 		var dir = base_dir.rotated((float(i) - float(count - 1) * 0.5) * 0.18)
 		var damage = int(round(float(4 + level) * state.get_damage_multiplier_for_weapon("mirror_shard") * (1.35 if state.has_overclock("mirror_shard", "sharp_mirror") else 1.0)))
-		var p = ProjectileScript.new("mirror_shard", state.player_position + dir * 20.0, dir * (540.0 + level * 18.0), damage, 1 + (2 if evolved else 0), 2.6, 9.0, 0.0, evolved)
+		var p = _projectile(state, "mirror_shard", state.player_position + dir * 20.0, dir * (540.0 + level * 18.0), damage, 1 + (2 if evolved else 0), 2.6, 9.0, 0.0, evolved)
 		p.bounce_left = 2 + int(floor(float(level) / 4.0)) + (2 if evolved else 0)
 		state.projectiles.append(p)
 	events.append({"type": "attack", "weapon": "mirror_shard", "count": count})
@@ -398,7 +400,7 @@ func _process_sonic_wave(state, events: Array) -> void:
 			hit_count += 1
 	field_system.damage_walls_in_radius(state, state.player_position, radius, max(1, int(damage * 0.45)), events, "sonic_wave")
 	field_gimmick_system.damage_gimmicks_in_radius(state, state.player_position, radius, max(1, int(damage * 0.45)), events, "sonic_wave")
-	state.hit_flashes.append({"pos": state.player_position, "life": 0.22, "source": "sonic_wave", "radius": radius})
+	state.add_hit_flash({"pos": state.player_position, "life": 0.22, "source": "sonic_wave", "radius": radius})
 	events.append({"type": "attack", "weapon": "sonic_wave", "count": hit_count, "radius": radius})
 	state.weapon_cooldowns["sonic_wave"] = maxf(0.78, (1.70 - float(level) * 0.06) * state.get_cooldown_multiplier_for_weapon("sonic_wave") * (0.70 if evolved else 1.0))
 
@@ -418,7 +420,7 @@ func _process_gem_turret(state, events: Array) -> void:
 	for i in range(count):
 		var dir = base_dir.rotated((float(i) - float(count - 1) * 0.5) * 0.10)
 		var damage = int(round(float(9 + level * 2) * state.get_damage_multiplier_for_weapon("gem_turret")))
-		state.projectiles.append(ProjectileScript.new("gem_turret", state.player_position + dir * 22.0, dir * 720.0, damage, 1 + (2 if evolved else 0), 1.5, 10.0, 28.0 * state.get_area_multiplier_for_weapon("gem_turret"), evolved))
+		state.projectiles.append(_projectile(state, "gem_turret", state.player_position + dir * 22.0, dir * 720.0, damage, 1 + (2 if evolved else 0), 1.5, 10.0, 28.0 * state.get_area_multiplier_for_weapon("gem_turret"), evolved))
 	events.append({"type": "attack", "weapon": "gem_turret", "count": count})
 	state.weapon_cooldowns["gem_turret"] = maxf(0.46, (1.18 - float(level) * 0.035) * state.get_cooldown_multiplier_for_weapon("gem_turret") * (0.72 if evolved else 1.0))
 
@@ -437,6 +439,7 @@ func _process_projectiles(state, delta: float, events: Array) -> void:
 				continue
 		if projectile.lifetime <= 0.0:
 			state.projectiles.erase(projectile)
+			state.release_runtime("projectile", projectile)
 			continue
 		if projectile.kind in ["black_hole", "gravity_anchor"]:
 			_process_black_hole_projectile(state, projectile, delta, events)
@@ -451,8 +454,9 @@ func _process_projectiles(state, delta: float, events: Array) -> void:
 				projectile.pierce_left -= 1
 			else:
 				state.projectiles.erase(projectile)
+				state.release_runtime("projectile", projectile)
 				continue
-		for enemy in state.enemies.duplicate():
+		for enemy in enemy_grid.query_radius(projectile.position, projectile.radius + 80.0):
 			if projectile.hit_targets.has(enemy):
 				continue
 			if enemy.position.distance_to(projectile.position) <= enemy.radius + projectile.radius:
@@ -464,7 +468,8 @@ func _process_projectiles(state, delta: float, events: Array) -> void:
 					projectile.pierce_left -= 1
 				else:
 					state.projectiles.erase(projectile)
-				break
+					state.release_runtime("projectile", projectile)
+					break
 
 func _process_rune_gate_projectile(state, projectile, delta: float, events: Array) -> void:
 	for enemy in state.enemies.duplicate():
@@ -489,11 +494,12 @@ func _process_mirror_bounce(state, projectile, events: Array) -> void:
 		projectile.bounce_left -= 1
 		events.append({"type": "projectile_bounce", "weapon": projectile.kind, "pos": projectile.position})
 		if projectile.evolved and state.has_overclock("mirror_shard", "split_reflect") and projectile.bounce_left >= 0:
-			var p = ProjectileScript.new("mirror_shard", projectile.position, projectile.velocity.rotated(0.42), projectile.damage, projectile.pierce_left, projectile.lifetime, projectile.radius, projectile.splash_radius, projectile.evolved)
+			var p = _projectile(state, "mirror_shard", projectile.position, projectile.velocity.rotated(0.42), projectile.damage, projectile.pierce_left, projectile.lifetime, projectile.radius, projectile.splash_radius, projectile.evolved)
 			p.bounce_left = projectile.bounce_left
 			state.projectiles.append(p)
 		if projectile.bounce_left < 0:
 			state.projectiles.erase(projectile)
+			state.release_runtime("projectile", projectile)
 
 func _process_black_hole_projectile(state, projectile, delta: float, events: Array) -> void:
 	for enemy in state.enemies.duplicate():
@@ -515,6 +521,7 @@ func _process_bombs(state, delta: float, events: Array) -> void:
 		bomb.lifetime -= delta
 		if bomb.lifetime <= 0.0:
 			state.bombs.erase(bomb)
+			state.release_runtime("projectile", bomb)
 			_explode(state, bomb.position, bomb.splash_radius, bomb.damage, events, "final_fireworks" if bomb.evolved else bomb.kind)
 			if bomb.evolved:
 				var bloom_count = 5 if state.has_overclock("bomb_seed", "triple_bloom") else 3
@@ -522,18 +529,18 @@ func _process_bombs(state, delta: float, events: Array) -> void:
 					var angle = TAU * float(i) / 3.0 + state.rng.range_float(-0.2, 0.2)
 					_explode(state, bomb.position + Vector2(cos(angle), sin(angle)) * bomb.splash_radius * 0.55, bomb.splash_radius * 0.55, max(1, int(bomb.damage * 0.55)), events, "final_fireworks")
 				if state.has_overclock("bomb_seed", "burning_afterglow"):
-					state.projectiles.append(ProjectileScript.new("burning_afterglow", bomb.position, Vector2.ZERO, max(1, int(bomb.damage * 0.28)), 99, 2.4, 12.0, bomb.splash_radius * 0.55, true))
+					state.projectiles.append(_projectile(state, "burning_afterglow", bomb.position, Vector2.ZERO, max(1, int(bomb.damage * 0.28)), 99, 2.4, 12.0, bomb.splash_radius * 0.55, true))
 				if state.has_overclock("bomb_seed", "overloaded_firework") and state.rng.chance(0.08):
 					var self_damage = maxi(1, int(round(float(state.max_hp) * 0.03)))
 					state.hp -= self_damage
 					state.record_damage_taken(self_damage)
 					events.append({"type": "player_damage", "damage": self_damage, "hp": state.hp, "enemy": "花火過積載"})
 			elif bomb.kind == "comet_staff" and state.has_overclock("comet_staff", "crater_bonus"):
-				state.projectiles.append(ProjectileScript.new("comet_crater", bomb.position, Vector2.ZERO, max(1, int(bomb.damage * 0.24)), 99, 1.8, 12.0, bomb.splash_radius * 0.62, true))
+				state.projectiles.append(_projectile(state, "comet_crater", bomb.position, Vector2.ZERO, max(1, int(bomb.damage * 0.24)), 99, 1.8, 12.0, bomb.splash_radius * 0.62, true))
 
 func _explode(state, pos: Vector2, radius: float, damage: int, events: Array, source: String) -> void:
 	events.append({"type": "explosion", "pos": pos, "radius": radius, "source": source})
-	state.hit_flashes.append({"pos": pos, "life": 0.28, "source": source, "radius": radius})
+	state.add_hit_flash({"pos": pos, "life": 0.28, "source": source, "radius": radius})
 	field_system.damage_walls_in_radius(state, pos, radius, damage, events, source)
 	field_gimmick_system.damage_gimmicks_in_radius(state, pos, radius, damage, events, source)
 	for enemy in state.enemies.duplicate():
@@ -547,7 +554,7 @@ func _damage_enemy(state, enemy, damage: int, events: Array, source: String, hit
 	enemy.hp -= actual_damage
 	state.record_damage(actual_damage)
 	state.weapon_damage_by_id[source] = int(state.weapon_damage_by_id.get(source, 0)) + actual_damage
-	state.hit_flashes.append({"pos": hit_pos, "life": 0.18, "source": source})
+	state.add_hit_flash({"pos": hit_pos, "life": 0.18, "source": source})
 	events.append({"type": "enemy_hit", "enemy": enemy.type, "damage": actual_damage, "hp": enemy.hp, "source": source, "pos": hit_pos})
 	if state.weapon_has_tag(source, "lightning") or source in ["thunder_field"]:
 		shock_stack_system.apply_lightning_hit(state, enemy, actual_damage, hit_pos, events)
@@ -596,6 +603,7 @@ func _damage_enemy(state, enemy, damage: int, events: Array, source: String, hit
 	if source == "magic_bolt" and state.is_weapon_evolved("magic_bolt"):
 		_explode(state, death_pos, 76.0 * state.get_area_multiplier_for_weapon("magic_bolt"), max(1, int(actual_damage * 0.45)), events, "star_fragment")
 	events.append({"type": "enemy_die", "enemy": enemy.type, "pos": death_pos, "kills": state.kills})
+	state.release_runtime("enemy", enemy)
 
 func _adjust_damage_for_enemy(state, enemy, damage: int, source: String) -> int:
 	var value = damage
@@ -629,7 +637,7 @@ func _process_expansion_weapons(state, events: Array) -> void:
 				var direction = (target.position - state.player_position).normalized()
 				var reach = minf(range_value, 125.0 + float(level) * 18.0)
 				var hit_pos = state.player_position + direction * reach
-				state.effect_lines.append({"start": state.player_position, "end": hit_pos, "life": 0.20, "source": weapon_id, "evolved": evolved})
+				state.add_effect_line({"start": state.player_position, "end": hit_pos, "life": 0.20, "source": weapon_id, "evolved": evolved})
 				_explode(state, hit_pos, area, damage, events, weapon_id)
 				if weapon_id == "drill_charge":
 					field_system.damage_walls_in_radius(state, hit_pos, area * 1.35, damage * 2, events, weapon_id)
@@ -637,12 +645,12 @@ func _process_expansion_weapons(state, events: Array) -> void:
 				var direction = (target.position - state.player_position).normalized()
 				var count = 1 + int(floor(float(level) / 4.0)) + (1 if evolved else 0)
 				for i in range(count):
-					var projectile = ProjectileScript.new(weapon_id, state.player_position, direction.rotated((float(i) - float(count - 1) * 0.5) * 0.16) * (500.0 + level * 18.0), damage, 1 if evolved else 0, 3.4, 9.0, area * 0.45 if evolved else 0.0, evolved)
+					var projectile = _projectile(state, weapon_id, state.player_position, direction.rotated((float(i) - float(count - 1) * 0.5) * 0.16) * (500.0 + level * 18.0), damage, 1 if evolved else 0, 3.4, 9.0, area * 0.45 if evolved else 0.0, evolved)
 					projectile.bounce_left = 2 + int(floor(float(level) / 3.0)) + int(state.passives.get("reflect_prism", 0)) + (3 if evolved else 0)
 					state.projectiles.append(projectile)
 			"deploy_area":
 				var target_pos: Vector2 = target.position
-				var field = ProjectileScript.new(weapon_id, target_pos, Vector2.ZERO, maxi(1, int(damage * 0.38)), 99, 2.4 + float(level) * 0.14 + (1.4 if evolved else 0.0), 10.0, area * 1.35, evolved)
+				var field = _projectile(state, weapon_id, target_pos, Vector2.ZERO, maxi(1, int(damage * 0.38)), 99, 2.4 + float(level) * 0.14 + (1.4 if evolved else 0.0), 10.0, area * 1.35, evolved)
 				state.projectiles.append(field)
 			"orbit":
 				var count = 3 + int(floor(float(level) / 2.0)) + (3 if evolved else 0)
@@ -656,7 +664,7 @@ func _process_expansion_weapons(state, events: Array) -> void:
 				for i in range(pulse_count):
 					_explode(state, state.player_position, area * (1.0 + float(i) * 0.36), maxi(1, int(float(damage) * (1.0 - float(i) * 0.18))), events, weapon_id)
 			"gravity":
-				var anchor = ProjectileScript.new(weapon_id, target.position, Vector2.ZERO, maxi(1, int(damage * 0.34)), 99, 3.0 + (1.5 if evolved else 0.0), 12.0, area * 1.65, evolved)
+				var anchor = _projectile(state, weapon_id, target.position, Vector2.ZERO, maxi(1, int(damage * 0.34)), 99, 3.0 + (1.5 if evolved else 0.0), 12.0, area * 1.65, evolved)
 				state.projectiles.append(anchor)
 		events.append({"type": "attack", "weapon": weapon_id, "count": 1})
 		var cooldown = maxf(0.32, (float(data.get("cooldown", 1.5)) - float(level) * 0.045) * state.get_cooldown_multiplier_for_weapon(weapon_id) * (0.76 if evolved else 1.0))
@@ -698,7 +706,7 @@ func _nearest_enemy(state, origin: Vector2, max_distance: float):
 func _nearest_enemy_excluding(state, origin: Vector2, max_distance: float, excluded: Array):
 	var best = null
 	var best_dist = max_distance
-	for enemy in state.enemies:
+	for enemy in enemy_grid.query_radius(origin, max_distance):
 		if excluded.has(enemy):
 			continue
 		var distance = enemy.position.distance_to(origin)
@@ -706,6 +714,9 @@ func _nearest_enemy_excluding(state, origin: Vector2, max_distance: float, exclu
 			best = enemy
 			best_dist = distance
 	return best
+
+func _projectile(state, projectile_kind: String, pos: Vector2, vel: Vector2, dmg: int, pierce: int, life: float, hit_radius: float, splash: float, is_evolved: bool):
+	return state.acquire_projectile([projectile_kind, pos, vel, dmg, pierce, life, hit_radius, splash, is_evolved])
 
 func _distance_to_segment(point: Vector2, start: Vector2, end: Vector2) -> float:
 	var segment = end - start

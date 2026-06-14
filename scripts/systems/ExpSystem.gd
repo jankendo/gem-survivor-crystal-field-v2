@@ -7,7 +7,7 @@ var level_up_system = preload("res://scripts/systems/LevelUpSystem.gd").new()
 
 func drop_for_enemy(state, enemy, events: Array) -> void:
 	if state.gems.size() >= state.max_gems():
-		state.gems.pop_front()
+		state.release_runtime("gem", state.gems.pop_front())
 	if not enemy.boss and not enemy.elite and not state.should_drop_normal_exp():
 		events.append({"type": "gem_skip", "enemy": enemy.type})
 		return
@@ -25,7 +25,7 @@ func drop_for_enemy(state, enemy, events: Array) -> void:
 		value += maxi(1, int(round(4.0 * scale)))
 	elif enemy.type == "elite" or enemy.elite:
 		value += maxi(2, int(round(12.0 * scale)))
-	var gem = ExpGemScript.new(enemy.position, value)
+	var gem = state.acquire_gem([enemy.position, value])
 	state.gems.append(gem)
 	events.append({"type": "gem_drop", "pos": gem.position, "value": gem.value, "enemy": enemy.type})
 

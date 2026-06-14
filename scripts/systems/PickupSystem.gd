@@ -4,6 +4,7 @@ class_name PickupSystem
 const ProjectileScript = preload("res://scripts/core/Projectile.gd")
 
 var exp_system = preload("res://scripts/systems/ExpSystem.gd").new()
+var gem_grid = preload("res://scripts/systems/SpatialHashGrid.gd").new(160.0)
 
 func process_gems(state, delta: float, events: Array) -> void:
 	state.pickup_combo_timer = maxf(0.0, state.pickup_combo_timer - delta)
@@ -11,7 +12,8 @@ func process_gems(state, delta: float, events: Array) -> void:
 		state.pickup_combo_count = 0
 		state.combo_thresholds_hit = {}
 	var magnet_radius = state.get_magnet_radius()
-	for gem in state.gems.duplicate():
+	gem_grid.rebuild(state.gems)
+	for gem in gem_grid.query_radius(state.player_position, magnet_radius + 420.0):
 		var distance = gem.position.distance_to(state.player_position)
 		if distance <= magnet_radius:
 			gem.attracting = true
@@ -27,6 +29,7 @@ func _collect_gem(state, gem, events: Array) -> void:
 	if not state.gems.has(gem):
 		return
 	state.gems.erase(gem)
+	state.release_runtime("gem", gem)
 	state.gems_collected += 1
 	state.gem_turret_charge = mini(999, state.gem_turret_charge + 1)
 	state.pickup_combo_count += 1

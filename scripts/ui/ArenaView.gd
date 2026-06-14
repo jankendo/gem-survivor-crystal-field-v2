@@ -15,6 +15,8 @@ var minimap_icon_size := 8.0
 var minimap_tap_enabled := false
 var map_expanded := false
 var world_transform_active := false
+var map_tile_draw_count := 0
+var minimap_update_count := 0
 
 const ENEMY_COLORS = {
 	"slime": Color(0.36, 0.92, 0.55),
@@ -70,6 +72,7 @@ func _gui_input(event: InputEvent) -> void:
 func _draw() -> void:
 	if state == null:
 		return
+	map_tile_draw_count = 0
 	_draw_background()
 	world_transform_active = true
 	draw_set_transform(size * 0.5, 0.0, Vector2.ONE * camera_zoom)
@@ -134,6 +137,7 @@ func _draw_terrain_layout() -> void:
 		for raw_key in corridor.get("cells", []):
 			var world_rect = _cell_world_rect(String(raw_key), tile_size)
 			if viewport_world.intersects(world_rect):
+				map_tile_draw_count += 1
 				var screen_rect = Rect2(world_to_screen(world_rect.position), world_rect.size)
 				draw_rect(screen_rect, Color(0.09, 0.15, 0.20, 0.96), true)
 				draw_rect(screen_rect, Color(0.24, 0.48, 0.58, 0.18), false, 1.0)
@@ -144,18 +148,22 @@ func _draw_terrain_layout() -> void:
 		for raw_key in room.get("floor_cells", []):
 			var world_rect = _cell_world_rect(String(raw_key), tile_size)
 			if viewport_world.intersects(world_rect):
+				map_tile_draw_count += 1
 				var screen_rect = Rect2(world_to_screen(world_rect.position), world_rect.size)
 				draw_rect(screen_rect, Color(color.r, color.g, color.b, 0.92), true)
 				draw_rect(screen_rect, Color(color.r + 0.12, color.g + 0.12, color.b + 0.12, 0.16), false, 1.0)
 	for raw_key in state.map_data.get("boundary_cells", []):
 		var world_rect = _cell_world_rect(String(raw_key), tile_size)
 		if viewport_world.intersects(world_rect):
+			map_tile_draw_count += 1
 			var screen_rect = Rect2(world_to_screen(world_rect.position), world_rect.size)
 			draw_rect(screen_rect, Color(0.015, 0.012, 0.026, 1.0), true)
 			draw_line(screen_rect.position, screen_rect.position + Vector2(screen_rect.size.x, 0), Color(0.30, 0.20, 0.42, 0.34), 2.0)
 
 func _draw_danger_zones() -> void:
 	for zone in state.danger_zones:
+		if not _is_world_visible(zone.get("position", Vector2.ZERO), float(zone.get("radius", 0.0))):
+			continue
 		var pos = world_to_screen(zone.get("position", Vector2.ZERO))
 		var radius = float(zone.get("radius", 0.0))
 		draw_circle(pos, radius, Color(0.76, 0.10, 0.34, 0.16))
@@ -173,6 +181,8 @@ func _draw_boundary() -> void:
 
 func _draw_crystal_walls() -> void:
 	for wall in state.crystal_walls:
+		if not _is_world_visible(wall.position, maxf(wall.size.x, wall.size.y)):
+			continue
 		var rect = wall.rect()
 		var screen_rect = Rect2(world_to_screen(rect.position), rect.size)
 		var hp_ratio = wall.hp_ratio()
@@ -191,6 +201,8 @@ func _draw_field_drops() -> void:
 	for drop in state.field_drops:
 		if bool(drop.get("collected", false)):
 			continue
+		if not _is_world_visible(drop.get("position", Vector2.ZERO), 36.0):
+			continue
 		var pos = world_to_screen(drop.get("position", Vector2.ZERO))
 		var color = _data_color(drop, Color(1.0, 1.0, 1.0))
 		var locked = state.elapsed_seconds < float(drop.get("unlock_seconds", 0.0))
@@ -202,6 +214,8 @@ func _draw_field_drops() -> void:
 func _draw_field_gimmicks() -> void:
 	for gimmick in state.field_gimmicks:
 		if bool(gimmick.get("destroyed", false)):
+			continue
+		if not _is_world_visible(gimmick.get("position", Vector2.ZERO), 48.0):
 			continue
 		var pos = world_to_screen(gimmick.get("position", Vector2.ZERO))
 		var color = _data_color(gimmick, Color(0.8, 0.9, 1.0))
@@ -312,6 +326,8 @@ func _character_colors(character_id: String) -> Dictionary:
 
 func _draw_enemies() -> void:
 	for enemy in state.enemies:
+		if not _is_world_visible(enemy.position, enemy.radius + 20.0):
+			continue
 		var pos = world_to_screen(enemy.position)
 		var color = Color(1.0, 0.35, 0.20) if enemy.boss else ENEMY_COLORS.get(enemy.type, Color.WHITE)
 		if enemy.boss:
@@ -365,6 +381,8 @@ func _draw_enemies() -> void:
 
 func _draw_gems() -> void:
 	for gem in state.gems:
+		if not _is_world_visible(gem.position, 16.0):
+			continue
 		var pos = world_to_screen(gem.position)
 		var color = Color(0.35, 0.86, 1.0) if gem.value < 12 else Color(0.75, 0.42, 1.0)
 		draw_polygon(PackedVector2Array([pos + Vector2(0, -8), pos + Vector2(7, 0), pos + Vector2(0, 8), pos + Vector2(-7, 0)]), PackedColorArray([Color.WHITE, color, color.darkened(0.1), color]))
@@ -372,6 +390,8 @@ func _draw_gems() -> void:
 
 func _draw_chests() -> void:
 	for chest in state.chests:
+		if not _is_world_visible(chest.position, 28.0):
+			continue
 		var pos = world_to_screen(chest.position)
 		var fill = _chest_color(String(chest.rarity))
 		draw_rect(Rect2(pos + Vector2(-17, -12), Vector2(34, 24)), fill.darkened(0.25), true)
@@ -382,6 +402,8 @@ func _draw_chests() -> void:
 
 func _draw_projectiles() -> void:
 	for projectile in state.projectiles:
+		if not _is_world_visible(projectile.position, maxf(projectile.radius, projectile.splash_radius)):
+			continue
 		var pos = world_to_screen(projectile.position)
 		var effect: Dictionary = state.weapon_effect(projectile.kind)
 		var color = _effect_color(effect, Color(1.0, 0.88, 0.38))
@@ -410,6 +432,8 @@ func _draw_projectiles() -> void:
 
 func _draw_enemy_projectiles() -> void:
 	for shot in state.enemy_projectiles:
+		if not _is_world_visible(shot.get("position", Vector2.ZERO), float(shot.get("radius", 7.0)) + 10.0):
+			continue
 		var pos = world_to_screen(shot.get("position", Vector2.ZERO))
 		var radius = float(shot.get("radius", 7.0))
 		var color = Color(1.0, 0.25, 0.34)
@@ -422,6 +446,8 @@ func _draw_enemy_projectiles() -> void:
 
 func _draw_enemy_attack_warnings() -> void:
 	for warning in state.enemy_attack_warnings:
+		if not _is_world_visible(warning.get("position", Vector2.ZERO), float(warning.get("radius", 52.0))):
+			continue
 		var kind = String(warning.get("kind", ""))
 		var pos = world_to_screen(warning.get("position", Vector2.ZERO))
 		var target = world_to_screen(warning.get("target", warning.get("position", Vector2.ZERO)))
@@ -438,6 +464,8 @@ func _draw_enemy_attack_warnings() -> void:
 
 func _draw_bombs() -> void:
 	for bomb in state.bombs:
+		if not _is_world_visible(bomb.position, bomb.splash_radius):
+			continue
 		var pos = world_to_screen(bomb.position)
 		var color = Color(0.55, 0.90, 1.0) if bomb.kind == "crystal_mine" else Color(1.0, 0.40, 0.18)
 		if bomb.kind in ["comet_staff", "meteor_rain"]:
@@ -466,6 +494,8 @@ func _draw_orbits() -> void:
 
 func _draw_hit_flashes() -> void:
 	for flash in state.hit_flashes:
+		if not _is_world_visible(flash.get("pos", state.player_position), float(flash.get("radius", 32.0))):
+			continue
 		var pos = world_to_screen(flash.get("pos", state.player_position))
 		var life = float(flash.get("life", 0.1))
 		var effect = state.weapon_effect(String(flash.get("source", "")))
@@ -485,6 +515,8 @@ func _draw_hit_flashes() -> void:
 
 func _draw_effect_lines() -> void:
 	for line in state.effect_lines:
+		if not _is_world_visible(line.get("start", state.player_position), 32.0) and not _is_world_visible(line.get("end", state.player_position), 32.0):
+			continue
 		var start = world_to_screen(line.get("start", state.player_position))
 		var end = world_to_screen(line.get("end", state.player_position))
 		var life = float(line.get("life", 0.1))
@@ -512,6 +544,8 @@ func _draw_effect_lines() -> void:
 func _draw_floating_texts() -> void:
 	var font = get_theme_default_font()
 	for text_data in state.floating_texts:
+		if not _is_world_visible(text_data.get("pos", state.player_position), 60.0):
+			continue
 		var pos = world_to_screen(text_data.get("pos", state.player_position))
 		var life = float(text_data.get("life", 1.0))
 		var color = text_data.get("color", Color.WHITE)
@@ -540,6 +574,10 @@ func _camera_origin() -> Vector2:
 	origin.x = clampf(origin.x, 0.0, maxf(0.0, state.field_size.x - visible_world.x))
 	origin.y = clampf(origin.y, 0.0, maxf(0.0, state.field_size.y - visible_world.y))
 	return origin
+
+func _is_world_visible(world_pos: Vector2, margin: float = 64.0) -> bool:
+	var visible_world := size / maxf(camera_zoom, 0.01)
+	return Rect2(_camera_origin(), visible_world).grow(margin).has_point(world_pos)
 
 func _wall_fill(wall) -> Color:
 	match wall.wall_type:
@@ -620,6 +658,7 @@ func _navigation_indicator_targets() -> Array:
 	return objective_indicator_system.targets_for_state(state, int(state.ui_layout_defs.get("indicator_max_count", 3)))
 
 func _draw_minimap() -> void:
+	minimap_update_count += 1
 	var rect := minimap_rect
 	if rect.size == Vector2.ZERO:
 		var map_size = float(state.ui_layout_defs.get("minimap_size", 144.0))

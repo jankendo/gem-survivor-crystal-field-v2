@@ -23,7 +23,7 @@ func layout(viewport_size: Vector2, safe_rect: Rect2, settings: Dictionary = {})
 	var button_extent := maxf(64.0, configured_button * size_multiplier * scale)
 	var joystick_visual_extent := maxf(MIN_JOYSTICK_EXTENT, float(metrics.get("joystick_outer", 196.0)) * scale)
 	var joystick_touch_extent := maxf(joystick_visual_extent, float(metrics.get("joystick_touch_extent", joystick_visual_extent * 1.30)) * scale)
-	var gap := 14.0 * scale
+	var gap := clampf(float(settings.get("button_gap", 16.0)) * scale, 14.0, 20.0)
 	var left_controls := handedness != "left"
 	var joystick_offset := Vector2(
 		float(settings.get("joystick_offset_x", 0.0)),
@@ -41,6 +41,17 @@ func layout(viewport_size: Vector2, safe_rect: Rect2, settings: Dictionary = {})
 		Vector2(safe_rect.end.x - minimap_size, safe_rect.position.y + top_button_extent + gap),
 		Vector2.ONE * minimap_size
 	)
+	var half_width := safe_rect.size.x * 0.5
+	var move_zone_rect := Rect2(
+		safe_rect.position if left_controls else Vector2(safe_rect.position.x + half_width, safe_rect.position.y),
+		Vector2(half_width, safe_rect.size.y)
+	)
+	var equipment_rect := Rect2(
+		Vector2(safe_rect.get_center().x - minf(260.0, safe_rect.size.x * 0.20), safe_rect.end.y - 54.0),
+		Vector2(minf(520.0, safe_rect.size.x * 0.40), 44.0)
+	)
+	var goal_rect := Rect2(Vector2(minimap_rect.position.x, minimap_rect.end.y + gap), Vector2(minimap_size, minf(92.0, safe_rect.size.y * 0.15)))
+	var notification_rect := Rect2(Vector2(safe_rect.position.x, safe_rect.position.y + 112.0), Vector2(minf(330.0, safe_rect.size.x * 0.26), 92.0))
 	return {
 		"profile": metrics.get("profile", "compact_phone"),
 		"tablet": tablet,
@@ -53,6 +64,7 @@ func layout(viewport_size: Vector2, safe_rect: Rect2, settings: Dictionary = {})
 			joystick_position,
 			Vector2.ONE * joystick_touch_extent
 		),
+		"move_zone_rect": move_zone_rect,
 		"actions_rect": Rect2(
 			Vector2(actions_x, controls_bottom - button_extent * 2.0 - gap),
 			Vector2(button_extent * 2.0 + gap, button_extent * 2.0 + gap)
@@ -61,6 +73,9 @@ func layout(viewport_size: Vector2, safe_rect: Rect2, settings: Dictionary = {})
 		"log_rect": Rect2(Vector2(safe_rect.end.x - top_button_extent * 2.0 - gap, safe_rect.position.y), Vector2.ONE * top_button_extent),
 		"map_rect": Rect2(Vector2(safe_rect.end.x - top_button_extent * 3.0 - gap * 2.0, safe_rect.position.y), Vector2.ONE * top_button_extent),
 		"minimap_rect": minimap_rect,
+		"equipment_rect": equipment_rect,
+		"goal_rect": goal_rect,
+		"notification_rect": notification_rect,
 		"minimap_icon": map_settings.get("minimap_icon", 8.0),
 		"minimap_opacity": map_settings.get("minimap_opacity", 0.76),
 		"camera_zoom": map_settings.get("camera_zoom", 1.0),

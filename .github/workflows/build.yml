@@ -62,6 +62,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/auto_play_5min.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_ios_dynamic_joystick_5min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/analyze_ios_performance.py test-output/ios_perf_5min.csv --output test-output/ios_performance_report.md
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run full balance tests
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.full_test == 'true' }}
@@ -84,12 +88,17 @@ jobs:
             "res://tests/auto_play_ios_menu_flow.gd",
             "res://tests/auto_play_ios_layout_qa.gd",
             "res://tests/auto_play_ios_pause_scroll_flow.gd",
-            "res://tests/auto_play_ios_full_ui_flow.gd"
+            "res://tests/auto_play_ios_full_ui_flow.gd",
+            "res://tests/auto_play_ios_perf_10min.gd",
+            "res://tests/auto_play_ios_perf_20min.gd",
+            "res://tests/auto_play_ios_perf_30min.gd"
           )
           foreach ($script in $scripts) {
             & $godot --headless --path . --script $script
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
+          python tools/analyze_ios_performance.py test-output/ios_performance_log.csv --output test-output/ios_performance_report.md
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Generate balance report
         run: python tools/analyze_balance.py --output balance_report.md
@@ -124,6 +133,16 @@ jobs:
         with:
           name: iOS-Touch-Audit
           path: test-output/ios_touch_action_audit.csv
+          if-no-files-found: error
+
+      - name: Upload iOS performance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS-Performance-Report
+          path: |
+            test-output/ios_perf_5min.csv
+            test-output/ios_performance_log*.csv
+            test-output/ios_performance_report.md
           if-no-files-found: error
 
   ios-unsigned-build:

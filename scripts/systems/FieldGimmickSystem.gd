@@ -44,7 +44,7 @@ func reflect_projectile_if_needed(state, projectile, events: Array) -> bool:
 				normal = Vector2.RIGHT
 			projectile.velocity = projectile.velocity.bounce(normal)
 			projectile.position = gpos + normal * (float(gimmick.get("radius", 36.0)) + projectile.radius + 3.0)
-			state.hit_flashes.append({"pos": projectile.position, "life": 0.18, "source": "mirror_shard"})
+			state.add_hit_flash({"pos": projectile.position, "life": 0.18, "source": "mirror_shard"})
 			events.append({"type": "gimmick_reflect", "id": "reflect_crystal", "pos": gpos})
 			_mark_activated(state, gimmick, events)
 			return true
@@ -55,7 +55,7 @@ func _damage_gimmick(state, gimmick: Dictionary, damage: int, events: Array, sou
 	if id == "healing_spring":
 		return
 	gimmick["hp"] = int(gimmick.get("hp", 1)) - damage
-	state.hit_flashes.append({"pos": gimmick.get("position", Vector2.ZERO), "life": 0.18, "source": source})
+	state.add_hit_flash({"pos": gimmick.get("position", Vector2.ZERO), "life": 0.18, "source": source})
 	events.append({"type": "gimmick_hit", "id": id, "hp": gimmick["hp"], "pos": gimmick.get("position", Vector2.ZERO)})
 	if int(gimmick.get("hp", 0)) > 0:
 		return
@@ -141,7 +141,7 @@ func _explode_vein(state, pos: Vector2, events: Array) -> void:
 				state.enemies.erase(enemy)
 				state.kills += 1
 				state.add_score(enemy.score, enemy.position)
-	state.hit_flashes.append({"pos": pos, "life": 0.42, "source": "explosive_vein", "radius": radius})
+	state.add_hit_flash({"pos": pos, "life": 0.42, "source": "explosive_vein", "radius": radius})
 	events.append({"type": "gimmick_explosion", "id": "explosive_vein", "pos": pos, "radius": radius})
 
 func _mark_activated(state, gimmick: Dictionary, events: Array) -> void:
