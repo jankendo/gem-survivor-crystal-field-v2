@@ -32,11 +32,11 @@ func ui_limits(settings: Dictionary, platform: String = OS.get_name()) -> Dictio
 	var animation_amount := String(settings.get("ui_animation_amount", "standard"))
 	var animation_multiplier := 0.65 if animation_amount == "low" else (1.0 if animation_amount == "high" else 0.82)
 	return {
-		"damage_numbers_enabled": bool(settings.get("damage_numbers", true)) and not bool(settings.get("low_power_mode", false)),
+		"damage_numbers_enabled": bool(settings.get("damage_numbers", true)),
 		"max_damage_numbers": 18 if ios and low else (28 if ios else 54),
 		"notification_lines": 2 if ios and low else (3 if ios else 5),
-		"ui_animation_scale": 0.45 if bool(settings.get("low_power_mode", false)) else animation_multiplier * (0.8 if ios and low else 1.0),
-		"max_effects": 90 if bool(settings.get("low_power_mode", false)) else (120 if ios and low else (180 if ios else 300)),
-		"minimap_update_hz": 4 if bool(settings.get("low_power_mode", false)) else int(settings.get("minimap_update_hz", 8)),
-		"background_particles_enabled": bool(settings.get("background_particles", true)) and not bool(settings.get("low_power_mode", false))
+		"ui_animation_scale": animation_multiplier * (0.8 if ios and low else 1.0),
+		"max_effects": 120 if ios and low else (180 if ios else 300),
+		"minimap_update_hz": 4 if bool(settings.get("battery_saver", settings.get("low_power_mode", false))) else int(settings.get("minimap_update_hz", 8)),
+		"background_particles_enabled": bool(settings.get("background_particles", true))
 	}

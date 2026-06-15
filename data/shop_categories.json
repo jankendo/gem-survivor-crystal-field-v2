@@ -7,6 +7,7 @@
   "exploration": {"name_ja": "探索装備", "order": 5, "recommend_ja": "進化核が見つけにくいならスキャナー。"},
   "forge": {"name_ja": "鍛冶屋", "order": 6, "recommend_ja": "よく使う武器系統を少しずつ強化。"},
   "research": {"name_ja": "研究所", "order": 7, "recommend_ja": "進化条件や敵情報を詳しく表示。"},
-  "cosmetic": {"name_ja": "外見", "order": 8, "recommend_ja": "性能なし。長期収集用の高額商品。"},
-  "difficulty": {"name_ja": "高難度", "order": 9, "recommend_ja": "上級者：敵圧と報酬倍率を同時に上げる刻印。"}
+  "loadout": {"name_ja": "候補整理", "order": 8, "recommend_ja": "武器・パッシブのOFF枠を増やします。候補枯渇防止の上限があります。"},
+  "cosmetic": {"name_ja": "外見", "order": 9, "recommend_ja": "性能なし。長期収集用の高額商品。"},
+  "difficulty": {"name_ja": "高難度", "order": 10, "recommend_ja": "上級者：敵圧と報酬倍率を同時に上げる刻印。"}
 }

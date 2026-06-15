@@ -32,6 +32,7 @@ var kills: int = 0
 var elapsed_seconds: float = 0.0
 var ios_pathing_update_count: int = 0
 var ios_physics_query_count: int = 0
+var damage_number_spawn_count: int = 0
 var gems_collected: int = 0
 var gem_exp_collected: int = 0
 var evolved_weapon_count: int = 0
@@ -197,6 +198,8 @@ var field_gimmicks_triggered: int = 0
 var cursed_relic_count: int = 0
 var unlocked_weapon_ids: Array = []
 var unlocked_passive_ids: Array = []
+var disabled_weapon_ids: Array = []
+var disabled_passive_ids: Array = []
 var field_help_discovered: Dictionary = {}
 var nearby_field_help: Dictionary = {}
 var scanned_field_help: Dictionary = {}
@@ -244,6 +247,14 @@ var boss_defeated_ids: Array = []
 var enemy_seen: Array = []
 var weapon_kill_counts: Dictionary = {}
 var weapon_damage_by_id: Dictionary = {}
+var weapon_pick_counts: Dictionary = {}
+var passive_pick_counts: Dictionary = {}
+var boss_damage_by_weapon_id: Dictionary = {}
+var enemy_damage_by_weapon_id: Dictionary = {}
+var damage_by_category: Dictionary = {}
+var healing_by_source: Dictionary = {}
+var currency_gain_by_source: Dictionary = {}
+var evolution_time_by_weapon_id: Dictionary = {}
 
 var weapons: Dictionary = {"magic_bolt": 1}
 var passives: Dictionary = {}
@@ -291,6 +302,7 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	elapsed_seconds = 0.0
 	ios_pathing_update_count = 0
 	ios_physics_query_count = 0
+	damage_number_spawn_count = 0
 	gems_collected = 0
 	gem_exp_collected = 0
 	evolved_weapon_count = 0
@@ -403,6 +415,8 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	cursed_relic_count = 0
 	unlocked_weapon_ids = []
 	unlocked_passive_ids = []
+	disabled_weapon_ids = []
+	disabled_passive_ids = []
 	field_help_discovered = {}
 	nearby_field_help = {}
 	scanned_field_help = {}
@@ -449,6 +463,14 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	enemy_seen = []
 	weapon_kill_counts = {}
 	weapon_damage_by_id = {}
+	weapon_pick_counts = {}
+	passive_pick_counts = {}
+	boss_damage_by_weapon_id = {}
+	enemy_damage_by_weapon_id = {}
+	damage_by_category = {}
+	healing_by_source = {}
+	currency_gain_by_source = {}
+	evolution_time_by_weapon_id = {}
 	weapons = {"magic_bolt": 1}
 	passives = {}
 	infinite_upgrades = {}
@@ -683,7 +705,7 @@ func get_damage_multiplier_for_weapon(weapon_id: String) -> float:
 		value *= float(character_modifiers.get("evolved_damage_mult", 1.0))
 		value *= float(blessing_modifiers.get("evolved_damage_mult", 1.0))
 	if current_terrain_id == "crystal_corridor":
-		value *= 1.0 + 0.08 * float(passives.get("choke_point", 0))
+		value *= 1.0 + 0.09 * float(passives.get("choke_point", 0))
 	if current_terrain_id == "event_room":
 		value *= float(character_modifiers.get("event_damage_mult", 1.0))
 	return value
@@ -773,7 +795,7 @@ func crystal_damage_multiplier() -> float:
 
 func character_crystal_reward_multiplier() -> float:
 	var value = modifier_mult("crystal_reward_mult", 1.0)
-	value *= 1.0 + 0.08 * float(passives.get("mining_luck", 0))
+	value *= 1.0 + 0.09 * float(passives.get("mining_luck", 0))
 	if active_synergies.has("mining_king"):
 		value *= 1.30
 	return value
@@ -893,6 +915,8 @@ func can_offer_weapon(id: String) -> bool:
 		return false
 	if int(weapons.get(id, 0)) > 0:
 		return int(weapons.get(id, 0)) < int(weapon_defs.get(id, {}).get("max_level", 8))
+	if disabled_weapon_ids.has(id):
+		return false
 	return weapons.keys().size() < max_owned_weapons()
 
 func can_offer_passive(id: String) -> bool:
@@ -900,6 +924,8 @@ func can_offer_passive(id: String) -> bool:
 		return false
 	if int(passives.get(id, 0)) > 0:
 		return int(passives.get(id, 0)) < int(passive_defs.get(id, {}).get("max_level", 5))
+	if disabled_passive_ids.has(id):
+		return false
 	return passives.keys().size() < max_owned_passives()
 
 func is_weapon_evolved(id: String) -> bool:
@@ -939,7 +965,7 @@ func evolution_timing_ready() -> bool:
 func get_move_speed() -> float:
 	var value = base_move_speed * (1.0 + 0.12 * float(passives.get("move_speed", 0)))
 	if current_terrain_id == "crystal_corridor":
-		value *= 1.0 + 0.06 * float(passives.get("corridor_sense", 0))
+		value *= 1.0 + 0.065 * float(passives.get("corridor_sense", 0))
 		value *= float(character_modifiers.get("corridor_move_mult", 1.0))
 	elif current_terrain_id in ["safe_room", "mine_chamber", "danger_den", "healing_oasis", "relic_vault", "boss_arena", "event_room"]:
 		value *= 1.0 + 0.05 * float(passives.get("open_field", 0))
@@ -958,10 +984,10 @@ func get_magnet_radius() -> float:
 	return base_magnet_radius * multiplier
 
 func get_damage_multiplier() -> float:
-	return (1.0 + 0.14 * float(passives.get("might", 0)) + 0.05 * float(infinite_upgrades.get("infinite_damage", 0))) * rune_contract_multiplier("damage_mult", 1.0) * meta_damage_mult * modifier_mult("damage_mult", 1.0)
+	return (1.0 + 0.13 * float(passives.get("might", 0)) + 0.05 * float(infinite_upgrades.get("infinite_damage", 0))) * rune_contract_multiplier("damage_mult", 1.0) * meta_damage_mult * modifier_mult("damage_mult", 1.0)
 
 func get_cooldown_multiplier() -> float:
-	var value = 1.0 - 0.07 * float(passives.get("cooldown", 0)) - 0.03 * float(infinite_upgrades.get("infinite_speed", 0))
+	var value = 1.0 - 0.065 * float(passives.get("cooldown", 0)) - 0.03 * float(infinite_upgrades.get("infinite_speed", 0))
 	if gem_fever_timer > 0.0 and gem_fever_tier >= 2:
 		value *= 0.80
 	value *= rune_contract_multiplier("cooldown_mult", 1.0)
@@ -969,9 +995,9 @@ func get_cooldown_multiplier() -> float:
 	return maxf(0.32, value)
 
 func get_area_multiplier() -> float:
-	var value = (1.0 + 0.12 * float(passives.get("area", 0)) + 0.05 * float(infinite_upgrades.get("infinite_area", 0))) * modifier_mult("area_mult", 1.0)
+	var value = (1.0 + 0.11 * float(passives.get("area", 0)) + 0.05 * float(infinite_upgrades.get("infinite_area", 0))) * modifier_mult("area_mult", 1.0)
 	if current_terrain_id != "crystal_corridor":
-		value *= 1.0 + 0.06 * float(passives.get("room_mastery", 0))
+		value *= 1.0 + 0.07 * float(passives.get("room_mastery", 0))
 	return value
 
 func get_score_multiplier(pos: Vector2 = Vector2.INF) -> float:
@@ -1151,6 +1177,7 @@ func record_damage_taken(amount: int) -> void:
 	damage_taken_last_minute += amount
 
 func add_floating_text(text: String, pos: Vector2, color: Color) -> void:
+	damage_number_spawn_count += 1
 	floating_texts.append(pool_manager.acquire("damage_text", [{"text": text, "pos": pos, "life": 1.0, "color": color}]))
 	while floating_texts.size() > max_texts():
 		release_runtime("damage_text", floating_texts.pop_front())

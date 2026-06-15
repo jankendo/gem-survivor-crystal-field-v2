@@ -112,6 +112,7 @@ func _drop_crystal_rewards(state, wall, pos: Vector2, events: Array) -> void:
 	if state.rng.chance(heal_chance) and state.hp < state.max_hp:
 		var heal = 6 + int(state.passives.get("pickup_heal", 0))
 		state.hp = mini(state.max_hp, state.hp + heal)
+		state.healing_by_source["crystal"] = int(state.healing_by_source.get("crystal", 0)) + heal
 		state.add_floating_text("+%d HP" % heal, pos, Color(0.42, 1.0, 0.52))
 		events.append({"type": "player_heal", "amount": heal, "source": "crystal", "hp": state.hp, "pos": pos})
 	var chest_chance = float(state.balance_data.get("crystal_chest_chance", 0.12)) + 0.035 * float(state.passives.get("luck", 0))

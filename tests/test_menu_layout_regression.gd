@@ -13,7 +13,7 @@ func test_character_collection_and_pause_layouts(t) -> void:
 	t.assert_true(not main.blessing_expanded, "blessing list should be folded by default")
 	main.collection_tab_index = 6
 	main.show_collection()
-	t.assert_eq(main.collection_tabs.size(), 9, "collection should include three field categories")
+	t.assert_eq(main.collection_tabs.size(), 10, "collection should include blessings and three field categories")
 	t.assert_true(_find_text(main, "ドロップ"), "field drop collection tab should be visible")
 	main.free()
 

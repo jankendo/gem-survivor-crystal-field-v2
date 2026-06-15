@@ -40,6 +40,28 @@ func flush(state) -> void:
 		return
 	for row in state.balance_log_rows:
 		file.store_line(String(row))
+	var summary_file := FileAccess.open("user://run_balance_summary.json", FileAccess.WRITE)
+	if summary_file != null:
+		summary_file.store_string(JSON.stringify({
+			"survival_time": state.elapsed_seconds,
+			"weapon_damage_by_id": state.weapon_damage_by_id,
+			"weapon_pick_count_by_id": state.weapon_pick_counts,
+			"weapon_level_by_id": state.weapons,
+			"weapon_evolved_by_id": state.evolved_weapons,
+			"passive_pick_count_by_id": state.passive_pick_counts,
+			"passive_level_by_id": state.passives,
+			"damage_by_category": state.damage_by_category,
+			"kills_by_weapon_id": state.weapon_kill_counts,
+			"boss_damage_by_weapon_id": state.boss_damage_by_weapon_id,
+			"enemy_damage_by_weapon_id": state.enemy_damage_by_weapon_id,
+			"damage_taken_by_time": {"last_minute": state.damage_taken_last_minute},
+			"healing_by_source": state.healing_by_source,
+			"currency_gain_by_source": state.currency_gain_by_source,
+			"evolution_time_by_weapon_id": state.evolution_time_by_weapon_id,
+			"death_cause": state.game_over_reason,
+			"disabled_weapons": state.disabled_weapon_ids,
+			"disabled_passives": state.disabled_passive_ids
+		}, "\t"))
 
 func _time_text(seconds: float) -> String:
 	var total = int(floor(seconds))

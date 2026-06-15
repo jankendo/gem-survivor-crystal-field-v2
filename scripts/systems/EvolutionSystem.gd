@@ -52,6 +52,7 @@ func _apply_evolution(state, evolution: Dictionary, events: Array) -> bool:
 		state.evolved_magic_bolt = true
 	state.evolved_weapon_count = state.evolved_weapons.keys().size()
 	state.last_evolution_seconds = state.elapsed_seconds
+	state.evolution_time_by_weapon_id[weapon_id] = state.elapsed_seconds
 	var name = String(evolution.get("name_ja", state.weapon_name(weapon_id)))
 	state.message = "%sへ進化！" % name
 	events.append({"type": "evolution", "weapon": weapon_id, "evolution": evolution_id, "name": name})

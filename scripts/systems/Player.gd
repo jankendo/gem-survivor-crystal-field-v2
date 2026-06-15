@@ -1,7 +1,7 @@
 extends RefCounted
 class_name Player
 
-var field_system = preload("res://scripts/systems/CrystalFieldSystem.gd").new()
+var movement_resolver = preload("res://scripts/systems/PlayerMovementResolver.gd").new()
 
 func input_direction() -> Vector2:
 	var direction = Vector2.ZERO
@@ -21,8 +21,8 @@ func process_input_movement(state, delta: float) -> void:
 func process_movement(state, direction: Vector2, delta: float) -> void:
 	var normalized = direction.normalized() if direction.length() > 1.0 else direction
 	state.player_velocity = normalized * state.get_move_speed()
-	state.player_position += state.player_velocity * delta
-	state.player_position = field_system.resolve_circle_position(state, state.player_position, 18.0)
+	var result := movement_resolver.resolve(state, state.player_position, state.player_velocity, delta, 18.0)
+	state.player_position = result.get("position", state.player_position)
 
 func process_survival(state, delta: float, events: Array) -> void:
 	state.invincible_timer = maxf(0.0, state.invincible_timer - delta)

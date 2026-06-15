@@ -13,24 +13,24 @@
     "name_ja": "力の紋章",
     "max_level": 5,
     "description_ja": "全武器ダメージUP",
-    "effect_per_level": 0.14,
-    "effect_cap": 0.70,
+    "effect_per_level": 0.13,
+    "effect_cap": 0.65,
     "direct_damage": true
   },
   "cooldown": {
     "name_ja": "速射回路",
     "max_level": 5,
     "description_ja": "攻撃間隔短縮",
-    "effect_per_level": 0.07,
-    "effect_cap": 0.35,
+    "effect_per_level": 0.065,
+    "effect_cap": 0.325,
     "direct_damage": true
   },
   "area": {
     "name_ja": "拡張リング",
     "max_level": 5,
     "description_ja": "攻撃範囲UP",
-    "effect_per_level": 0.12,
-    "effect_cap": 0.60,
+    "effect_per_level": 0.11,
+    "effect_cap": 0.55,
     "direct_damage": true
   },
   "max_hp": {
@@ -106,11 +106,11 @@
   },
   "corridor_sense": {
     "name_ja": "回廊感覚", "max_level": 5,
-    "description_ja": "廊下内で移動速度と接触回避力UP", "tags": ["explore", "corridor"]
+    "description_ja": "廊下内で移動速度と接触回避力UP（1Lvごとに6.5%）", "tags": ["explore", "corridor"]
   },
   "room_mastery": {
     "name_ja": "部屋支配", "max_level": 5,
-    "description_ja": "広い部屋で攻撃範囲UP", "tags": ["explore", "area"]
+    "description_ja": "広い部屋で攻撃範囲UP（1Lvごとに7%）", "tags": ["explore", "area"]
   },
   "wall_breaker": {
     "name_ja": "壁砕き", "max_level": 5,
@@ -138,7 +138,7 @@
   },
   "choke_point": {
     "name_ja": "関所戦術", "max_level": 5,
-    "description_ja": "結晶廊下で武器ダメージUP", "tags": ["explore", "melee"]
+    "description_ja": "結晶廊下で武器ダメージUP（1Lvごとに9%）", "tags": ["explore", "melee"]
   },
   "open_field": {
     "name_ja": "平地戦術", "max_level": 5,
@@ -146,7 +146,7 @@
   },
   "mining_luck": {
     "name_ja": "採掘運", "max_level": 5,
-    "description_ja": "壁破壊時のジェムと宝箱報酬UP", "tags": ["crystal", "currency"], "reward_per_level": 0.08, "direct_damage": false
+    "description_ja": "壁破壊時のジェムと宝箱報酬UP", "tags": ["crystal", "currency"], "reward_per_level": 0.09, "direct_damage": false
   },
   "map_reader": {
     "name_ja": "地図読み", "max_level": 5,

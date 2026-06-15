@@ -794,6 +794,8 @@ Artifacts:
 | `GemSurvivor-iOS-unsigned-IPA` | `GemSurvivor-unsigned.ipa`, `README.md`, `IOS_UNSIGNED_README.md` |
 | `Balance-Report` | `balance_report.md` |
 | `iOS-Performance-Report` | 5分標準ログ、`full_test=true`時の10/20/30分ログ、解析Markdown |
+| `iOS-Energy-Report` | 標準/省電力モードの20分相当ログ、要約JSON、消費傾向レポート |
+| `Progress-QA-Report` | 解放/実績の現在値・目標値・リザルト差分・永続化の検証結果 |
 
 GitHubの`Actions`から対象runを開き、画面下部の`Artifacts`から取得します。
 
@@ -891,12 +893,68 @@ python tools/validate_ios_workflow.py
 & $GODOT --headless --path $PROJECT --script "res://tests/auto_play_balance_gem_10min.gd"
 ```
 
+## iOS省電力・進捗可視化・壁移動・ロードアウト管理
+
+バッテリー消費と発熱は長時間プレイの継続率に直結するため、描画品質やゲーム機能を削るのではなく、同じ結果を維持したまま不要な更新、重複保存、過剰なログ、画面外処理を減らします。設計時にはAppleの[ゲーム向けグラフィックス性能設定](https://developer.apple.com/documentation/metal/improving-your-games-graphics-performance-and-settings)、[バッテリー使用量の削減](https://developer.apple.com/documentation/xcode/reducing-your-app-s-battery-use)、[Energy Organizer](https://developer.apple.com/documentation/xcode/analyzing-your-app-s-battery-use)、[Energy Log](https://developer.apple.com/library/archive/documentation/Performance/Conceptual/EnergyGuide-iOS/MonitorEnergyWithInstruments.html)、[ゲーム設計](https://developer.apple.com/design/human-interface-guidelines/designing-for-games)、[アクセシビリティ](https://developer.apple.com/design/human-interface-guidelines/accessibility)と、Godot 4.2の[CPU最適化](https://docs.godotengine.org/en/4.2/tutorials/performance/cpu_optimization.html)を参照しています。
+
+### 省電力
+
+`data/ios_energy_budget.json`に60 FPS、更新頻度、ログ頻度、触覚回数、警告閾値を集約しました。`IosEnergyOptimizer`、`IosRenderBudgetSystem`、`IosFramePacingSystem`、`IosBackgroundThrottleSystem`が、HUD差分更新、非表示画面の停止、ポーズ/バックグラウンド抑制、フレーム計測を担当します。`SaveSystem`は同一内容の連続書き込みを避け、`AudioManager`は再生ノードを固定プール化し、触覚は1分あたり標準20回、省電力8回を上限にします。
+
+設定の「バッテリー節約」は任意です。標準モードの敵、エフェクト、背景、ゲーム内容は維持し、省電力モードでは更新頻度と非操作時処理をさらに抑えます。Dynamic Island、ノッチ、Home Indicatorを避けるSafe Areaと44pt以上の操作領域は両モードで維持します。
+
+`IosEnergyLogSystem`は`user://ios_energy_log.csv`へFPS、p95、node数、ラベル更新、ログ書き込み、推定エネルギー、riskを記録します。ヘッドレス20分相当試験の最新値は、標準が平均推定エネルギー`12.168`、peak`12.528`、省電力が平均/peak`12.160`、両方ともp95`16.667 ms`、riskは全sampleで`low`でした。これは回帰検出用の合成値であり、iPhone実機の消費電力、温度、Metal描画を代替しません。
+
+```powershell
+python tools/analyze_ios_energy.py `
+  --standard test-output/ios_energy_log_standard.csv `
+  --battery-saver test-output/ios_energy_log_battery_saver.csv `
+  --output test-output/ios_energy_report.md
+```
+
+### 進捗表示
+
+未解放キャラクター、武器、パッシブ、祝福、実績は、条件文だけでなく「現在値 / 目標値」と進捗率を表示します。`ProgressTrackerSystem`、`UnlockProgressSystem`、`AchievementProgressSystem`が共通形式へ変換し、図鑑、実績、ショップ、ロードアウト、リザルトで同じ値を使います。run中の撃破、被ダメージ、回復、選択、進化などは保存され、リザルトにはrun開始時からの差分が表示されます。
+
+```powershell
+python tools/generate_progress_qa.py --output test-output/progress_qa_report.md
+```
+
+### 壁移動
+
+物理エンジンは使用せず、`DungeonCollisionMap`、`TileCollisionResolver`、`SmoothWallSlideSystem`、`PlayerMovementResolver`で手動のswept移動を行います。壁へ斜め入力した場合は法線方向だけを除去して接線方向へ滑り、skin幅、角の再解決、最大反復数で貫通、引っ掛かり、角での振動を抑えます。`Player`と`EnemySpawner`は同じ解決器を使用します。
+
+### 祝福
+
+全祝福に効果、具体的な数値、代償、推奨用途、解放条件、識別用iconを持たせました。選択前カード、折りたたみ一覧、図鑑、ポーズ、リザルトで説明を確認でき、名前だけで選択させません。
+
+### 武器/パッシブ管理
+
+タイトル画面のロードアウト管理で、解放済み武器/パッシブを限定数だけOFFにできます。初期枠を超えるOFF枠はショップと実績で解放します。OFF対象はレベルアップ、フィールドドロップ、進化候補、ランダム付与を含む全候補プールから除外され、変更前に確認ダイアログを表示します。ゲーム中の所持品を捨てる機能ではなく、次run以降の候補整理です。
+
+### 実測バランス
+
+`BalanceLogSystem`は武器別damage、選択回数、進化、被ダメージ、回復、OFF構成を記録します。固定密集敵に対する候補監査では、Black HoleとRune Gateが設置/範囲条件で高く出る一方、Gravity AnchorのdamageがBlack Holeへ誤集計される不具合を検出して修正しました。Ice Orbit、Corridor Blade、Relic Chain、周期型設置武器と主要passiveを、役割を消さない範囲で調整しています。`tools/analyze_balance.py`は静的proxyに加え、`test-output/balance_candidate_runs.json`と任意のrun logを読み込みます。
+
+追加検証:
+
+```powershell
+& $GODOT --headless --path $PROJECT --script "res://tests/test_battery_progress_loadout_runner.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_ios_energy_20min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_ios_energy_battery_saver_20min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_wall_slide_5min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_disabled_pool_10min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_balance_disabled_pool_10min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_balance_candidate_audit.gd"
+```
+
 ## 既知の問題
 
 * 自動テストでは30分相当まで通過しますが、手動での「気持ちよさ」は追加調整が必要です。
 * iOS IPAは未署名で、実機確認には利用者側の署名が必要です。
 * Windows上ではXcode/iOS実機ビルドを直接検証できないため、iOS成果物の最終判定はGitHub Actions macOS jobで行います。
 * タッチ操作はヘッドレス設定/入力テスト済みですが、実機の指サイズ、セーフエリア、発熱、フレームレートは手動確認が必要です。
+* 省電力レポートのenergy値は相対的な回帰指標です。実消費電力と温度はXcode Energy Organizer、Instruments、実機長時間プレイで確認してください。
 * 追加SVGは生成済みですが、描画は軽量なコード描画中心です。全面スプライト化は今後の改善余地です。
 * ボス/エリートの遠距離攻撃と地面結晶棘にはコード描画の予告があります。専用アニメーションと個別SEは追加調整余地があります。
 * 感電爆発、爆発鉱脈、宝箱柱の報酬ログは最低限です。派手さと報酬演出は今後の調整余地です。
@@ -933,5 +991,9 @@ python tools/validate_ios_workflow.py
 * IPAをAltStore/Sideloadlyで自分のApple ID署名へ変換できるか
 * iPhone実機で仮想スティック、スキャン、回収、倍速ホールド、ポーズが操作できるか
 * iOS標準/低品質で10分以降も重すぎず、発熱が許容範囲か
+* iOS標準/バッテリー節約の両方で見た目とゲーム結果が変わらず、節約側の発熱と電池減少が改善するか
+* Dynamic Island側を左右反転した場合も、進捗、祝福説明、ロードアウト確認がSafe Areaから出ないか
+* 壁へ斜め入力し続けたときに滑らかに移動し、内角/外角で停止や振動が起きないか
+* OFF枠上限、ショップ/実績による枠解放、全候補プールからの除外が実プレイでも一貫するか
 * 遠距離/近接/雷/毒/爆発/設置の実プレイ差が自動プレイ結果どおりか
 * 通貨/永続強化を進めたセーブでも難易度が崩壊しないか

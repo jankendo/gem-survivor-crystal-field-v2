@@ -20,6 +20,8 @@
   "enemy_weakness": {"category": "research", "name_ja": "敵弱点解析", "description_ja": "敵図鑑の弱点情報を解放", "base_cost": 1700, "max_level": 3, "effect_per_level_ja": "情報段階 +1", "recommend_ja": "高難度攻略"},
   "warehouse": {"category": "research", "name_ja": "通貨倉庫", "description_ja": "死亡時の通貨保護率を上げる", "base_cost": 1400, "max_level": 12, "effect_per_level_ja": "保護率 +3%", "recommend_ja": "安定収集"},
   "collection_index": {"category": "research", "name_ja": "図鑑索引", "description_ja": "図鑑の並び替え情報を追加", "base_cost": 750, "max_level": 5, "effect_per_level_ja": "索引段階 +1", "recommend_ja": "収集家"},
+  "weapon_disable_slots": {"category": "loadout", "name_ja": "武器封印枠", "description_ja": "次回ランの武器候補からOFFにできる枠を増やす", "base_cost": 700, "max_level": 8, "effect_per_level_ja": "武器OFF枠 +1", "recommend_ja": "候補を整理したい人"},
+  "passive_disable_slots": {"category": "loadout", "name_ja": "パッシブ封印枠", "description_ja": "次回ランのパッシブ候補からOFFにできる枠を増やす", "base_cost": 700, "max_level": 8, "effect_per_level_ja": "パッシブOFF枠 +1", "recommend_ja": "進化素材を狙いたい人"},
   "skin_azure": {"category": "cosmetic", "name_ja": "蒼晶テーマ", "description_ja": "青緑系UI配色。性能なし", "base_cost": 5000, "max_level": 1, "effect_per_level_ja": "外見解放", "recommend_ja": "長期収集"},
   "skin_ember": {"category": "cosmetic", "name_ja": "紅鉱テーマ", "description_ja": "赤金系UI配色。性能なし", "base_cost": 7500, "max_level": 1, "effect_per_level_ja": "外見解放", "recommend_ja": "長期収集"},
   "effect_prism": {"category": "cosmetic", "name_ja": "虹晶武器残光", "description_ja": "武器残光の色違い。性能なし", "base_cost": 12000, "max_level": 1, "effect_per_level_ja": "外見解放", "recommend_ja": "図鑑完成後"},

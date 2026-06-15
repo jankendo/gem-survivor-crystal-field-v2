@@ -30,6 +30,19 @@ const VOLUMES := {
 }
 
 var streams: Dictionary = {}
+var players: Array = []
+var next_player := 0
+var cooldown_until: Dictionary = {}
+var audio_event_count := 0
+
+const POOL_SIZE := 8
+const COOLDOWN_MS := {
+	"attack": 55,
+	"enemy_hit": 45,
+	"enemy_die": 35,
+	"gem": 45,
+	"damage": 90
+}
 
 func _ready() -> void:
 	for key in FILES.keys():
@@ -38,18 +51,31 @@ func _ready() -> void:
 			var stream: AudioStreamWAV = _load_pcm_wav(path)
 			if stream != null:
 				streams[key] = stream
+	for i in range(POOL_SIZE):
+		var player := AudioStreamPlayer.new()
+		player.name = "SfxPlayer%d" % i
+		add_child(player)
+		players.append(player)
 
-func play_sfx(name: String) -> void:
+func play_sfx(name: String) -> bool:
 	if DisplayServer.get_name() == "headless":
-		return
+		return false
 	if not streams.has(name):
-		return
-	var player := AudioStreamPlayer.new()
+		return false
+	var now := Time.get_ticks_msec()
+	if now < int(cooldown_until.get(name, 0)):
+		return false
+	cooldown_until[name] = now + int(COOLDOWN_MS.get(name, 20))
+	if players.is_empty():
+		return false
+	var player: AudioStreamPlayer = players[next_player]
+	next_player = (next_player + 1) % players.size()
+	player.stop()
 	player.stream = streams[name]
 	player.volume_db = float(VOLUMES.get(name, -8.0))
-	add_child(player)
-	player.finished.connect(player.queue_free)
 	player.play()
+	audio_event_count += 1
+	return true
 
 func _load_pcm_wav(path: String) -> AudioStreamWAV:
 	var file := FileAccess.open(path, FileAccess.READ)

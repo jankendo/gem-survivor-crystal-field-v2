@@ -66,6 +66,14 @@ def load_log(path: Path) -> list[dict]:
         return list(csv.DictReader(handle))
 
 
+def load_optional_json(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8") as handle:
+        value = json.load(handle)
+    return value if isinstance(value, dict) else {}
+
+
 def nearest_row(rows: list[dict], target: float) -> dict | None:
     if not rows:
         return None
@@ -80,7 +88,12 @@ def candidate_lines(items: list[tuple[str, dict, float]]) -> list[str]:
     ]
 
 
-def build_report(rows: list[dict], log_path: Path) -> str:
+def build_report(
+    rows: list[dict],
+    log_path: Path,
+    candidate_runs: dict,
+    run_summary: dict,
+) -> str:
     weapons = load_json("weapons.json")
     passives = load_json("passives.json")
     evolutions = load_json("evolutions.json")
@@ -93,6 +106,10 @@ def build_report(rows: list[dict], log_path: Path) -> str:
     category_scores: dict[str, list[float]] = {}
     for _, data, score in scored:
         category_scores.setdefault(str(data.get("category", "unknown")), []).append(score)
+    measured = candidate_runs.get("runs", []) if isinstance(candidate_runs.get("runs", []), list) else []
+    measured = [row for row in measured if isinstance(row, dict)]
+    measured_dps = [number(row, "dps") for row in measured if number(row, "dps") > 0]
+    measured_median = sorted(measured_dps)[len(measured_dps) // 2] if measured_dps else 0.0
 
     lines = [
         "# Balance Report",
@@ -105,6 +122,8 @@ def build_report(rows: list[dict], log_path: Path) -> str:
         f"- Passives: {len(passives)}",
         f"- Evolutions: {len(evolutions)}",
         f"- Run log: `{display_path(log_path)}` ({'loaded' if rows else 'not available; static analysis only'})",
+        f"- Candidate run audit: {'loaded' if measured else 'not available'}",
+        f"- Runtime summary: {'loaded' if run_summary else 'not available'}",
         "",
         "## Strong Candidates",
         "",
@@ -126,13 +145,54 @@ def build_report(rows: list[dict], log_path: Path) -> str:
     lines.extend(
         [
             "",
-            "## Unused Weapons",
+            "## Actual Run DPS",
             "",
-            "- Per-weapon pick data is unavailable in the standard CSV. Use `weapon_damage_by_id` from run summaries for pick and usage diagnosis.",
+            "| Weapon | DPS | Boss damage | Enemy damage | Pick count | Evolved |",
+            "| --- | ---: | ---: | ---: | ---: | :---: |",
+        ]
+    )
+    for row in sorted(measured, key=lambda item: number(item, "dps"), reverse=True):
+        weapon_id = str(row.get("weapon_id", "unknown"))
+        name = weapons.get(weapon_id, {}).get("name_ja", weapon_id)
+        lines.append(
+            f"| `{weapon_id}` ({name}) | {number(row, 'dps'):.2f} | "
+            f"{int(number(row, 'boss_damage'))} | {int(number(row, 'enemy_damage'))} | "
+            f"{int(number(row, 'pick_count'))} | {'yes' if row.get('evolved') else 'no'} |"
+        )
+    if not measured:
+        lines.append("| n/a | n/a | n/a | n/a | n/a | n/a |")
+
+    high_measured = [
+        row for row in measured
+        if measured_median > 0 and number(row, "dps") >= measured_median * 1.8
+    ]
+    low_measured = [
+        row for row in measured
+        if measured_median > 0 and number(row, "dps") <= measured_median * 0.35
+    ]
+    lines.extend(["", "## Measured Outliers", ""])
+    lines.append(f"- Median measured DPS: {measured_median:.2f}")
+    lines.append(
+        "- Strong candidates: "
+        + (", ".join(f"`{row.get('weapon_id')}`" for row in high_measured) or "none")
+    )
+    lines.append(
+        "- Weak candidates: "
+        + (", ".join(f"`{row.get('weapon_id')}`" for row in low_measured) or "none")
+    )
+    lines.append("- Interpret deploy/area outliers as dense-pack specialization, not universal single-target DPS.")
+
+    lines.extend(
+        [
             "",
-            "## Overused Weapons",
+            "## Usage and Evolution Rate",
             "",
-            "- No overuse claim is made without per-weapon pick counts from multiple runs.",
+            f"- Weapon picks: `{json.dumps(run_summary.get('weapon_pick_count_by_id', {}), ensure_ascii=False)}`",
+            f"- Passive picks: `{json.dumps(run_summary.get('passive_pick_count_by_id', {}), ensure_ascii=False)}`",
+            f"- Evolved weapons: `{json.dumps(run_summary.get('weapon_evolved_by_id', {}), ensure_ascii=False)}`",
+            f"- Disabled weapons: `{json.dumps(run_summary.get('disabled_weapons', []), ensure_ascii=False)}`",
+            f"- Disabled passives: `{json.dumps(run_summary.get('disabled_passives', []), ensure_ascii=False)}`",
+            "- OFF rate requires multiple player runs; this report records disabled lists without inventing population usage.",
             "",
             "## Evolution Timing",
             "",
@@ -175,14 +235,28 @@ def build_report(rows: list[dict], log_path: Path) -> str:
             "",
             "## Healing Load",
             "",
-            "- The standard log does not yet separate every healing source.",
+            f"- Healing by source: `{json.dumps(run_summary.get('healing_by_source', {}), ensure_ascii=False)}`",
             "- Runtime caps: regen <= 3 HP/s, pickup heal <= 4 HP, oasis heal <= 6 HP per 2.5 seconds.",
+            "- Defensive and economy passives are evaluated by survival/healing/currency contribution, not direct DPS.",
             "",
             "## DPS Guide",
             "",
             f"- Total logged weapon damage: {int(number(final, 'total_weapon_damage')) if final else 'n/a'}",
             "- Proxy scores compare metadata and category modifiers, not real multi-target DPS.",
             "- Confirm outliers with category autoplays and `weapon_damage_by_id` run summaries before changing values.",
+            "",
+            "## Adjustment Notes",
+            "",
+            "- Ice orbit, corridor blade, and relic chain were reduced after measured dense-pack output.",
+            "- Gravity anchor damage attribution was fixed and its pull identity retained.",
+            "- Black hole and rune gate were not blindly buffed because measured dense-pack DPS was already high.",
+            "- Might, cooldown, and area passives were slightly reduced; corridor, room, choke-point, and mining specializations were slightly strengthened.",
+            "",
+            "## Change Verification",
+            "",
+            "- Re-run candidate audit and all seven category 10-minute autoplays.",
+            "- Compare boss damage separately from enemy damage.",
+            "- Review real-player pick, OFF, evolution, death-cause, healing, and currency-source data across multiple runs.",
             "",
         ]
     )
@@ -193,9 +267,16 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--log", type=Path, default=ROOT / "run_balance_log.csv")
     parser.add_argument("--output", type=Path, default=ROOT / "balance_report.md")
+    parser.add_argument("--candidate-runs", type=Path, default=ROOT / "test-output" / "balance_candidate_runs.json")
+    parser.add_argument("--summary", type=Path, default=ROOT / "run_balance_summary.json")
     args = parser.parse_args()
     rows = load_log(args.log)
-    report = build_report(rows, args.log)
+    report = build_report(
+        rows,
+        args.log,
+        load_optional_json(args.candidate_runs),
+        load_optional_json(args.summary),
+    )
     args.output.write_text(report, encoding="utf-8", newline="\n")
     print(f"Wrote {args.output} ({len(rows)} log rows)")
     return 0

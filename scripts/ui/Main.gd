@@ -19,6 +19,9 @@ const InputModeSystemScript := preload("res://scripts/systems/InputModeSystem.gd
 const MobileSafeAreaSystemScript := preload("res://scripts/systems/MobileSafeAreaSystem.gd")
 const MobileUiScaleSystemScript := preload("res://scripts/systems/MobileUiScaleSystem.gd")
 const MobileScrollSystemScript := preload("res://scripts/systems/MobileScrollSystem.gd")
+const LoadoutDisableSystemScript := preload("res://scripts/systems/LoadoutDisableSystem.gd")
+const AchievementProgressSystemScript := preload("res://scripts/systems/AchievementProgressSystem.gd")
+const ConfirmDialogScript := preload("res://scripts/ui/components/ConfirmDialog.gd")
 const UiNavigation := preload("res://scripts/ui/UiNavigation.gd")
 
 var current_screen: Node = null
@@ -34,6 +37,8 @@ var ui_layout_fix = UiLayoutFixSystemScript.new()
 var currency_sink_system = CurrencySinkSystemScript.new()
 var shop_category_system = ShopCategorySystemScript.new()
 var collection_filter_system = CollectionFilterSystemScript.new()
+var loadout_disable_system = LoadoutDisableSystemScript.new()
+var achievement_progress_system = AchievementProgressSystemScript.new()
 var save_data: Dictionary = {}
 var selected_character_id := "noah"
 var selected_blessing_id := "attack"
@@ -48,9 +53,12 @@ var collection_tab_index := 0
 var collection_filter_index := 0
 var collection_sort_index := 0
 var quest_filter_index := 0
-var collection_tabs := ["characters", "weapons", "passives", "evolutions", "enemies", "bosses", "field_drops", "field_gimmicks", "field_events"]
-var collection_tab_names := ["キャラ", "武器", "パッシブ", "進化", "敵", "ボス", "ドロップ", "ギミック", "イベント"]
+var collection_tabs := ["characters", "weapons", "passives", "blessings", "evolutions", "enemies", "bosses", "field_drops", "field_gimmicks", "field_events"]
+var collection_tab_names := ["キャラ", "武器", "パッシブ", "祝福", "進化", "敵", "ボス", "ドロップ", "ギミック", "イベント"]
 var blessing_expanded := false
+var loadout_kind := "weapon"
+var loadout_filter := "all"
+var loadout_message := ""
 var touch_tutorial_page := 0
 var input_mode = InputModeSystemScript.new()
 var mobile_safe_area = MobileSafeAreaSystemScript.new()
@@ -199,6 +207,7 @@ func show_title() -> void:
 	_add_menu_button(menu, "開始", request_start, Color(0.52, 1.0, 1.0))
 	_add_menu_button(menu, "キャラクター選択", show_character_select)
 	_add_menu_button(menu, "解放 / 強化", show_shop, Color(1.0, 0.82, 0.28))
+	_add_menu_button(menu, "武器・パッシブ管理", show_loadout, Color(0.58, 1.0, 0.74))
 	_add_menu_button(menu, "図鑑", show_collection, Color(0.70, 0.86, 1.0))
 	_add_menu_button(menu, "実績", show_quests, Color(0.48, 1.0, 0.66))
 	_add_menu_button(menu, "設定", show_settings)
@@ -252,6 +261,7 @@ func _build_touch_title(root: VBoxContainer) -> void:
 	_add_menu_button(primary, "開始", request_start, Color(0.52, 1.0, 1.0))
 	_add_menu_button(primary, "キャラクター選択", show_character_select)
 	_add_menu_button(primary, "解放 / 強化", show_shop, Color(1.0, 0.82, 0.28))
+	_add_menu_button(primary, "武器・パッシブ管理", show_loadout, Color(0.58, 1.0, 0.74))
 	_add_menu_button(primary, "図鑑", show_collection, Color(0.70, 0.86, 1.0))
 	_add_menu_button(primary, "実績", show_quests, Color(0.48, 1.0, 0.66))
 	_add_menu_button(primary, "設定", show_settings)
@@ -360,6 +370,18 @@ func _build_phone_character_select(root: VBoxContainer, selected_name: String) -
 		Color(0.86, 0.93, 0.98),
 		HORIZONTAL_ALIGNMENT_LEFT
 	)
+	var selected_blessing: Dictionary = meta_system.blessings.get(selected_blessing_id, {})
+	_add_label(
+		detail_box,
+		"祝福：%s　数値：%s　推奨：%s" % [
+			String(selected_blessing.get("name_ja", selected_blessing_id)),
+			" / ".join(selected_blessing.get("numeric_effects_ja", [])),
+			String(selected_blessing.get("recommended_for_ja", "すべて"))
+		],
+		15,
+		Color(1.0, 0.88, 0.48),
+		HORIZONTAL_ALIGNMENT_LEFT
+	)
 	var carousel := ScrollContainer.new()
 	carousel.name = "CharacterCarousel"
 	carousel.custom_minimum_size.y = float(metrics.get("character_card_height", 128.0)) + 12.0
@@ -380,7 +402,7 @@ func _build_phone_character_select(root: VBoxContainer, selected_name: String) -
 		show_character_select()
 	, Color(1.0, 0.82, 0.28))
 	blessing.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var start := _add_menu_button(actions, "このキャラで開始", start_game, Color(0.52, 1.0, 1.0))
+	var start := _add_menu_button(actions, "このキャラで開始\n%s" % _selected_blessing_name(), start_game, Color(0.52, 1.0, 1.0))
 	start.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if blessing_expanded:
 		_add_phone_blessing_sheet(root)
@@ -419,7 +441,7 @@ func _build_tablet_character_select(root: VBoxContainer, selected_name: String) 
 	_add_label(detail_box, selected_name, 28, Color(1.0, 0.88, 0.42), HORIZONTAL_ALIGNMENT_LEFT)
 	_add_label(detail_box, _character_detail_text(selected_character_id, selected_data), 17, Color(0.86, 0.93, 0.98), HORIZONTAL_ALIGNMENT_LEFT)
 	_add_blessing_picker(detail_box)
-	_add_menu_button(detail_box, "このキャラで開始", start_game, Color(0.52, 1.0, 1.0))
+	_add_menu_button(detail_box, "このキャラで開始\n祝福：%s" % _selected_blessing_name(), start_game, Color(0.52, 1.0, 1.0))
 
 func _build_desktop_character_select(root: VBoxContainer, selected_name: String) -> void:
 	var body := HBoxContainer.new()
@@ -485,7 +507,7 @@ func _build_desktop_character_select(root: VBoxContainer, selected_name: String)
 	_add_label(detail_box, selected_name, 28, Color(1.0, 0.88, 0.42), HORIZONTAL_ALIGNMENT_LEFT)
 	_add_label(detail_box, _character_detail_text(selected_character_id, selected_data), 17, Color(0.86, 0.93, 0.98), HORIZONTAL_ALIGNMENT_LEFT)
 	_add_blessing_picker(detail_box)
-	_add_menu_button(detail_box, "このキャラで開始", start_game, Color(0.52, 1.0, 1.0))
+	_add_menu_button(detail_box, "このキャラで開始\n祝福：%s" % _selected_blessing_name(), start_game, Color(0.52, 1.0, 1.0))
 
 func _populate_compact_character_cards(parent: Container, metrics: Dictionary) -> void:
 	var ids := meta_system.character_ids()
@@ -540,7 +562,7 @@ func _add_phone_blessing_sheet(root: VBoxContainer) -> void:
 		var blessing_id := String(id)
 		var data: Dictionary = meta_system.blessings.get(blessing_id, {})
 		var button = CrystalButtonScript.new()
-		button.setup(String(data.get("name_ja", blessing_id)), Color(1.0, 0.82, 0.28), Vector2(190, 60))
+		button.setup("%s\n%s" % [String(data.get("name_ja", blessing_id)), String(data.get("description_ja", ""))], Color(1.0, 0.82, 0.28), Vector2(220, 78))
 		button.pressed.connect(_select_blessing.bind(blessing_id))
 		row.add_child(button)
 
@@ -562,7 +584,7 @@ func _add_blessing_picker(parent: VBoxContainer) -> void:
 		show_character_select()
 	)
 	parent.add_child(toggle)
-	_add_label(parent, String(selected.get("description_ja", "")), 16, Color(0.82, 0.88, 0.96), HORIZONTAL_ALIGNMENT_LEFT)
+	_add_label(parent, meta_system.blessing_detail_text(selected_blessing_id, save_data), 16, Color(0.82, 0.88, 0.96), HORIZONTAL_ALIGNMENT_LEFT)
 	if not blessing_expanded:
 		return
 	var box := GridContainer.new()
@@ -576,7 +598,7 @@ func _add_blessing_picker(parent: VBoxContainer) -> void:
 		var blessing_id := String(id)
 		var blessing: Dictionary = meta_system.blessings.get(blessing_id, {})
 		var button = CrystalButtonScript.new()
-		button.setup("%s\n%s" % [String(blessing.get("name_ja", blessing_id)), String(blessing.get("description_ja", ""))], Color(1.0, 0.86, 0.28) if blessing_id == selected_blessing_id else Color(0.46, 0.78, 1.0), Vector2(158, 72))
+		button.setup("%s\n%s" % [String(blessing.get("name_ja", blessing_id)), String(blessing.get("description_ja", ""))], Color(1.0, 0.86, 0.28) if blessing_id == selected_blessing_id else Color(0.46, 0.78, 1.0), Vector2(190, 82))
 		button.pressed.connect(_select_blessing.bind(blessing_id))
 		box.add_child(button)
 
@@ -626,7 +648,8 @@ func show_shop() -> void:
 			var unlocked := meta_system.is_character_unlocked(save_data, char_id)
 			var cost := int(data.get("unlock_cost", 0))
 			var button = CrystalButtonScript.new()
-			button.setup("%s　%s　費用：%s" % [meta_system.display_name(char_id, save_data), "解放済み" if unlocked else String(data.get("role_ja", "")), JaText.format_int(cost)], Color(1.0, 0.82, 0.36), Vector2(0, 58))
+			var unlock_progress := "" if unlocked else "\n%s" % meta_system.unlock_text(char_id, save_data)
+			button.setup("%s　%s　費用：%s%s" % [meta_system.display_name(char_id, save_data), "解放済み" if unlocked else String(data.get("role_ja", "")), JaText.format_int(cost), unlock_progress], Color(1.0, 0.82, 0.36), Vector2(0, 82 if unlocked else 118))
 			button.disabled = unlocked or int(save_data.get("crystal_currency", 0)) < cost
 			button.pressed.connect(_purchase_character.bind(char_id))
 			body.add_child(button)
@@ -652,15 +675,18 @@ func show_shop() -> void:
 			var max_level = int(item.get("max_level", 1))
 			var cost = currency_sink_system.cost_for(sink_id, current)
 			var condition_ok = currency_sink_system.condition_met(save_data, sink_id)
-			var condition_text = "条件達成" if condition_ok else "条件：%s %s" % [String(item.get("required_stat", "")), str(item.get("required_value", 0))]
+			var condition_text = currency_sink_system.progress_text(save_data, sink_id)
+			var blessing_detail := ""
+			if current_category == "blessings":
+				blessing_detail = "\n%s" % meta_system.blessing_detail_text(String(item.get("target", "")), save_data)
 			var text = "%s　Lv%d/%d\n%s　次：%s　費用：%s\nおすすめ：%s　%s" % [
 				String(item.get("name_ja", sink_id)), current, max_level,
 				String(item.get("description_ja", "")), String(item.get("effect_per_level_ja", "")),
 				"MAX" if current >= max_level else JaText.format_int(cost),
-				String(item.get("recommend_ja", "")), condition_text
+				String(item.get("recommend_ja", "")), condition_text + blessing_detail
 			]
 			var button = CrystalButtonScript.new()
-			button.setup(text, Color(0.52, 1.0, 0.76) if condition_ok else Color(0.58, 0.62, 0.72), Vector2(0, 88))
+			button.setup(text, Color(0.52, 1.0, 0.76) if condition_ok else Color(0.58, 0.62, 0.72), Vector2(0, 144 if current_category == "blessings" else 88))
 			button.disabled = current >= max_level or not condition_ok or int(save_data.get("crystal_currency", 0)) < cost
 			button.pressed.connect(_purchase_currency_sink.bind(sink_id))
 			body.add_child(button)
@@ -668,6 +694,148 @@ func show_shop() -> void:
 func _select_shop_category(index: int) -> void:
 	shop_category_index = clampi(index, 0, shop_category_system.category_ids().size() - 1)
 	show_shop()
+
+func show_loadout() -> void:
+	_sync_from_save()
+	_clear()
+	screen_mode = "loadout"
+	title_visible = false
+	help_visible = false
+	_add_background(Color(0.024, 0.036, 0.050))
+	var root := _page_box(42, 26, 42, 30)
+	var weapon_usage := loadout_disable_system.usage_text(save_data, "weapon")
+	var passive_usage := loadout_disable_system.usage_text(save_data, "passive")
+	_add_top_bar(
+		root,
+		"武器・パッシブ管理",
+		"武器OFF枠：%s　パッシブOFF枠：%s　%s" % [weapon_usage, passive_usage, loadout_message],
+		show_title
+	)
+	var tabs := _horizontal_chip_container(root, "LoadoutTabs") if input_mode.is_touch_mode() else HBoxContainer.new()
+	if not input_mode.is_touch_mode():
+		root.add_child(tabs)
+	for kind in ["weapon", "passive"]:
+		var tab := CrystalButtonScript.new()
+		tab.setup("武器" if kind == "weapon" else "パッシブ", Color(1.0, 0.84, 0.30) if kind == loadout_kind else Color(0.42, 0.82, 1.0), Vector2(180, 58 if input_mode.is_touch_mode() else 42))
+		tab.pressed.connect(func():
+			loadout_kind = kind
+			show_loadout()
+		)
+		tabs.add_child(tab)
+	var filters := _horizontal_chip_container(root, "LoadoutFilters") if input_mode.is_touch_mode() else HBoxContainer.new()
+	if not input_mode.is_touch_mode():
+		root.add_child(filters)
+	var filter_ids := ["all", "on", "off", "unlocked", "locked"]
+	var filter_names := ["すべて", "ON", "OFF", "解放済み", "未解放"]
+	for i in range(filter_ids.size()):
+		var filter_id := String(filter_ids[i])
+		var chip := CrystalButtonScript.new()
+		chip.setup(filter_names[i], Color(0.58, 1.0, 0.74) if filter_id == loadout_filter else Color(0.34, 0.60, 0.82), Vector2(130, 56 if input_mode.is_touch_mode() else 36))
+		chip.pressed.connect(func():
+			loadout_filter = filter_id
+			show_loadout()
+		)
+		filters.add_child(chip)
+	var info := "OFFにした項目は次回ランの候補、宝箱・フィールド報酬の新規候補から除外されます。所持中の装備は消えません。"
+	_add_label(root, info, 16, Color(0.78, 0.88, 0.96), HORIZONTAL_ALIGNMENT_LEFT)
+	var scroll := _scroll(root)
+	var grid := GridContainer.new()
+	grid.columns = 1 if input_mode.is_touch_mode() else 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	scroll.add_child(grid)
+	var defs := _json_dict("res://data/weapons.json" if loadout_kind == "weapon" else "res://data/passives.json")
+	var unlocked_key := "unlocked_weapons" if loadout_kind == "weapon" else "unlocked_passives"
+	var unlocked: Array = save_data.get(unlocked_key, [])
+	var disabled := loadout_disable_system.disabled_ids(save_data, loadout_kind)
+	for raw_id in defs.keys():
+		var id := String(raw_id)
+		var is_unlocked := unlocked.has(id)
+		var enabled := not disabled.has(id)
+		if loadout_filter == "on" and (not is_unlocked or not enabled):
+			continue
+		if loadout_filter == "off" and (not is_unlocked or enabled):
+			continue
+		if loadout_filter == "unlocked" and not is_unlocked:
+			continue
+		if loadout_filter == "locked" and is_unlocked:
+			continue
+		var data: Dictionary = defs[id]
+		var description := String(data.get("description_ja", ""))
+		var tags := " / ".join(data.get("tags", []))
+		var relation := _loadout_relation_text(loadout_kind, id)
+		var progress := ""
+		if not is_unlocked:
+			progress = "\n%s" % meta_system.unlock_system.progress_text("weapons" if loadout_kind == "weapon" else "passives", id, save_data)
+		var label := "%s　%s\n%s\n系統：%s%s%s" % [
+			"ON" if enabled else "OFF",
+			String(data.get("name_ja", id)),
+			description,
+			tags if tags != "" else "汎用",
+			"\n%s" % relation if relation != "" else "",
+			progress
+		]
+		var button := CrystalButtonScript.new()
+		button.setup(label, Color(0.52, 1.0, 0.76) if enabled else Color(0.70, 0.48, 0.78), Vector2(0, 104))
+		var check := loadout_disable_system.can_disable(save_data, loadout_kind, id)
+		button.disabled = not is_unlocked or (enabled and not bool(check.get("ok", false)))
+		button.tooltip_text = String(check.get("reason", "")) if button.disabled else ("タップしてOFF確認" if enabled else "タップしてONへ戻す")
+		button.pressed.connect(_request_toggle_loadout.bind(loadout_kind, id, not enabled))
+		grid.add_child(button)
+
+func _request_toggle_loadout(kind: String, id: String, enabled: bool) -> void:
+	var defs := _json_dict("res://data/weapons.json" if kind == "weapon" else "res://data/passives.json")
+	var name := String(defs.get(id, {}).get("name_ja", id))
+	var dialog = ConfirmDialogScript.new()
+	dialog.name = "LoadoutConfirmDialog"
+	dialog.set_anchors_preset(Control.PRESET_CENTER)
+	dialog.offset_left = -280
+	dialog.offset_right = 280
+	dialog.offset_top = -132
+	dialog.offset_bottom = 132
+	var action := "ONに戻す" if enabled else "OFFにする"
+	var body := "次回ランから候補に出現します。" if enabled else "次回ランから新規候補に出現しません。所持中の装備は消えません。"
+	dialog.setup("%sを%sしますか？" % [name, action], body, action, "キャンセル", input_mode.is_touch_mode())
+	dialog.confirmed.connect(func():
+		if is_instance_valid(dialog):
+			dialog.queue_free()
+		_toggle_loadout(kind, id, enabled)
+	)
+	dialog.canceled.connect(func():
+		if is_instance_valid(dialog):
+			dialog.queue_free()
+	)
+	add_child(dialog)
+
+func _toggle_loadout(kind: String, id: String, enabled: bool) -> void:
+	var result := loadout_disable_system.set_enabled(save_system, kind, id, enabled)
+	if bool(result.get("ok", false)):
+		var defs := _json_dict("res://data/weapons.json" if kind == "weapon" else "res://data/passives.json")
+		var name := String(defs.get(id, {}).get("name_ja", id))
+		loadout_message = "%sを%sにしました。次回ランから反映します。" % [name, "ON" if enabled else "OFF"]
+	else:
+		loadout_message = String(result.get("reason", "変更できません。"))
+	show_loadout()
+
+func _loadout_relation_text(kind: String, id: String) -> String:
+	var evolutions := _json_dict("res://data/evolutions.json")
+	if kind == "weapon":
+		for data in evolutions.values():
+			if String(data.get("weapon", "")) == id:
+				return "進化：%s / 素材：%s" % [String(data.get("name_ja", "")), _passive_name(String(data.get("passive", "")))]
+	else:
+		var related: Array = []
+		for data in evolutions.values():
+			if String(data.get("passive", "")) == id:
+				related.append(_weapon_name(String(data.get("weapon", ""))))
+		if not related.is_empty():
+			return "進化素材：%s" % " / ".join(related)
+	return ""
+
+func _passive_name(passive_id: String) -> String:
+	var passives := _json_dict("res://data/passives.json")
+	return String(passives.get(passive_id, {}).get("name_ja", passive_id))
 
 func show_collection() -> void:
 	_sync_from_save()
@@ -774,7 +942,7 @@ func show_quests() -> void:
 		filter_row.add_theme_constant_override("separation", 8)
 		root.add_child(filter_row)
 		quest_filters = filter_row
-	var filter_names := ["すべて", "未達成", "達成済み"]
+	var filter_names := ["すべて", "未達成", "進行中", "もうすぐ", "達成済み"]
 	for i in range(filter_names.size()):
 		var filter_index := i
 		var filter_button = CrystalButtonScript.new()
@@ -794,12 +962,17 @@ func show_quests() -> void:
 		var quest_id := String(id)
 		var quest: Dictionary = meta_system.quests[quest_id]
 		var done := bool(completed.get(quest_id, false))
+		var progress := achievement_progress_system.row(save_data, quest, done)
 		if quest_filter_index == 1 and done:
 			continue
-		if quest_filter_index == 2 and not done:
+		if quest_filter_index == 2 and not achievement_progress_system.is_in_progress(progress):
+			continue
+		if quest_filter_index == 3 and not achievement_progress_system.is_near(progress):
+			continue
+		if quest_filter_index == 4 and not done:
 			continue
 		var card = AchievementCardScript.new()
-		card.setup(String(quest.get("name_ja", quest_id)), String(quest.get("description_ja", "")), _reward_text(quest.get("reward", {})), done)
+		card.setup(String(quest.get("name_ja", quest_id)), String(quest.get("description_ja", "")), _reward_text(quest.get("reward", {})), done, progress)
 		body.add_child(card)
 
 func show_settings() -> void:
@@ -871,7 +1044,7 @@ func show_settings() -> void:
 	_add_choice(row, "描画品質", "render_quality", String(settings.get("render_quality", "standard")), ["low", "standard", "high"])
 	_add_choice(row, "ミニマップ更新頻度", "minimap_update_hz", int(settings.get("minimap_update_hz", 8)), [4, 8, 12])
 	_add_toggle(row, "背景粒子", "background_particles", bool(settings.get("background_particles", true)))
-	_add_toggle(row, "低電力モード", "low_power_mode", bool(settings.get("low_power_mode", false)))
+	_add_toggle(row, "省電力モード（45fps・品質維持）", "battery_saver", bool(settings.get("battery_saver", settings.get("low_power_mode", false))))
 	settings_section_nodes["音"] = _add_label(row, "音", 24, Color(0.52, 1.0, 0.86), HORIZONTAL_ALIGNMENT_LEFT)
 	_add_toggle(row, "ジェム吸収音", "gem_sound", bool(settings.get("gem_sound", true)))
 	_add_slider(settings_body, "BGM音量", "bgm_volume", float(settings.get("bgm_volume", 0.85)))
@@ -1012,7 +1185,10 @@ func _toggle_auto_infinite() -> void:
 	_update_setting("auto_infinite", not auto_infinite_enabled)
 
 func _update_setting(key: String, value) -> void:
-	save_system.update_settings({key: value})
+	if key == "battery_saver":
+		save_system.update_settings({"battery_saver": value, "low_power_mode": value})
+	else:
+		save_system.update_settings({key: value})
 	_sync_from_save()
 
 func _set_seed_text(text: String) -> void:
@@ -1251,11 +1427,16 @@ func _character_detail_text(character_id: String, data: Dictionary) -> String:
 		"役割：%s" % String(data.get("role_ja", "")),
 		"初期武器：%s" % _weapon_name(String(data.get("initial_weapon", ""))),
 		"特性：%s" % String(data.get("trait_ja", "")),
-		"弱点：%s" % String(data.get("weakness_ja", "なし"))
+		"弱点：%s" % String(data.get("weakness_ja", "なし")),
+		"選択中の祝福：%s" % _selected_blessing_name(),
+		meta_system.blessing_detail_text(selected_blessing_id, save_data)
 	]
 	if not unlocked:
 		lines.append(meta_system.unlock_text(character_id, save_data))
 	return "\n".join(lines)
+
+func _selected_blessing_name() -> String:
+	return String(meta_system.blessings.get(selected_blessing_id, {}).get("name_ja", selected_blessing_id))
 
 func _json_dict(path: String) -> Dictionary:
 	var file := FileAccess.open(path, FileAccess.READ)
@@ -1270,9 +1451,18 @@ func _clear() -> void:
 	for child in get_children():
 		if child == mobile_scroll_system:
 			continue
+		_set_branch_process(child, false)
 		remove_child(child)
 		child.queue_free()
 	current_screen = null
+
+func _set_branch_process(node: Node, active: bool) -> void:
+	node.set_process(active)
+	node.set_physics_process(active)
+	node.set_process_input(active)
+	node.set_process_unhandled_input(active)
+	for child in node.get_children():
+		_set_branch_process(child, active)
 
 func _register_mobile_scroll(scroll: ScrollContainer, axis: String) -> void:
 	if mobile_scroll_system != null and input_mode.is_touch_mode():

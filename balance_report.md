@@ -8,14 +8,16 @@ This report is diagnostic only. It never rewrites balance data.
 - Passives: 39
 - Evolutions: 26
 - Run log: `run_balance_log.csv` (not available; static analysis only)
+- Candidate run audit: loaded
+- Runtime summary: not available
 
 ## Strong Candidates
 
-- `ice_orbit` (氷輪): proxy `2.632`, category `area`, range `180`
+- `ice_orbit` (氷輪): proxy `2.174`, category `area`, range `180`
 - `blade_fan` (刃扇): proxy `1.548`, category `melee`, range `260`
-- `corridor_blade` (回廊刃): proxy `1.429`, category `melee`, range `290`
 - `magic_bolt` (魔弾): proxy `1.378`, category `ranged`, range `900`
-- `relic_chain` (遺物鎖): proxy `1.150`, category `melee`, range `270`
+- `corridor_blade` (回廊刃): proxy `1.155`, category `melee`, range `290`
+- `poison_mist` (毒霧): proxy `1.084`, category `poison`, range `240`
 
 ## Weak Candidates
 
@@ -29,7 +31,7 @@ This report is diagnostic only. It never rewrites balance data.
 
 | Category | Weapons | Mean proxy |
 | --- | ---: | ---: |
-| area | 3 | 1.064 |
+| area | 3 | 0.911 |
 | crystal | 2 | 0.634 |
 | deploy | 5 | 0.354 |
 | explosion | 3 | 0.482 |
@@ -37,18 +39,41 @@ This report is diagnostic only. It never rewrites balance data.
 | knockback | 2 | 0.393 |
 | laser | 1 | 0.736 |
 | lightning | 1 | 0.636 |
-| melee | 4 | 1.282 |
+| melee | 4 | 1.166 |
 | poison | 2 | 0.715 |
 | ranged | 5 | 0.985 |
 | summon | 1 | 0.812 |
 
-## Unused Weapons
+## Actual Run DPS
 
-- Per-weapon pick data is unavailable in the standard CSV. Use `weapon_damage_by_id` from run summaries for pick and usage diagnosis.
+| Weapon | DPS | Boss damage | Enemy damage | Pick count | Evolved |
+| --- | ---: | ---: | ---: | ---: | :---: |
+| `black_hole` (小型重力球) | 653.12 | 14000 | 377874 | 1 | no |
+| `rune_gate` (ルーン門) | 530.77 | 13710 | 304755 | 1 | no |
+| `gravity_anchor` (重力錨) | 346.24 | 8000 | 199744 | 1 | no |
+| `frost_wall` (氷壁) | 300.00 | 0 | 180000 | 1 | no |
+| `mine_lantern` (鉱灯) | 300.00 | 0 | 180000 | 1 | no |
+| `ice_orbit` (氷輪) | 239.19 | 11952 | 131562 | 1 | no |
+| `corridor_blade` (回廊刃) | 226.67 | 0 | 136000 | 1 | no |
+| `relic_chain` (遺物鎖) | 185.00 | 0 | 111000 | 1 | no |
+| `blade_fan` (刃扇) | 60.00 | 0 | 36000 | 1 | no |
+| `magic_bolt` (魔弾) | 21.67 | 0 | 13000 | 1 | no |
 
-## Overused Weapons
+## Measured Outliers
 
-- No overuse claim is made without per-weapon pick counts from multiple runs.
+- Median measured DPS: 300.00
+- Strong candidates: `black_hole`
+- Weak candidates: `blade_fan`, `magic_bolt`
+- Interpret deploy/area outliers as dense-pack specialization, not universal single-target DPS.
+
+## Usage and Evolution Rate
+
+- Weapon picks: `{}`
+- Passive picks: `{}`
+- Evolved weapons: `{}`
+- Disabled weapons: `[]`
+- Disabled passives: `[]`
+- OFF rate requires multiple player runs; this report records disabled lists without inventing population usage.
 
 ## Evolution Timing
 
@@ -79,11 +104,25 @@ This report is diagnostic only. It never rewrites balance data.
 
 ## Healing Load
 
-- The standard log does not yet separate every healing source.
+- Healing by source: `{}`
 - Runtime caps: regen <= 3 HP/s, pickup heal <= 4 HP, oasis heal <= 6 HP per 2.5 seconds.
+- Defensive and economy passives are evaluated by survival/healing/currency contribution, not direct DPS.
 
 ## DPS Guide
 
 - Total logged weapon damage: n/a
 - Proxy scores compare metadata and category modifiers, not real multi-target DPS.
 - Confirm outliers with category autoplays and `weapon_damage_by_id` run summaries before changing values.
+
+## Adjustment Notes
+
+- Ice orbit, corridor blade, and relic chain were reduced after measured dense-pack output.
+- Gravity anchor damage attribution was fixed and its pull identity retained.
+- Black hole and rune gate were not blindly buffed because measured dense-pack DPS was already high.
+- Might, cooldown, and area passives were slightly reduced; corridor, room, choke-point, and mining specializations were slightly strengthened.
+
+## Change Verification
+
+- Re-run candidate audit and all seven category 10-minute autoplays.
+- Compare boss damage separately from enemy damage.
+- Review real-player pick, OFF, evolution, death-cause, healing, and currency-source data across multiple runs.

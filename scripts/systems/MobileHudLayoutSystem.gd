@@ -78,6 +78,7 @@ func layout(viewport_size: Vector2, safe_rect: Rect2, settings: Dictionary = {})
 		"notification_rect": notification_rect,
 		"minimap_icon": map_settings.get("minimap_icon", 8.0),
 		"minimap_opacity": map_settings.get("minimap_opacity", 0.76),
+		"minimap_update_hz": map_settings.get("update_hz", 8),
 		"camera_zoom": map_settings.get("camera_zoom", 1.0),
 		"map_tap_expand": map_settings.get("tap_expand", true),
 		"expanded_map_rect": map_system.expanded_rect(viewport_size, safe_rect)

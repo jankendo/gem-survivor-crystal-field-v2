@@ -3,6 +3,7 @@ class_name UnlockSystem
 
 var weapon_unlocks: Dictionary = {}
 var passive_unlocks: Dictionary = {}
+var progress_tracker = preload("res://scripts/systems/ProgressTrackerSystem.gd").new()
 
 func _init() -> void:
 	weapon_unlocks = _json_dict("res://data/weapon_unlocks.json")
@@ -17,6 +18,8 @@ func initial_passive_ids() -> Array:
 func apply_to_state(state, save_data: Dictionary) -> void:
 	state.unlocked_weapon_ids = (save_data.get("unlocked_weapons", initial_weapon_ids()) as Array).duplicate()
 	state.unlocked_passive_ids = (save_data.get("unlocked_passives", initial_passive_ids()) as Array).duplicate()
+	state.disabled_weapon_ids = (save_data.get("disabled_weapons", []) as Array).duplicate()
+	state.disabled_passive_ids = (save_data.get("disabled_passives", []) as Array).duplicate()
 
 func update_after_run(save_data: Dictionary) -> Dictionary:
 	var new_weapons = _unlock_table(save_data, "unlocked_weapons", weapon_unlocks)
@@ -32,6 +35,13 @@ func is_passive_unlocked(save_data: Dictionary, id: String) -> bool:
 func unlock_text(kind: String, id: String) -> String:
 	var source = weapon_unlocks if kind == "weapons" else passive_unlocks
 	return String(source.get(id, {}).get("text_ja", "解放条件なし"))
+
+func condition_for(kind: String, id: String) -> Dictionary:
+	var source = weapon_unlocks if kind == "weapons" else passive_unlocks
+	return source.get(id, {}).get("condition", {"type": "initial"})
+
+func progress_text(kind: String, id: String, save_data: Dictionary) -> String:
+	return progress_tracker.progress_text(save_data, condition_for(kind, id))
 
 func _unlock_table(save_data: Dictionary, save_key: String, defs: Dictionary) -> Array:
 	var unlocked: Array = save_data.get(save_key, _initial_ids(defs))

@@ -64,7 +64,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/auto_play_ios_dynamic_joystick_5min.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_ios_energy_20min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_ios_energy_battery_saver_20min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_balance_candidate_audit.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/analyze_ios_performance.py test-output/ios_perf_5min.csv --output test-output/ios_performance_report.md
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/analyze_ios_energy.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/generate_progress_qa.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run full balance tests
@@ -91,7 +101,10 @@ jobs:
             "res://tests/auto_play_ios_full_ui_flow.gd",
             "res://tests/auto_play_ios_perf_10min.gd",
             "res://tests/auto_play_ios_perf_20min.gd",
-            "res://tests/auto_play_ios_perf_30min.gd"
+            "res://tests/auto_play_ios_perf_30min.gd",
+            "res://tests/auto_play_wall_slide_5min.gd",
+            "res://tests/auto_play_disabled_pool_10min.gd",
+            "res://tests/auto_play_balance_disabled_pool_10min.gd"
           )
           foreach ($script in $scripts) {
             & $godot --headless --path . --script $script
@@ -101,7 +114,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Generate balance report
-        run: python tools/analyze_balance.py --output balance_report.md
+        run: python tools/analyze_balance.py --candidate-runs test-output/balance_candidate_runs.json --output balance_report.md
 
       - name: Export Windows release
         shell: pwsh
@@ -118,7 +131,28 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Balance-Report
-          path: balance_report.md
+          path: |
+            balance_report.md
+            test-output/balance_candidate_runs.json
+          if-no-files-found: error
+
+      - name: Upload iOS energy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS-Energy-Report
+          path: |
+            test-output/ios_energy_log_standard.csv
+            test-output/ios_energy_log_standard_summary.json
+            test-output/ios_energy_log_battery_saver.csv
+            test-output/ios_energy_log_battery_saver_summary.json
+            test-output/ios_energy_report.md
+          if-no-files-found: error
+
+      - name: Upload progress QA report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Progress-QA-Report
+          path: test-output/progress_qa_report.md
           if-no-files-found: error
 
       - name: Upload iOS layout QA

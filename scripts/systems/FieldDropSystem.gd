@@ -67,6 +67,7 @@ func _apply_weapon_core(state) -> String:
 	var id = String(chosen.get("id", "magic_bolt"))
 	var before = int(state.weapons.get(id, 0))
 	state.weapons[id] = before + 1
+	state.weapon_pick_counts[id] = int(state.weapon_pick_counts.get(id, 0)) + 1
 	return "武器コア！ %s Lv%d → Lv%d" % [state.weapon_name(id), before, before + 1]
 
 func _apply_passive_core(state) -> String:
@@ -82,6 +83,7 @@ func _apply_passive_core(state) -> String:
 	var id = String(chosen.get("id", "might"))
 	var before = int(state.passives.get(id, 0))
 	state.passives[id] = before + 1
+	state.passive_pick_counts[id] = int(state.passive_pick_counts.get(id, 0)) + 1
 	if id == "max_hp":
 		state.max_hp += 18
 		state.hp = mini(state.max_hp, state.hp + 18)

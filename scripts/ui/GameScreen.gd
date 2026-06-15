@@ -43,6 +43,10 @@ const IosPerformanceLogSystemScript = preload("res://scripts/systems/IosPerforma
 const UiDirtyFlagSystemScript = preload("res://scripts/systems/UiDirtyFlagSystem.gd")
 const IosPerformanceBudgetSystemScript = preload("res://scripts/systems/IosPerformanceBudgetSystem.gd")
 const EffectBatchSystemScript = preload("res://scripts/systems/EffectBatchSystem.gd")
+const IosEnergyOptimizerScript = preload("res://scripts/systems/IosEnergyOptimizer.gd")
+const IosEnergyLogSystemScript = preload("res://scripts/systems/IosEnergyLogSystem.gd")
+const IosFramePacingSystemScript = preload("res://scripts/systems/IosFramePacingSystem.gd")
+const IosBackgroundThrottleSystemScript = preload("res://scripts/systems/IosBackgroundThrottleSystem.gd")
 const ArenaViewScript = preload("res://scripts/ui/ArenaView.gd")
 const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.gd")
 const ConfirmDialogScript = preload("res://scripts/ui/components/ConfirmDialog.gd")
@@ -93,6 +97,10 @@ var ios_performance_log_system
 var ui_dirty_flag_system
 var ios_performance_budget_system
 var effect_batch_system
+var ios_energy_optimizer
+var ios_energy_log_system
+var ios_frame_pacing_system
+var ios_background_throttle_system
 var arena_view
 var audio_manager: AudioManager
 var reward_popup: RewardPopup
@@ -157,6 +165,7 @@ var touch_banishes_remaining := 0
 var mobile_layout: Dictionary = {}
 var map_expanded := false
 var runtime_ui_limits: Dictionary = {}
+var pause_ui_signature := ""
 
 func _ready() -> void:
 	state = SurvivorStateScript.new()
@@ -200,17 +209,22 @@ func _ready() -> void:
 	ui_dirty_flag_system = UiDirtyFlagSystemScript.new()
 	ios_performance_budget_system = IosPerformanceBudgetSystemScript.new()
 	effect_batch_system = EffectBatchSystemScript.new()
+	ios_energy_optimizer = IosEnergyOptimizerScript.new()
+	ios_energy_log_system = IosEnergyLogSystemScript.new()
+	ios_frame_pacing_system = IosFramePacingSystemScript.new()
+	ios_background_throttle_system = IosBackgroundThrottleSystemScript.new()
 	state.start_new_run(0, initial_seed_text)
 	var save_data = initial_save_data if not initial_save_data.is_empty() else SaveSystem.new().load_data()
 	var settings: Dictionary = save_data.get("settings", {})
 	runtime_settings = settings.duplicate(true)
+	ios_energy_optimizer.configure(settings)
 	input_mode.configure(settings)
 	add_child(mobile_scroll_system)
 	mobile_scroll_system.configure(input_mode.is_touch_mode(), input_mode.is_touch_mode() and not input_mode.is_ios_touch())
 	speed_hold_system.configure(settings)
 	notification_log_system.configure(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
 	equipment_hud_system.configure(settings)
-	touch_control_system.configure(settings)
+	touch_control_system.configure(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
 	debug_overlay_system.configure(
 		settings,
 		"iOS" if input_mode.is_ios_touch() else OS.get_name(),
@@ -222,10 +236,12 @@ func _ready() -> void:
 	add_child(touch_hit_test_debug_system)
 	touch_hit_test_debug_system.configure(self, touch_debug_enabled, not input_mode.is_ios_touch())
 	ios_performance_log_system.configure(input_mode.is_ios_touch())
+	ios_energy_log_system.configure(input_mode.is_ios_touch())
+	ios_frame_pacing_system.apply(ios_energy_optimizer.budget, input_mode.is_ios_touch())
 	ui_dirty_flag_system.configure({
-		"equipment": ios_performance_budget_system.get_float("equipment_hud_update_interval", 0.20),
-		"notifications": 0.10,
-		"goal": ios_performance_budget_system.get_float("goal_hint_update_interval", 0.25)
+		"equipment": float(ios_energy_optimizer.budget.get("equipment_hud_update_interval", 0.25)),
+		"notifications": float(ios_energy_optimizer.budget.get("notification_update_interval", 0.20)),
+		"goal": float(ios_energy_optimizer.budget.get("goal_update_interval", 0.25))
 	})
 	performance_profile_system.apply_to_state(state, settings)
 	runtime_ui_limits = performance_profile_system.ui_limits(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
@@ -244,11 +260,20 @@ func _ready() -> void:
 	set_process(true)
 	_refresh()
 
+func _exit_tree() -> void:
+	if ios_frame_pacing_system != null:
+		ios_frame_pacing_system.restore()
+
 func _process(delta: float) -> void:
 	ui_dirty_flag_system.tick(delta)
+	ios_energy_optimizer.tick(delta)
+	ios_energy_optimizer.haptic_count = touch_control_system.haptic_count
+	if audio_manager != null:
+		ios_energy_optimizer.audio_event_count = audio_manager.audio_event_count
 	notification_log_system.tick(delta)
 	boss_alert_system.tick(delta)
 	ios_performance_log_system.tick(delta, state, self)
+	ios_energy_log_system.tick(delta, state, self, ios_energy_optimizer)
 	if state.game_over:
 		speed_active = false
 		return
@@ -628,57 +653,60 @@ func _build_ui() -> void:
 
 func _handle_events(events: Array) -> void:
 	for event in events:
+		var notification_revision: int = int(notification_log_system.revision)
 		notification_log_system.ingest(event, state.elapsed_seconds)
+		if notification_log_system.revision != notification_revision:
+			ios_energy_optimizer.mark_notification()
 		boss_alert_system.ingest(event)
 		match String(event.get("type", "")):
 			"attack":
-				audio_manager.play_sfx("attack")
+				_play_sfx("attack")
 			"enemy_attack_warning":
-				audio_manager.play_sfx("attack")
+				_play_sfx("attack")
 			"enemy_die":
-				audio_manager.play_sfx("enemy_die")
+				_play_sfx("enemy_die")
 			"gem_collect":
-				audio_manager.play_sfx("gem")
+				_play_sfx("gem")
 			"level_up":
-				audio_manager.play_sfx("levelup")
+				_play_sfx("levelup")
 				message_label.text = "レベルアップ！強化を選択"
 			"auto_infinite":
-				audio_manager.play_sfx("reward_select")
+				_play_sfx("reward_select")
 				message_label.text = "%s" % String(event.get("name", "無限強化"))
 			"overclock":
-				audio_manager.play_sfx("evolution")
+				_play_sfx("evolution")
 				message_label.text = "%s 過充電！" % String(event.get("name", "過充電"))
 			"rune_contract_offer":
-				audio_manager.play_sfx("levelup")
+				_play_sfx("levelup")
 				message_label.text = "ルーン契約を選べます"
 			"rune_contract_apply":
-				audio_manager.play_sfx("reward_select")
+				_play_sfx("reward_select")
 				message_label.text = "%sを結んだ" % String(event.get("name", "契約"))
 			"rune_contract_skip":
 				message_label.text = "契約を見送りました"
 			"reward_select":
-				audio_manager.play_sfx("reward_select")
+				_play_sfx("reward_select")
 			"chest_drop":
-				audio_manager.play_sfx("chest")
+				_play_sfx("chest")
 			"chest_open":
-				audio_manager.play_sfx("chest")
+				_play_sfx("chest")
 				message_label.text = String(event.get("message", "宝箱！"))
 			"evolution":
-				audio_manager.play_sfx("evolution")
+				_play_sfx("evolution")
 				message_label.text = "%sへ進化！" % String(event.get("name", "進化武器"))
 			"player_damage":
-				audio_manager.play_sfx("damage")
+				_play_sfx("damage")
 			"player_heal":
 				message_label.text = "HP回復"
 			"gem_fever":
-				audio_manager.play_sfx("levelup")
+				_play_sfx("levelup")
 				message_label.text = "ジェムフィーバー！"
 			"combo_milestone":
 				message_label.text = String(event.get("message", "吸収コンボ！"))
 			"crystal_break":
 				message_label.text = "クリスタル破壊！"
 			"crystal_overdrive":
-				audio_manager.play_sfx("evolution")
+				_play_sfx("evolution")
 				message_label.text = "クリスタルオーバードライブ！"
 			"boss_warning":
 				message_label.text = String(event.get("message", "ボス接近！"))
@@ -687,7 +715,7 @@ func _handle_events(events: Array) -> void:
 			"boss_enrage":
 				message_label.text = "生存中のボスが強化！"
 			"field_event_start":
-				audio_manager.play_sfx("levelup")
+				_play_sfx("levelup")
 				message_label.text = "イベント発生：%s　%s　残り%.0f秒" % [
 					String(event.get("name", "イベント")),
 					String(state.active_field_event.get("objective_ja", "目標を達成")),
@@ -696,30 +724,30 @@ func _handle_events(events: Array) -> void:
 			"field_event_end":
 				message_label.text = "イベント%s：%s" % ["成功" if bool(event.get("success", false)) else "終了", String(event.get("name", "イベント"))]
 			"field_event_success":
-				audio_manager.play_sfx("reward_select")
+				_play_sfx("reward_select")
 				message_label.text = "イベント成功：%s" % String(event.get("name", "イベント"))
 			"field_event_failed":
 				message_label.text = "イベント終了：%sの目標は未達成" % String(event.get("name", "イベント"))
 			"recall_drone_ready":
 				message_label.text = "回収ドローン READY [R]"
 			"recall_drone":
-				audio_manager.play_sfx("gem")
+				_play_sfx("gem")
 				message_label.text = "回収ドローン発動！"
 			"best_score":
-				audio_manager.play_sfx("bestscore")
+				_play_sfx("bestscore")
 			"build_synergy":
-				audio_manager.play_sfx("evolution")
+				_play_sfx("evolution")
 				message_label.text = "ビルド完成：%s" % String(event.get("name", "相性"))
 			"melee_rush":
-				audio_manager.play_sfx("levelup")
+				_play_sfx("levelup")
 				message_label.text = "近接ラッシュ Lv%d！" % int(event.get("level", 1))
 			"shock_explosion":
 				message_label.text = "感電爆発！"
 			"field_drop_pickup":
-				audio_manager.play_sfx("reward_select")
+				_play_sfx("reward_select")
 				message_label.text = String(event.get("message", "フィールド報酬"))
 			"dynamic_drop_spawn":
-				audio_manager.play_sfx("levelup")
+				_play_sfx("levelup")
 				message_label.text = "遠方に%sが出現！ 距離%dm　矢印を追って回収" % [
 					String(event.get("name", "フィールド報酬")),
 					int(round(float(event.get("distance", 0.0)) / 10.0))
@@ -728,7 +756,7 @@ func _handle_events(events: Array) -> void:
 				message_label.text = "%sは消滅しました" % String(event.get("name", "フィールド報酬"))
 			"field_discovery":
 				SaveSystem.new().mark_field_discovered(String(event.get("kind", "")), String(event.get("id", "")))
-				audio_manager.play_sfx("reward_select")
+				_play_sfx("reward_select")
 				message_label.text = "新発見：%s　Fで詳しくスキャン" % String(event.get("name", "フィールド対象"))
 			"goal_changed":
 				state.goal_change_timer = 3.0
@@ -740,30 +768,37 @@ func _handle_events(events: Array) -> void:
 			"gimmick_reflect":
 				message_label.text = "反射水晶！"
 			"gimmick_explosion":
-				audio_manager.play_sfx("chest")
+				_play_sfx("chest")
 				message_label.text = "爆薬鉱脈が爆発！"
 			"gimmick_heal":
 				message_label.text = "回復泉"
 			"gimmick_spawn":
 				message_label.text = "召喚裂け目から敵出現"
 			"gimmick_open":
-				audio_manager.play_sfx("chest")
+				_play_sfx("chest")
 				message_label.text = "封印宝箱柱が開いた"
+
+func _play_sfx(name: String) -> void:
+	if audio_manager != null and audio_manager.play_sfx(name):
+		ios_energy_optimizer.audio_event_count = audio_manager.audio_event_count
 
 func _refresh() -> void:
 	var exp_percent = int(round(100.0 * clampf(float(state.exp) / float(maxi(state.exp_to_next, 1)), 0.0, 1.0)))
-	hp_label.text = "HP %d / %d" % [maxi(state.hp, 0), state.max_hp]
-	hp_bar.max_value = state.max_hp
-	hp_bar.value = clampi(state.hp, 0, state.max_hp)
-	_update_hp_bar_style()
-	hud_label.text = "Lv %d　EXP %d%%　時間 %s　撃破 %s" % [
+	_set_label_text(hp_label, "HP %d / %d" % [maxi(state.hp, 0), state.max_hp])
+	var hp_changed: bool = hp_bar.max_value != state.max_hp or hp_bar.value != clampi(state.hp, 0, state.max_hp)
+	if hp_changed:
+		hp_bar.max_value = state.max_hp
+		hp_bar.value = clampi(state.hp, 0, state.max_hp)
+		_update_hp_bar_style()
+	var hud_text := "Lv %d　EXP %d%%　時間 %s　撃破 %s" % [
 		state.level,
 		exp_percent,
 		JaText.format_time(state.elapsed_seconds),
 		JaText.format_int(state.kills)
 	]
 	if input_mode.is_touch_mode():
-		hud_label.text += "　武器 %d/%d　パッシブ %d/%d" % [state.weapons.size(), state.max_owned_weapons(), state.passives.size(), state.max_owned_passives()]
+		hud_text += "　武器 %d/%d　パッシブ %d/%d" % [state.weapons.size(), state.max_owned_weapons(), state.passives.size(), state.max_owned_passives()]
+	_set_label_text(hud_label, hud_text)
 	var equipment_signature := "%s:%s:%s" % [str(state.weapons), str(state.passives), str(state.evolved_weapons)]
 	if ui_dirty_flag_system.should_update("equipment", equipment_signature):
 		_set_label_text(weapon_label, equipment_hud_system.weapon_text(state))
@@ -772,26 +807,27 @@ func _refresh() -> void:
 	weapon_label.visible = not input_mode.is_touch_mode() and equipment_hud_system.show_weapons
 	passive_label.visible = not input_mode.is_touch_mode() and equipment_hud_system.show_passives
 	mobile_equipment_label.visible = input_mode.is_touch_mode() and not map_expanded and mobile_equipment_label.text != ""
-	speed_label.text = speed_hold_system.display_text(speed_active)
+	_set_label_text(speed_label, speed_hold_system.display_text(speed_active))
 	if ui_dirty_flag_system.should_update("notifications", str(notification_log_system.revision)):
 		_set_label_text(notification_label, notification_log_system.visible_text())
 	notification_panel.visible = not map_expanded and notification_log_system.enabled and notification_label.text != ""
 	if debug_overlay_label != null:
-		debug_overlay_label.text = debug_overlay_system.overlay_text()
+		_set_label_text(debug_overlay_label, debug_overlay_system.overlay_text())
 		debug_overlay_label.visible = debug_overlay_system.should_show()
 		debug_overlay_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	boss_alert_label.text = boss_alert_system.warning_text if boss_alert_system.warning_timer > 0.0 else ""
+	_set_label_text(boss_alert_label, boss_alert_system.warning_text if boss_alert_system.warning_timer > 0.0 else "")
 	var boss_snapshot = boss_alert_system.active_boss_snapshot(state)
 	boss_hp_label.visible = not boss_snapshot.is_empty()
 	boss_hp_bar.visible = not boss_snapshot.is_empty()
 	if not boss_snapshot.is_empty():
-		boss_hp_label.text = "%s  %d / %d" % [String(boss_snapshot.get("name", "ボス")), int(boss_snapshot.get("hp", 0)), int(boss_snapshot.get("max_hp", 1))]
+		_set_label_text(boss_hp_label, "%s  %d / %d" % [String(boss_snapshot.get("name", "ボス")), int(boss_snapshot.get("hp", 0)), int(boss_snapshot.get("max_hp", 1))])
 		boss_hp_bar.max_value = int(boss_snapshot.get("max_hp", 1))
 		boss_hp_bar.value = int(boss_snapshot.get("hp", 0))
+	var combo_text := ""
 	if state.pickup_combo_count > 0:
-		combo_label.text = "吸収コンボ %d　最大 %d　現在地：%s" % [state.pickup_combo_count, state.max_combo, state.current_terrain_name]
+		combo_text = "吸収コンボ %d　最大 %d　現在地：%s" % [state.pickup_combo_count, state.max_combo, state.current_terrain_name]
 	else:
-		combo_label.text = "最大コンボ %d　現在地：%s" % [state.max_combo, state.current_terrain_name]
+		combo_text = "最大コンボ %d　現在地：%s" % [state.max_combo, state.current_terrain_name]
 	if state.boss_warning_timer > 0.0:
 		message_label.text = state.boss_warning_text
 	if state.chest_pending:
@@ -799,19 +835,21 @@ func _refresh() -> void:
 	elif state.chest_notice_timer > 0.0:
 		message_label.text = state.chest_message
 	if state.gem_fever_timer > 0.0:
-		combo_label.text += "　FEVER %.1fs" % state.gem_fever_timer
+		combo_text += "　FEVER %.1fs" % state.gem_fever_timer
 	if state.crystal_overdrive_timer > 0.0:
-		combo_label.text += "　OD %.1fs" % state.crystal_overdrive_timer
+		combo_text += "　OD %.1fs" % state.crystal_overdrive_timer
 	if state.recall_drone_ready:
-		combo_label.text += "　回収ドローン READY" if input_mode.is_touch_mode() else "　回収ドローン READY [R]"
+		combo_text += "　回収ドローン READY" if input_mode.is_touch_mode() else "　回収ドローン READY [R]"
 	else:
 		var charge = int(round(100.0 * state.recall_drone_meter / float(state.balance_data.get("recall_drone_charge_seconds", 180.0))))
-		combo_label.text += "　ドローン %d%%" % clampi(charge, 0, 100)
+		combo_text += "　ドローン %d%%" % clampi(charge, 0, 100)
 	if state.melee_rush_timer > 0.0:
-		combo_label.text += "　近接ラッシュLv%d %.0fs" % [state.melee_rush_level, state.melee_rush_timer]
+		combo_text += "　近接ラッシュLv%d %.0fs" % [state.melee_rush_level, state.melee_rush_timer]
 	if not state.active_synergies.is_empty():
-		combo_label.text += "　%s" % state.active_synergy_label()
-	exp_bar.value = exp_percent
+		combo_text += "　%s" % state.active_synergy_label()
+	_set_label_text(combo_label, combo_text)
+	if exp_bar.value != exp_percent:
+		exp_bar.value = exp_percent
 	var goal_signature := "%s:%d:%d:%d" % [str(state.current_goals), int(state.player_position.x / 16.0), int(state.player_position.y / 16.0), int(state.elapsed_seconds * 4.0)]
 	if ui_dirty_flag_system.should_update("goal", goal_signature):
 		_refresh_goal_hud()
@@ -839,7 +877,7 @@ func _refresh_goal_hud() -> void:
 	if goal_label == null:
 		return
 	if state.current_goals.is_empty():
-		goal_label.text = "次の目標\nジェムを回収してLvを上げる"
+		_set_label_text(goal_label, "次の目標\nジェムを回収してLvを上げる")
 	else:
 		var main: Dictionary = state.current_goals[0]
 		var distance = int(round(float(main.get("distance", 0.0)) / 10.0))
@@ -858,27 +896,29 @@ func _refresh_goal_hud() -> void:
 			]
 			for i in range(1, mini(3, state.current_goals.size())):
 				lines.append("副：%s" % String(state.current_goals[i].get("title", "")))
-		goal_label.text = "\n".join(lines)
+		_set_label_text(goal_label, "\n".join(lines))
 	if input_mode.is_touch_mode():
 		event_label.visible = not state.active_field_event.is_empty()
 		exploration_label.visible = false
 	if not state.active_field_event.is_empty():
-		event_label.text = "イベント：%s　残り%.0f秒\n目標：%s" % [
+		_set_label_text(event_label, "イベント：%s　残り%.0f秒\n目標：%s" % [
 			String(state.active_field_event.get("name_ja", "イベント")),
 			state.field_event_timer,
 			String(state.active_field_event.get("objective_ja", "生存"))
-		]
+		])
 	else:
-		event_label.text = "次イベント：%s" % ("未定" if state.next_field_event_time <= 0.0 else JaText.format_time(maxf(0.0, state.next_field_event_time - state.elapsed_seconds)))
-	exploration_label.text = "探索ランク %s　スコア %d\n探索チェーン x%d　残り%.0f秒" % [
+		_set_label_text(event_label, "次イベント：%s" % ("未定" if state.next_field_event_time <= 0.0 else JaText.format_time(maxf(0.0, state.next_field_event_time - state.elapsed_seconds))))
+	_set_label_text(exploration_label, "探索ランク %s　スコア %d\n探索チェーン x%d　残り%.0f秒" % [
 		state.exploration_rank,
 		state.exploration_score,
 		state.exploration_chain,
 		state.exploration_chain_timer
-	]
+	])
 
 func _set_label_text(label: Label, value: String) -> void:
-	if label != null and label.text != value:
+	if ios_energy_optimizer != null:
+		ios_energy_optimizer.set_label(label, value)
+	elif label != null and label.text != value:
 		label.text = value
 
 func _refresh_field_help_hud() -> void:
@@ -889,9 +929,9 @@ func _refresh_field_help_hud() -> void:
 		help_panel.visible = not map_expanded and not target.is_empty()
 	if target.is_empty():
 		var scan_hint := "スキャンボタンで周辺を調査" if input_mode.is_touch_mode() else "F / 右クリックで周辺をスキャン"
-		field_help_label.text = "現在地：%s\n%s\n%s" % [state.current_terrain_name, state.current_terrain_guide(), scan_hint]
+		_set_label_text(field_help_label, "現在地：%s\n%s\n%s" % [state.current_terrain_name, state.current_terrain_guide(), scan_hint])
 		return
-	field_help_label.text = "現在地：%s\n%s\n\n%s" % [state.current_terrain_name, state.current_terrain_guide(), tooltip_system.format_field_help(target, state.field_scan_timer > 0.0)]
+	_set_label_text(field_help_label, "現在地：%s\n%s\n\n%s" % [state.current_terrain_name, state.current_terrain_guide(), tooltip_system.format_field_help(target, state.field_scan_timer > 0.0)])
 
 func _refresh_low_hp_overlay() -> void:
 	if low_hp_overlay == null:
@@ -1026,7 +1066,7 @@ func _finish_game(events: Array) -> void:
 	state.update_best_score(events)
 	balance_log_system.flush(state)
 	_handle_events(events)
-	audio_manager.play_sfx("gameover")
+	_play_sfx("gameover")
 	game_finished.emit(_summary())
 
 func _summary() -> Dictionary:
@@ -1038,6 +1078,8 @@ func _summary() -> Dictionary:
 		"character_id": state.selected_character_id,
 		"character_name": state.selected_character_name,
 		"blessing_id": state.selected_blessing_id,
+		"blessing_name": String(meta_system.blessings.get(state.selected_blessing_id, {}).get("name_ja", state.selected_blessing_id)),
+		"blessing_effect": String(meta_system.blessings.get(state.selected_blessing_id, {}).get("effect_description_ja", "")),
 		"best_score": best,
 		"best_delta": maxi(best - state.score, 0),
 		"survival_time": state.elapsed_seconds,
@@ -1062,10 +1104,22 @@ func _summary() -> Dictionary:
 		"boss_defeats": state.boss_defeated_ids.size(),
 		"boss_defeated_ids": state.boss_defeated_ids,
 		"weapon_levels": state.weapons.duplicate(true),
+		"passive_levels": state.passives.duplicate(true),
 		"evolved_weapon_ids": state.evolved_weapons.keys(),
 		"enemy_seen": state.enemy_seen,
 		"weapon_kill_counts": state.weapon_kill_counts,
 		"weapon_damage_by_id": state.weapon_damage_by_id,
+		"weapon_pick_count_by_id": state.weapon_pick_counts,
+		"passive_pick_count_by_id": state.passive_pick_counts,
+		"weapon_evolved_by_id": state.evolved_weapons,
+		"damage_by_category": state.damage_by_category,
+		"boss_damage_by_weapon_id": state.boss_damage_by_weapon_id,
+		"enemy_damage_by_weapon_id": state.enemy_damage_by_weapon_id,
+		"healing_by_source": state.healing_by_source,
+		"currency_gain_by_source": state.currency_gain_by_source,
+		"evolution_time_by_weapon_id": state.evolution_time_by_weapon_id,
+		"disabled_weapons": state.disabled_weapon_ids,
+		"disabled_passives": state.disabled_passive_ids,
 		"active_synergies": state.active_synergies.keys(),
 		"synergy_history": state.active_synergy_history,
 		"melee_rush_kills": state.melee_rush_kills,
@@ -1281,8 +1335,11 @@ func _toggle_pause() -> void:
 	pause_backdrop.visible = state.paused
 	touch_control_system.set_speed_pressed(false)
 	_hide_title_confirm()
+	if arena_view != null:
+		ios_background_throttle_system.set_branch_active(arena_view, not state.paused)
 	if state.paused:
 		pause_actions_signature = ""
+		pause_ui_signature = ""
 		_refresh_pause_ui()
 	else:
 		message_label.text = "左下をドラッグして移動　右下でスキャン・回収・倍速" if input_mode.is_touch_mode() else "移動 WASD/矢印　F/右クリック スキャン　R ドローン　Esc ポーズ"
@@ -1484,9 +1541,14 @@ func pause_tab_text() -> String:
 func _refresh_pause_ui() -> void:
 	if pause_content == null:
 		return
-	pause_content.text = "%s\n\n%s" % [pause_tabs[pause_tab_index], pause_tab_text()]
-	pause_title_label.text = "ポーズ　%s　%s" % [JaText.format_time(state.elapsed_seconds), state.selected_character_name]
-	pause_summary.text = _pause_summary_text()
+	var content_text := "%s\n\n%s" % [pause_tabs[pause_tab_index], pause_tab_text()]
+	var signature := "%d:%s:%s:%s" % [pause_tab_index, content_text, str(state.auto_infinite_enabled), str(state.auto_recall_drone_enabled)]
+	if not ios_energy_optimizer.should_update("pause", signature, "pause_update_interval", 0.20):
+		return
+	_set_label_text(pause_content, content_text)
+	_set_label_text(pause_title_label, "ポーズ　%s　%s" % [JaText.format_time(state.elapsed_seconds), state.selected_character_name])
+	_set_label_text(pause_summary, _pause_summary_text())
+	ios_energy_optimizer.mark_ui_rebuild()
 	for i in range(pause_tab_buttons.size()):
 		var button: Button = pause_tab_buttons[i]
 		var tab_text: String = pause_tabs[i] if input_mode.is_touch_mode() else "%d  %s" % [i + 1, pause_tabs[i]]
@@ -1545,6 +1607,7 @@ func _hide_title_confirm() -> void:
 		pause_dialog_layer.hide()
 
 func _pause_status_text() -> String:
+	var blessing_data: Dictionary = meta_system.blessings.get(state.selected_blessing_id, {})
 	return "\n".join([
 		"キャラ：%s" % state.selected_character_name,
 		"HP：%d / %d　Lv：%d　EXP：%d%%" % [state.hp, state.max_hp, state.level, int(exp_bar.value)],
@@ -1554,7 +1617,10 @@ func _pause_status_text() -> String:
 		"イベント：%s　契約数：%d　進化武器：%d" % [String(state.active_field_event.get("name_ja", "なし")), state.rune_contracts.size(), state.evolved_weapon_count],
 		state.active_synergy_label(),
 		"探索：ランク%s / %d点 / 最大チェーンx%d" % [state.exploration_rank, state.exploration_score, state.exploration_chain_max],
-		"発見：ドロップ%d　ギミック%d　動的出現%d" % [state.field_drops_collected, state.field_gimmicks_triggered, state.dynamic_drops_spawned]
+		"発見：ドロップ%d　ギミック%d　動的出現%d" % [state.field_drops_collected, state.field_gimmicks_triggered, state.dynamic_drops_spawned],
+		"祝福：%s" % String(blessing_data.get("name_ja", state.selected_blessing_id)),
+		String(blessing_data.get("effect_description_ja", blessing_data.get("description_ja", ""))),
+		"数値：%s" % " / ".join(blessing_data.get("numeric_effects_ja", []))
 	])
 
 func _pause_weapons_text() -> String:
@@ -1702,6 +1768,7 @@ func _pause_summary_text() -> String:
 			evolution_ready += 1
 	var goal_text = "ジェムを回収"
 	var goal_reason = "序盤の強化"
+	var blessing_data: Dictionary = meta_system.blessings.get(state.selected_blessing_id, {})
 	if not state.current_goals.is_empty():
 		goal_text = String(state.current_goals[0].get("title", goal_text))
 		goal_reason = String(state.current_goals[0].get("reason", goal_reason))
@@ -1711,6 +1778,8 @@ func _pause_summary_text() -> String:
 		"HP %d / %d" % [state.hp, state.max_hp],
 		"生存 %s" % JaText.format_time(state.elapsed_seconds),
 		"ビルド：%s" % state.active_synergy_label(),
+		"祝福：%s" % String(blessing_data.get("name_ja", state.selected_blessing_id)),
+		String(blessing_data.get("effect_description_ja", blessing_data.get("description_ja", ""))),
 		"進化可能：%d武器" % evolution_ready,
 		"",
 		"おすすめ目標",

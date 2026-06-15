@@ -24,7 +24,7 @@ func settings_for(viewport_size: Vector2, settings: Dictionary = {}) -> Dictiona
 		"minimap_opacity": opacity,
 		"tap_expand": bool(settings.get("map_tap_expand", true)),
 		"camera_zoom": clampf(camera_zoom, 0.92, 1.28),
-		"update_hz": 4 if bool(settings.get("low_power_mode", false)) else clampi(int(settings.get("minimap_update_hz", 8)), 4, 12)
+		"update_hz": 4 if bool(settings.get("battery_saver", settings.get("low_power_mode", false))) else clampi(int(settings.get("minimap_update_hz", 8)), 4, 12)
 	}
 
 func expanded_rect(viewport_size: Vector2, safe_rect: Rect2) -> Rect2:

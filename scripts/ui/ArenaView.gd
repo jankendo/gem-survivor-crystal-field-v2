@@ -17,6 +17,8 @@ var map_expanded := false
 var world_transform_active := false
 var map_tile_draw_count := 0
 var minimap_update_count := 0
+var minimap_update_interval := 0.125
+var last_minimap_update_time := -999.0
 
 const ENEMY_COLORS = {
 	"slime": Color(0.36, 0.92, 0.55),
@@ -51,6 +53,7 @@ func configure_mobile(layout: Dictionary) -> void:
 	minimap_opacity = float(layout.get("minimap_opacity", 0.76))
 	minimap_icon_size = float(layout.get("minimap_icon", 8.0))
 	minimap_tap_enabled = bool(layout.get("map_tap_expand", true))
+	minimap_update_interval = 1.0 / maxf(1.0, float(layout.get("minimap_update_hz", 8)))
 	queue_redraw()
 
 func set_map_expanded(value: bool) -> void:
@@ -658,7 +661,9 @@ func _navigation_indicator_targets() -> Array:
 	return objective_indicator_system.targets_for_state(state, int(state.ui_layout_defs.get("indicator_max_count", 3)))
 
 func _draw_minimap() -> void:
-	minimap_update_count += 1
+	if state.elapsed_seconds - last_minimap_update_time >= minimap_update_interval:
+		last_minimap_update_time = state.elapsed_seconds
+		minimap_update_count += 1
 	var rect := minimap_rect
 	if rect.size == Vector2.ZERO:
 		var map_size = float(state.ui_layout_defs.get("minimap_size", 144.0))

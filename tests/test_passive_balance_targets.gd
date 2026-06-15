@@ -16,9 +16,9 @@ func _state():
 func test_offense_caps(t) -> void:
 	var state = _state()
 	state.passives = {"might": 5, "cooldown": 5, "area": 5, "greed": 5}
-	t.assert_true(absf(state.get_damage_multiplier() - 1.70) < 0.001, "might Lv5 should cap at +70%")
-	t.assert_true(absf(state.get_cooldown_multiplier() - 0.65) < 0.001, "cooldown Lv5 should cap at -35%")
-	t.assert_true(absf(state.get_area_multiplier() - 1.60) < 0.001, "area Lv5 should cap at +60%")
+	t.assert_true(absf(state.get_damage_multiplier() - 1.65) < 0.001, "might Lv5 should cap at +65%")
+	t.assert_true(absf(state.get_cooldown_multiplier() - 0.675) < 0.001, "cooldown Lv5 should cap at -32.5%")
+	t.assert_true(absf(state.get_area_multiplier() - 1.55) < 0.001, "area Lv5 should cap at +55%")
 	t.assert_true(absf(state.get_score_multiplier() - 1.70) < 0.001, "greed Lv5 should cap at +70% score")
 
 func test_defense_and_healing_caps(t) -> void:

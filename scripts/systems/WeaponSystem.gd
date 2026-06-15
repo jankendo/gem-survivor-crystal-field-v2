@@ -125,21 +125,21 @@ func _process_ice_orbit(state, delta: float, events: Array) -> void:
 	state.orbit_angle += delta * orbit_speed
 	var orbit_count = 1 + int(floor(float(level) / 3.0)) + (2 if evolved else 0)
 	var radius = (78.0 + float(level) * 8.0) * state.get_area_multiplier_for_weapon("ice_orbit") * (1.28 if evolved else 1.0) * (1.60 if state.has_overclock("ice_orbit", "glacier_expand") else 1.0)
-	var damage = int(round(float(1 + int(floor(float(level) / 2.0))) * state.get_damage_multiplier_for_weapon("ice_orbit")))
+	var damage = int(round(float(1 + int(floor(float(level) / 2.0))) * 0.82 * state.get_damage_multiplier_for_weapon("ice_orbit")))
 	if evolved:
 		damage += 3
 	for i in range(orbit_count):
 		var angle = state.orbit_angle + TAU * float(i) / float(orbit_count)
 		var orb_pos = state.player_position + Vector2(cos(angle), sin(angle)) * radius
 		for enemy in enemy_grid.query_radius(orb_pos, 96.0):
-			if enemy.position.distance_to(orb_pos) <= enemy.radius + 19.0 and enemy.can_take_periodic_hit("ice_orbit", 0.30 if not evolved else 0.22):
+			if enemy.position.distance_to(orb_pos) <= enemy.radius + 19.0 and enemy.can_take_periodic_hit("ice_orbit", 0.34 if not evolved else 0.25):
 				enemy.slow_timer = maxf(enemy.slow_timer, 1.0 + float(level) * 0.12)
 				var actual_damage = damage * (2 if state.has_overclock("ice_orbit", "absolute_zero") and enemy.slow_timer > 0.0 else 1)
 				_damage_enemy(state, enemy, actual_damage, events, "ice_orbit", orb_pos)
 		field_system.damage_walls_in_radius(state, orb_pos, 20.0, damage, events, "ice_orbit")
 	for enemy in state.enemies.duplicate():
 		var ring_distance = abs(enemy.position.distance_to(state.player_position) - radius)
-		if ring_distance <= enemy.radius + 18.0 and enemy.can_take_periodic_hit("ice_orbit_ring", 0.32):
+		if ring_distance <= enemy.radius + 18.0 and enemy.can_take_periodic_hit("ice_orbit_ring", 0.38):
 			enemy.slow_timer = maxf(enemy.slow_timer, 1.0 + float(level) * 0.12)
 			var actual_damage = damage * (2 if state.has_overclock("ice_orbit", "absolute_zero") and enemy.slow_timer > 0.0 else 1)
 			_damage_enemy(state, enemy, actual_damage, events, "ice_orbit", enemy.position)
@@ -472,8 +472,9 @@ func _process_projectiles(state, delta: float, events: Array) -> void:
 					break
 
 func _process_rune_gate_projectile(state, projectile, delta: float, events: Array) -> void:
+	var periodic_interval := 0.50 if projectile.kind == "rune_gate" else (0.46 if projectile.kind in ["mine_lantern", "frost_wall"] else 0.38)
 	for enemy in state.enemies.duplicate():
-		if enemy.position.distance_to(projectile.position) <= projectile.splash_radius + enemy.radius and enemy.can_take_periodic_hit(projectile.kind, 0.38):
+		if enemy.position.distance_to(projectile.position) <= projectile.splash_radius + enemy.radius and enemy.can_take_periodic_hit(projectile.kind, periodic_interval):
 			_damage_enemy(state, enemy, projectile.damage, events, projectile.kind, enemy.position)
 			if projectile.kind == "frost_wall":
 				enemy.slow_timer = maxf(enemy.slow_timer, 1.4)
@@ -502,19 +503,21 @@ func _process_mirror_bounce(state, projectile, events: Array) -> void:
 			state.release_runtime("projectile", projectile)
 
 func _process_black_hole_projectile(state, projectile, delta: float, events: Array) -> void:
+	var periodic_interval := 0.52 if projectile.kind == "gravity_anchor" else 0.48
+	var pull_speed := 185.0 if projectile.kind == "gravity_anchor" else 155.0
 	for enemy in state.enemies.duplicate():
 		var distance = enemy.position.distance_to(projectile.position)
 		if distance <= projectile.splash_radius + enemy.radius:
 			var direction = (projectile.position - enemy.position).normalized()
-			enemy.position += direction * 155.0 * delta
-			if enemy.can_take_periodic_hit("black_hole", 0.28):
-				_damage_enemy(state, enemy, projectile.damage, events, "black_hole", enemy.position)
+			enemy.position += direction * pull_speed * delta
+			if enemy.can_take_periodic_hit(projectile.kind, periodic_interval):
+				_damage_enemy(state, enemy, projectile.damage, events, projectile.kind, enemy.position)
 	for gem in state.gems:
 		if gem.position.distance_to(projectile.position) <= projectile.splash_radius:
 			gem.attracting = true
 			gem.velocity = gem.velocity.lerp((projectile.position - gem.position).normalized() * 360.0, minf(1.0, delta * 5.0))
-	field_system.damage_walls_in_radius(state, projectile.position, projectile.splash_radius, max(1, int(projectile.damage * 0.45)), events, "black_hole")
-	field_gimmick_system.damage_gimmicks_in_radius(state, projectile.position, projectile.splash_radius, max(1, int(projectile.damage * 0.45)), events, "black_hole")
+	field_system.damage_walls_in_radius(state, projectile.position, projectile.splash_radius, max(1, int(projectile.damage * 0.45)), events, projectile.kind)
+	field_gimmick_system.damage_gimmicks_in_radius(state, projectile.position, projectile.splash_radius, max(1, int(projectile.damage * 0.45)), events, projectile.kind)
 
 func _process_bombs(state, delta: float, events: Array) -> void:
 	for bomb in state.bombs.duplicate():
@@ -554,6 +557,12 @@ func _damage_enemy(state, enemy, damage: int, events: Array, source: String, hit
 	enemy.hp -= actual_damage
 	state.record_damage(actual_damage)
 	state.weapon_damage_by_id[source] = int(state.weapon_damage_by_id.get(source, 0)) + actual_damage
+	var category := String(state.weapon_defs.get(source, {}).get("category", "other"))
+	state.damage_by_category[category] = int(state.damage_by_category.get(category, 0)) + actual_damage
+	if enemy.boss:
+		state.boss_damage_by_weapon_id[source] = int(state.boss_damage_by_weapon_id.get(source, 0)) + actual_damage
+	else:
+		state.enemy_damage_by_weapon_id[source] = int(state.enemy_damage_by_weapon_id.get(source, 0)) + actual_damage
 	state.add_hit_flash({"pos": hit_pos, "life": 0.18, "source": source})
 	events.append({"type": "enemy_hit", "enemy": enemy.type, "damage": actual_damage, "hp": enemy.hp, "source": source, "pos": hit_pos})
 	if state.weapon_has_tag(source, "lightning") or source in ["thunder_field"]:
@@ -585,6 +594,7 @@ func _damage_enemy(state, enemy, damage: int, events: Array, source: String, hit
 		if state.rng.chance(chance) and state.hp < state.max_hp:
 			var heal = 2 + int(state.passives.get("regen", 0))
 			state.hp = mini(state.max_hp, state.hp + heal)
+			state.healing_by_source["soul_scythe"] = int(state.healing_by_source.get("soul_scythe", 0)) + heal
 			events.append({"type": "player_heal", "amount": heal, "source": "soul_scythe", "hp": state.hp})
 	if enemy.boss:
 		var boss_id = String(enemy.type)
@@ -630,7 +640,7 @@ func _process_expansion_weapons(state, events: Array) -> void:
 		var target = _nearest_damageable(state, state.player_position, range_value)
 		if target == null and pattern not in ["orbit", "pulse"]:
 			continue
-		var damage = int(round(float(data.get("base_damage", 6) + level * 2) * state.get_damage_multiplier_for_weapon(weapon_id)))
+		var damage = int(round(float(data.get("base_damage", 6) + level * 2) * float(data.get("runtime_damage_mult", 1.0)) * state.get_damage_multiplier_for_weapon(weapon_id)))
 		var area = (54.0 + float(level) * 7.0) * state.get_area_multiplier_for_weapon(weapon_id) * (1.35 if evolved else 1.0)
 		match pattern:
 			"melee_arc":
@@ -664,7 +674,7 @@ func _process_expansion_weapons(state, events: Array) -> void:
 				for i in range(pulse_count):
 					_explode(state, state.player_position, area * (1.0 + float(i) * 0.36), maxi(1, int(float(damage) * (1.0 - float(i) * 0.18))), events, weapon_id)
 			"gravity":
-				var anchor = _projectile(state, weapon_id, target.position, Vector2.ZERO, maxi(1, int(damage * 0.34)), 99, 3.0 + (1.5 if evolved else 0.0), 12.0, area * 1.65, evolved)
+				var anchor = _projectile(state, weapon_id, target.position, Vector2.ZERO, maxi(1, int(damage * 0.28)), 99, 3.0 + (1.5 if evolved else 0.0), 12.0, area * 1.58, evolved)
 				state.projectiles.append(anchor)
 		events.append({"type": "attack", "weapon": weapon_id, "count": 1})
 		var cooldown = maxf(0.32, (float(data.get("cooldown", 1.5)) - float(level) * 0.045) * state.get_cooldown_multiplier_for_weapon(weapon_id) * (0.76 if evolved else 1.0))

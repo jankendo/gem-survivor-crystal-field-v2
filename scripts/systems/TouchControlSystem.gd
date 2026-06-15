@@ -30,6 +30,9 @@ var speed_pressed := false
 var platform_name := ""
 var move_vector := Vector2.ZERO
 var action_states: Dictionary = {}
+var battery_profile := "standard"
+var haptic_timestamps: Array = []
+var haptic_count := 0
 
 func configure(settings: Dictionary, platform: String = OS.get_name()) -> void:
 	touch_ui_mode = String(settings.get("touch_ui_mode", "auto"))
@@ -49,6 +52,9 @@ func configure(settings: Dictionary, platform: String = OS.get_name()) -> void:
 	joystick_deadzone = clampf(float(settings.get("joystick_deadzone", 0.12)), 0.0, 0.45)
 	joystick_sensitivity = clampf(float(settings.get("joystick_sensitivity", 1.0)), 0.5, 1.8)
 	platform_name = platform
+	battery_profile = "battery_saver" if bool(settings.get("battery_saver", settings.get("low_power_mode", false))) else "standard"
+	haptic_timestamps.clear()
+	haptic_count = 0
 	speed_pressed = false
 	move_vector = Vector2.ZERO
 	action_states.clear()
@@ -104,9 +110,20 @@ func consume_action(action: String) -> bool:
 	action_states[action] = false
 	return true
 
-func feedback_light() -> void:
-	if haptics_enabled and should_show():
-		Input.vibrate_handheld(22)
+func feedback_light() -> bool:
+	if not haptics_enabled or not should_show():
+		return false
+	var now := Time.get_ticks_msec()
+	for timestamp in haptic_timestamps.duplicate():
+		if now - int(timestamp) >= 60000:
+			haptic_timestamps.erase(timestamp)
+	var limit := 8 if battery_profile == "battery_saver" else 20
+	if haptic_timestamps.size() >= limit:
+		return false
+	haptic_timestamps.append(now)
+	haptic_count += 1
+	Input.vibrate_handheld(22)
+	return true
 
 func controls_swapped() -> bool:
 	return handedness == "left"

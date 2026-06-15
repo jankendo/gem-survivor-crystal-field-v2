@@ -5,6 +5,7 @@ const SaveSystemScript = preload("res://scripts/systems/SaveSystem.gd")
 const CurrencySystemScript = preload("res://scripts/systems/CurrencySystem.gd")
 const UnlockSystemScript = preload("res://scripts/systems/UnlockSystem.gd")
 const CurrencySinkSystemScript = preload("res://scripts/systems/CurrencySinkSystem.gd")
+const ProgressTrackerSystemScript = preload("res://scripts/systems/ProgressTrackerSystem.gd")
 
 var characters: Dictionary = {}
 var unlocks: Dictionary = {}
@@ -16,6 +17,7 @@ var collection: Dictionary = {}
 var field_help: Dictionary = {}
 var unlock_system = UnlockSystemScript.new()
 var currency_sink_system = CurrencySinkSystemScript.new()
+var progress_tracker = ProgressTrackerSystemScript.new()
 
 func _init() -> void:
 	reload()
@@ -45,8 +47,15 @@ func display_name(character_id: String, save_data: Dictionary) -> String:
 func unlock_text(character_id: String, save_data: Dictionary) -> String:
 	var data = character_data(character_id)
 	if bool(data.get("secret", false)) and not is_character_unlocked(save_data, character_id):
-		return "解放条件：%s" % String(data.get("secret_hint_ja", "秘密の条件"))
-	return String(unlocks.get(character_id, {}).get("text_ja", "条件なし"))
+		return "解放条件：%s\n%s" % [
+			String(data.get("secret_hint_ja", "秘密の条件")),
+			progress_tracker.progress_text(save_data, unlocks.get(character_id, {}))
+		]
+	var condition: Dictionary = unlocks.get(character_id, {"type": "initial"})
+	return "%s\n%s" % [
+		String(condition.get("text_ja", "条件なし")),
+		progress_tracker.progress_text(save_data, condition)
+	]
 
 func is_character_unlocked(save_data: Dictionary, character_id: String) -> bool:
 	return (save_data.get("unlocked_characters", []) as Array).has(character_id)
@@ -114,12 +123,14 @@ func check_character_unlocks(save: SaveSystem) -> Array:
 
 func update_after_run(save: SaveSystem, summary: Dictionary) -> Dictionary:
 	var save_data = save.load_data()
+	var progress_before := _progress_snapshot(save_data)
 	var character_id = String(summary.get("character_id", save_data.get("selected_character", "noah")))
 	var character = character_data(character_id)
 	var earned = CurrencySystemScript.new().calculate_run_currency(summary, save_data, character)
 	save_data["crystal_currency"] = int(save_data.get("crystal_currency", 0)) + earned
 	var stats: Dictionary = save_data.get("stats", {})
 	stats["total_currency_earned"] = int(stats.get("total_currency_earned", 0)) + earned
+	stats["crystal_currency_total_earned"] = int(stats.get("crystal_currency_total_earned", 0)) + earned
 	save_data["stats"] = stats
 	_update_stats(save_data, summary)
 	_update_weapon_records(save_data, summary)
@@ -129,6 +140,8 @@ func update_after_run(save: SaveSystem, summary: Dictionary) -> Dictionary:
 	var unlocked = _unlock_condition_characters(save_data)
 	var mastery_result = _update_mastery(save_data, character_id, summary)
 	_discover_from_summary(save_data, summary)
+	var progress_after := _progress_snapshot(save_data)
+	var progress_deltas := _progress_deltas(progress_before, progress_after)
 	save.save_data(save_data)
 	return {
 		"currency_earned": earned,
@@ -137,7 +150,8 @@ func update_after_run(save: SaveSystem, summary: Dictionary) -> Dictionary:
 		"characters_unlocked": unlocked,
 		"weapons_unlocked": unlocked_items.get("weapons", []),
 		"passives_unlocked": unlocked_items.get("passives", []),
-		"mastery": mastery_result
+		"mastery": mastery_result,
+		"progress_deltas": progress_deltas
 	}
 
 func apply_to_state(state, character_id: String, blessing_id: String, save_data: Dictionary) -> void:
@@ -202,6 +216,8 @@ func collection_rows(tab: String, save_data: Dictionary) -> Array:
 				var merged: Dictionary = source.get(event_id, {}).duplicate(true)
 				merged.merge(event, true)
 				source[event_id] = merged
+		"blessings":
+			source = blessings
 	for id in source.keys():
 		var key = String(id)
 		var source_data: Dictionary = source[key]
@@ -213,9 +229,14 @@ func collection_rows(tab: String, save_data: Dictionary) -> Array:
 		elif tab == "passives":
 			is_unlocked = unlock_system.is_passive_unlocked(save_data, key)
 			unlock_text = unlock_system.unlock_text("passives", key)
+		elif tab == "blessings":
+			is_unlocked = (save_data.get("unlocked_blessings", ["attack"]) as Array).has(key)
+			unlock_text = String(source_data.get("unlock_condition_ja", ""))
 		var is_known = bool(discovered.get(key, false)) or tab == "characters" and is_character_unlocked(save_data, key)
 		if tab in ["weapons", "passives"]:
 			is_known = is_known or is_unlocked
+		elif tab == "blessings":
+			is_known = true
 		elif tab in ["field_drops", "field_gimmicks", "field_events"]:
 			var singular = tab.trim_suffix("s").trim_prefix("field_")
 			is_known = bool(save_data.get("field_help_discovered", {}).get("%s:%s" % [singular, key], false))
@@ -230,6 +251,8 @@ func collection_rows(tab: String, save_data: Dictionary) -> Array:
 			]
 		elif tab == "passives":
 			detail = String(source[key].get("description_ja", ""))
+		elif tab == "blessings":
+			detail = blessing_detail_text(key, save_data)
 		elif tab in ["field_drops", "field_gimmicks", "field_events"]:
 			status = "発見済み" if is_known else "未発見"
 			detail = "\n".join([
@@ -240,7 +263,7 @@ func collection_rows(tab: String, save_data: Dictionary) -> Array:
 				"危険度：%d / 5" % int(source[key].get("danger", 1)),
 				"リスク：%s" % String(source[key].get("risk", "低"))
 			])
-		rows.append({
+		var row := {
 			"id": key,
 			"known": is_known,
 			"unlocked": is_unlocked,
@@ -255,14 +278,35 @@ func collection_rows(tab: String, save_data: Dictionary) -> Array:
 			"evolvable": tab == "weapons" and _evolution_id_for_weapon(key) != key,
 			"highest_level": int(save_data.get("weapon_highest_levels", {}).get(key, 0)),
 			"acquired_count": int(save_data.get("weapon_kills", {}).get(key, 0))
-		})
+		}
+		if tab == "weapons" and not is_unlocked:
+			row["unlock_text_ja"] += "\n" + unlock_system.progress_text("weapons", key, save_data)
+		elif tab == "passives" and not is_unlocked:
+			row["unlock_text_ja"] += "\n" + unlock_system.progress_text("passives", key, save_data)
+		elif tab == "blessings" and not is_unlocked:
+			row["unlock_text_ja"] += "\n" + progress_tracker.progress_text(save_data, source_data.get("unlock", {}))
+		rows.append(row)
 	return rows
+
+func blessing_detail_text(blessing_id: String, save_data: Dictionary = {}) -> String:
+	var data: Dictionary = blessings.get(blessing_id, {})
+	var lines: Array = [
+		String(data.get("effect_description_ja", data.get("description_ja", ""))),
+		"数値：%s" % " / ".join(data.get("numeric_effects_ja", [])),
+		"推奨：%s" % String(data.get("recommended_for_ja", "すべて")),
+		"注意：%s" % String(data.get("tradeoff_description_ja", "なし"))
+	]
+	if not save_data.is_empty() and not (save_data.get("unlocked_blessings", ["attack"]) as Array).has(blessing_id):
+		lines.append(progress_tracker.progress_text(save_data, data.get("unlock", {})))
+	return "\n".join(lines)
 
 func _update_stats(save_data: Dictionary, summary: Dictionary) -> void:
 	var stats: Dictionary = save_data.get("stats", {})
 	stats["total_kills"] = int(stats.get("total_kills", 0)) + int(summary.get("kills", 0))
 	stats["total_survival"] = float(stats.get("total_survival", 0.0)) + float(summary.get("survival_time", 0.0))
+	stats["survival_time_total"] = float(stats.get("survival_time_total", 0.0)) + float(summary.get("survival_time", 0.0))
 	stats["total_crystals"] = int(stats.get("total_crystals", 0)) + int(summary.get("crystals_destroyed", 0))
+	stats["walls_broken"] = int(stats.get("walls_broken", 0)) + int(summary.get("crystals_destroyed", 0))
 	stats["total_chests"] = int(stats.get("total_chests", 0)) + int(summary.get("chests_opened", 0))
 	stats["total_contracts"] = int(stats.get("total_contracts", 0)) + (summary.get("rune_contracts", []) as Array).size()
 	stats["best_survival"] = maxf(float(stats.get("best_survival", 0.0)), float(summary.get("survival_time", 0.0)))
@@ -272,8 +316,13 @@ func _update_stats(save_data: Dictionary, summary: Dictionary) -> void:
 	stats["best_exploration_score"] = maxi(int(stats.get("best_exploration_score", 0)), int(summary.get("exploration_score", 0)))
 	stats["max_exploration_chain"] = maxi(int(stats.get("max_exploration_chain", 0)), int(summary.get("exploration_chain_max", 0)))
 	stats["field_event_successes"] = int(stats.get("field_event_successes", 0)) + int(summary.get("field_event_successes", 0))
+	stats["events_completed"] = int(stats.get("events_completed", 0)) + int(summary.get("field_event_successes", 0))
 	stats["field_drops_collected"] = int(stats.get("field_drops_collected", 0)) + int(summary.get("field_drops_collected", 0))
 	stats["field_gimmicks_triggered"] = int(stats.get("field_gimmicks_triggered", 0)) + int(summary.get("field_gimmicks_triggered", 0))
+	stats["field_gimmicks_used"] = int(stats.get("field_gimmicks_used", 0)) + int(summary.get("field_gimmicks_triggered", 0))
+	stats["bosses_killed"] = int(stats.get("bosses_killed", 0)) + int(summary.get("boss_defeats", 0))
+	stats["evolution_count"] = int(stats.get("evolution_count", 0)) + int(summary.get("evolved_weapon_count", 0))
+	stats["overclock_count"] = int(stats.get("overclock_count", 0)) + int(summary.get("overclock_count", 0))
 	stats["rooms_discovered"] = int(stats.get("rooms_discovered", 0)) + int(summary.get("rooms_discovered", 0))
 	stats["max_rooms_in_run"] = maxi(int(stats.get("max_rooms_in_run", 0)), int(summary.get("rooms_discovered", 0)))
 	stats["shortcut_walls_broken"] = int(stats.get("shortcut_walls_broken", 0)) + int(summary.get("shortcut_walls_broken", 0))
@@ -281,10 +330,24 @@ func _update_stats(save_data: Dictionary, summary: Dictionary) -> void:
 	stats["cursed_relics"] = int(stats.get("cursed_relics", 0)) + int(summary.get("cursed_relics", 0))
 	stats["low_hp_time"] = float(stats.get("low_hp_time", 0.0)) + float(summary.get("low_hp_survival_time", 0.0))
 	_merge_number_dictionary(stats, "terrain_time", summary.get("terrain_time", {}))
+	_merge_number_dictionary(stats, "survival_time_by_terrain", summary.get("terrain_time", {}))
 	_merge_number_dictionary(stats, "terrain_kills", summary.get("terrain_kills", {}))
+	_merge_number_dictionary(stats, "kills_in_terrain_type", summary.get("terrain_kills", {}))
 	_merge_number_dictionary(stats, "terrain_crystals", summary.get("terrain_crystals", {}))
+	_merge_number_dictionary(stats, "weapon_pick_count", summary.get("weapon_pick_count_by_id", {}))
+	_merge_number_dictionary(stats, "passive_pick_count", summary.get("passive_pick_count_by_id", {}))
+	_merge_number_dictionary(stats, "kills_by_weapon_id", summary.get("weapon_kill_counts", {}))
 	if _rank_value(String(summary.get("exploration_rank", "D"))) > _rank_value(String(stats.get("best_exploration_rank", "D"))):
 		stats["best_exploration_rank"] = String(summary.get("exploration_rank", "D"))
+	stats["highest_exploration_rank"] = String(stats.get("best_exploration_rank", "D"))
+	var rank_counts: Dictionary = stats.get("exploration_rank_count", {})
+	var run_rank := String(summary.get("exploration_rank", "D"))
+	rank_counts[run_rank] = int(rank_counts.get(run_rank, 0)) + 1
+	stats["exploration_rank_count"] = rank_counts
+	var blessing_counts: Dictionary = stats.get("blessing_used_count", {})
+	var blessing_id := String(summary.get("blessing_id", "attack"))
+	blessing_counts[blessing_id] = int(blessing_counts.get(blessing_id, 0)) + 1
+	stats["blessing_used_count"] = blessing_counts
 	if float(summary.get("survival_time", 0.0)) >= 600.0:
 		stats["survive_10_runs"] = int(stats.get("survive_10_runs", 0)) + 1
 	save_data["stats"] = stats
@@ -556,3 +619,36 @@ func _evolution_id_for_weapon(weapon_id: String) -> String:
 
 func _rank_value(rank: String) -> int:
 	return ["D", "C", "B", "A", "S", "SS"].find(rank)
+
+func _progress_snapshot(save_data: Dictionary) -> Dictionary:
+	var snapshot: Dictionary = {}
+	for id in quests.keys():
+		snapshot["quest:%s" % id] = progress_tracker.progress_for_condition(save_data, quests[id].get("condition", {}))
+	for id in unlocks.keys():
+		snapshot["character:%s" % id] = progress_tracker.progress_for_condition(save_data, unlocks[id])
+	for id in unlock_system.weapon_unlocks.keys():
+		snapshot["weapon:%s" % id] = progress_tracker.progress_for_condition(save_data, unlock_system.condition_for("weapons", String(id)))
+	for id in unlock_system.passive_unlocks.keys():
+		snapshot["passive:%s" % id] = progress_tracker.progress_for_condition(save_data, unlock_system.condition_for("passives", String(id)))
+	for id in blessings.keys():
+		snapshot["blessing:%s" % id] = progress_tracker.progress_for_condition(save_data, blessings[id].get("unlock", {}))
+	return snapshot
+
+func _progress_deltas(before: Dictionary, after: Dictionary) -> Array:
+	var result: Array = []
+	for key in after.keys():
+		var old: Dictionary = before.get(key, {})
+		var now: Dictionary = after[key]
+		var delta := float(now.get("current", 0.0)) - float(old.get("current", 0.0))
+		if delta <= 0.0:
+			continue
+		result.append({
+			"id": key,
+			"label": String(now.get("label", "解放進捗")),
+			"delta": delta,
+			"current": float(now.get("current", 0.0)),
+			"target": float(now.get("target", 1.0)),
+			"value_type": String(now.get("value_type", "number")),
+			"complete": bool(now.get("complete", false))
+		})
+	return result

@@ -26,8 +26,8 @@
     ],
     "category": "area",
     "range": 180,
-    "base_damage_score": 0.94,
-    "base_cooldown_score": 0.3,
+    "base_damage_score": 0.88,
+    "base_cooldown_score": 0.34,
     "effect_id": "ice_orbit"
   },
   "thunder_chain": {
@@ -267,10 +267,11 @@
     "category": "melee",
     "attack_pattern": "melee_arc",
     "range": 290,
-    "base_damage": 9,
-    "cooldown": 0.92,
-    "base_damage_score": 1.25,
-    "base_cooldown_score": 0.92,
+    "base_damage": 8,
+    "cooldown": 1.02,
+    "runtime_damage_mult": 0.85,
+    "base_damage_score": 1.12,
+    "base_cooldown_score": 1.02,
     "effect_id": "corridor_blade"
   },
   "wall_bounce_blaster": {
@@ -342,10 +343,11 @@
     "category": "melee",
     "attack_pattern": "melee_arc",
     "range": 270,
-    "base_damage": 10,
-    "cooldown": 1.18,
-    "base_damage_score": 1.3,
-    "base_cooldown_score": 1.18,
+    "base_damage": 9,
+    "cooldown": 1.28,
+    "runtime_damage_mult": 0.88,
+    "base_damage_score": 1.18,
+    "base_cooldown_score": 1.28,
     "effect_id": "relic_chain"
   },
   "shrine_beam": {

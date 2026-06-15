@@ -5,6 +5,7 @@ const COST_GROWTH := 1.35
 
 var categories: Dictionary = {}
 var sinks: Dictionary = {}
+var progress_tracker = preload("res://scripts/systems/ProgressTrackerSystem.gd").new()
 
 func _init() -> void:
 	categories = _json_dict("res://data/shop_categories.json")
@@ -55,8 +56,22 @@ func purchase(save: SaveSystem, sink_id: String) -> bool:
 	levels[sink_id] = current + 1
 	save_data["currency_sink_levels"] = levels
 	_apply_unlock(save_data, data)
+	if sink_id == "weapon_disable_slots":
+		save_data["weapon_disable_slots"] = mini(10, 2 + int(levels[sink_id]))
+	elif sink_id == "passive_disable_slots":
+		save_data["passive_disable_slots"] = mini(10, 2 + int(levels[sink_id]))
 	save.save_data(save_data)
 	return true
+
+func progress_text(save_data: Dictionary, sink_id: String) -> String:
+	var data: Dictionary = sinks.get(sink_id, {})
+	var required_stat := String(data.get("required_stat", ""))
+	if required_stat == "":
+		return "解放条件：達成済み"
+	return progress_tracker.progress_text(save_data, {
+		"type": required_stat,
+		"value": data.get("required_value", 0)
+	})
 
 func apply_to_state(state, save_data: Dictionary) -> void:
 	state.currency_sink_levels = save_data.get("currency_sink_levels", {}).duplicate(true)

@@ -3,7 +3,10 @@ class_name SaveSystem
 
 const SAVE_PATH := "user://chrono_merge_tactics.save"
 
+static var write_count := 0
+
 var path := SAVE_PATH
+var last_serialized := ""
 
 func _init(custom_path: String = "") -> void:
 	if custom_path != "":
@@ -31,6 +34,9 @@ func load_data() -> Dictionary:
 
 func save_data(data: Dictionary) -> void:
 	_save_data(_with_defaults(data))
+
+static func get_write_count() -> int:
+	return write_count
 
 func get_currency() -> int:
 	return int(load_data().get("crystal_currency", 0))
@@ -141,11 +147,16 @@ func _load_raw() -> Dictionary:
 	return parsed
 
 func _save_data(data: Dictionary) -> void:
+	var serialized := JSON.stringify(data, "\t")
+	if serialized == last_serialized:
+		return
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		push_warning("Could not write save file.")
 		return
-	file.store_string(JSON.stringify(data, "\t"))
+	file.store_string(serialized)
+	last_serialized = serialized
+	write_count += 1
 
 func _with_defaults(raw: Dictionary) -> Dictionary:
 	var data = raw.duplicate(true)
@@ -171,6 +182,14 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 		data["unlocked_weapons"] = _initial_unlock_ids("res://data/weapon_unlocks.json")
 	if not data.has("unlocked_passives"):
 		data["unlocked_passives"] = _initial_unlock_ids("res://data/passive_unlocks.json")
+	if not data.has("disabled_weapons"):
+		data["disabled_weapons"] = []
+	if not data.has("disabled_passives"):
+		data["disabled_passives"] = []
+	if not data.has("weapon_disable_slots"):
+		data["weapon_disable_slots"] = 2
+	if not data.has("passive_disable_slots"):
+		data["passive_disable_slots"] = 2
 	if not data.has("meta_upgrades"):
 		data["meta_upgrades"] = {}
 	if not data.has("currency_sink_levels"):
@@ -214,6 +233,7 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 			"enemies": {},
 			"bosses": {},
 			"characters": {"noah": true},
+			"blessings": {"attack": true},
 			"field_drops": {},
 			"field_gimmicks": {},
 			"field_events": {},
@@ -293,6 +313,25 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 		"terrain_crystals": {}
 		,"field_drops_collected": 0,
 		"field_gimmicks_triggered": 0
+		,"kills_by_weapon_tag": {}
+		,"kills_by_weapon_id": {}
+		,"kills_by_biome": {}
+		,"kills_in_terrain_type": {}
+		,"walls_broken": 0
+		,"events_completed": 0
+		,"field_gimmicks_used": 0
+		,"bosses_killed": 0
+		,"elites_killed": 0
+		,"survival_time_total": 0.0
+		,"survival_time_by_terrain": {}
+		,"highest_exploration_rank": "D"
+		,"exploration_rank_count": {}
+		,"crystal_currency_total_earned": 0
+		,"blessing_used_count": {}
+		,"weapon_pick_count": {}
+		,"passive_pick_count": {}
+		,"evolution_count": 0
+		,"overclock_count": 0
 	}
 	var stats: Dictionary = data.get("stats", {})
 	for key in stat_defaults.keys():
@@ -349,7 +388,8 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 		"ui_animation_amount": "standard",
 		"minimap_update_hz": 8,
 		"background_particles": true,
-		"low_power_mode": false
+		"low_power_mode": false,
+		"battery_saver": false
 	}
 	var settings: Dictionary = data.get("settings", {})
 	for key in setting_defaults.keys():

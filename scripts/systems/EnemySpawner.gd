@@ -7,6 +7,7 @@ var field_system = preload("res://scripts/systems/CrystalFieldSystem.gd").new()
 var projectile_policy = preload("res://scripts/systems/EnemyProjectilePolicySystem.gd").new()
 var pathing = preload("res://scripts/systems/EnemyPathingSystem.gd").new()
 var ios_budget = preload("res://scripts/systems/IosPerformanceBudgetSystem.gd").new()
+var movement_resolver = preload("res://scripts/systems/PlayerMovementResolver.gd").new()
 
 func process(state, delta: float, events: Array) -> void:
 	if state.game_over or state.level_up_pending or state.chest_pending:
@@ -56,8 +57,9 @@ func process_enemies(state, delta: float, events: Array) -> void:
 		var charge_multiplier = 2.35 if enemy.charge_timer > 0.0 else 1.0
 		if enemy.recovery_timer > 0.0:
 			charge_multiplier = 0.18
-		enemy.position += direction * enemy.speed * slow_multiplier * charge_multiplier * movement_delta
-		enemy.position = field_system.resolve_circle_position(state, enemy.position, enemy.radius)
+		var velocity: Vector2 = direction * float(enemy.speed) * slow_multiplier * charge_multiplier
+		var movement := movement_resolver.resolve(state, enemy.position, velocity, movement_delta, enemy.radius)
+		enemy.position = movement.get("position", enemy.position)
 		if enemy.position.distance_to(previous) < 0.1 and enemy.behavior == "charger":
 			enemy.charge_timer = 0.0
 		if enemy.position.distance_to(state.player_position) > 1650.0:

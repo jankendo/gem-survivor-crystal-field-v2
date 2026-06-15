@@ -135,6 +135,20 @@ func _initialize() -> void:
 		,"res://tests/test_ios_spatial_optimization.gd"
 		,"res://tests/test_ios_performance_logging.gd"
 		,"res://tests/test_desktop_unchanged_after_ios_optimization.gd"
+		,"res://tests/test_ios_energy_budget.gd"
+		,"res://tests/test_ios_energy_logging.gd"
+		,"res://tests/test_ios_battery_saver_settings.gd"
+		,"res://tests/test_unlock_progress_display.gd"
+		,"res://tests/test_progress_counters_persist.gd"
+		,"res://tests/test_result_progress_delta.gd"
+		,"res://tests/test_wall_collision_smooth_slide.gd"
+		,"res://tests/test_blessing_effect_descriptions.gd"
+		,"res://tests/test_blessing_ui_ios_readability.gd"
+		,"res://tests/test_weapon_passive_toggle_menu.gd"
+		,"res://tests/test_disable_slot_unlocks.gd"
+		,"res://tests/test_candidate_pool_respects_disabled_items.gd"
+		,"res://tests/test_weapon_passive_balance_after_toggle.gd"
+		,"res://tests/test_desktop_after_progress_toggle_energy_update.gd"
 	]
 	for suite_path in suites:
 		var suite = load(suite_path).new()

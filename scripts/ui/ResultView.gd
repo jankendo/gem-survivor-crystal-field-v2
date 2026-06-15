@@ -6,6 +6,7 @@ const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.g
 const InputModeSystemScript = preload("res://scripts/systems/InputModeSystem.gd")
 const MobileSafeAreaSystemScript = preload("res://scripts/systems/MobileSafeAreaSystem.gd")
 const MobileScrollSystemScript = preload("res://scripts/systems/MobileScrollSystem.gd")
+const ProgressDisplayFormatterScript = preload("res://scripts/systems/ProgressDisplayFormatter.gd")
 
 signal retry_requested
 signal title_requested
@@ -20,6 +21,7 @@ var scroll: ScrollContainer
 var input_mode = InputModeSystemScript.new()
 var mobile_safe_area = MobileSafeAreaSystemScript.new()
 var mobile_scroll_system
+var progress_formatter = ProgressDisplayFormatterScript.new()
 
 func _ready() -> void:
 	var settings: Dictionary = SaveSystem.new().load_data().get("settings", {})
@@ -140,6 +142,8 @@ func show_summary(summary: Dictionary) -> void:
 	score_line.text = "スコア：%s" % JaText.format_int(score)
 	lines.text = "\n".join([
 		"キャラクター：%s" % String(summary.get("character_name", "探鉱者ノア")),
+		"祝福：%s" % String(summary.get("blessing_name", summary.get("blessing_id", "攻撃の祝福"))),
+		"祝福効果：%s" % String(summary.get("blessing_effect", "")),
 		"マップシード：%s" % String(summary.get("map_seed_text", summary.get("map_seed", "ランダム"))),
 		"生存時間：%s" % JaText.format_time(float(summary.get("survival_time", 0.0))),
 		"称号：%s" % " / ".join(summary.get("title_badges", ["クリスタル挑戦者"])),
@@ -152,6 +156,7 @@ func show_summary(summary: Dictionary) -> void:
 		"新キャラ解放：%s" % _name_list(summary.get("characters_unlocked", []), "res://data/characters.json"),
 		"新武器解放：%s" % _name_list(summary.get("weapons_unlocked", []), "res://data/weapons.json"),
 		"新パッシブ解放：%s" % _name_list(summary.get("passives_unlocked", []), "res://data/passives.json"),
+		"今回進んだ解放：\n%s" % _progress_delta_text(summary.get("progress_deltas", [])),
 		"熟練：Lv%d / %sPt" % [
 			int(summary.get("mastery", {}).get("level", 0)),
 			JaText.format_int(int(summary.get("mastery", {}).get("points", 0)))
@@ -209,3 +214,19 @@ func _name_list(value, path: String) -> String:
 		var id = String(raw_id)
 		names.append(String(defs.get(id, {}).get("name_ja", id)))
 	return " / ".join(names)
+
+func _progress_delta_text(value) -> String:
+	if not value is Array or value.is_empty():
+		return "なし"
+	var lines: Array = []
+	for row in value:
+		var delta := float(row.get("delta", 0.0))
+		var current := float(row.get("current", 0.0))
+		var target := float(row.get("target", 1.0))
+		var value_type := String(row.get("value_type", "number"))
+		lines.append("%s +%s → %s" % [
+			String(row.get("label", "進捗")),
+			progress_formatter.format_value(delta, delta, value_type).get_slice(" / ", 0),
+			progress_formatter.format_value(current, target, value_type)
+		])
+	return "\n".join(lines)

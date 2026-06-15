@@ -98,10 +98,12 @@ func apply_option(state, option_uid: String, events: Array) -> bool:
 		if int(state.weapons.get(id, 0)) <= 0 and state.weapons.keys().size() >= state.max_owned_weapons():
 			return false
 		state.weapons[id] = next_level
+		state.weapon_pick_counts[id] = int(state.weapon_pick_counts.get(id, 0)) + 1
 	elif kind == "passive":
 		if int(state.passives.get(id, 0)) <= 0 and state.passives.keys().size() >= state.max_owned_passives():
 			return false
 		state.passives[id] = next_level
+		state.passive_pick_counts[id] = int(state.passive_pick_counts.get(id, 0)) + 1
 		if id == "max_hp":
 			state.max_hp += 18
 			state.hp = mini(state.max_hp, state.hp + 18)
