@@ -15,5 +15,7 @@
   "cursed_relic": { "name_ja": "呪いの遺物", "max_per_run": 3, "dynamic_max_per_run": 1, "dynamic_weight": 3, "dynamic_cooldown": 240, "unlock_seconds": 420, "min_distance": 1600, "value": 7, "priority": 9, "rare": true, "color": [0.92, 0.22, 1.0] },
   "heal_ore": { "name_ja": "回復鉱石", "max_per_run": 10, "dynamic_max_per_run": 4, "dynamic_weight": 20, "dynamic_cooldown": 75, "unlock_seconds": 0, "min_distance": 420, "value": 2, "priority": 6, "color": [0.42, 1.0, 0.52] },
   "magnet_ore": { "name_ja": "磁力鉱石", "max_per_run": 6, "dynamic_max_per_run": 3, "dynamic_weight": 15, "dynamic_cooldown": 90, "unlock_seconds": 90, "min_distance": 900, "value": 3, "priority": 8, "color": [0.42, 0.95, 1.0] },
-  "crystal_cache": { "name_ja": "結晶貯蔵庫", "max_per_run": 5, "dynamic_max_per_run": 3, "dynamic_weight": 12, "dynamic_cooldown": 105, "unlock_seconds": 240, "min_distance": 1150, "value": 4, "priority": 7, "color": [0.76, 0.96, 1.0] }
+  "crystal_cache": { "name_ja": "結晶貯蔵庫", "max_per_run": 5, "dynamic_max_per_run": 3, "dynamic_weight": 12, "dynamic_cooldown": 105, "unlock_seconds": 240, "min_distance": 1150, "value": 4, "priority": 7, "color": [0.76, 0.96, 1.0] },
+  "skip_charge": { "name_ja": "スキップの欠片", "max_per_run": 2, "dynamic_max_per_run": 1, "dynamic_weight": 4, "dynamic_cooldown": 240, "unlock_seconds": 420, "min_distance": 1450, "value": 1, "priority": 5, "color": [0.76, 0.82, 1.0] },
+  "seal_charge": { "name_ja": "封印の欠片", "max_per_run": 1, "dynamic_max_per_run": 1, "dynamic_weight": 2, "dynamic_cooldown": 360, "unlock_seconds": 660, "min_distance": 1800, "value": 1, "priority": 4, "color": [1.0, 0.54, 0.42] }
 }

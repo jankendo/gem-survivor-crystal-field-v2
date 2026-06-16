@@ -4,6 +4,7 @@ class_name LevelUpSystem
 var overclock_system = preload("res://scripts/systems/OverclockSystem.gd").new()
 var rune_contract_system = preload("res://scripts/systems/RuneContractSystem.gd").new()
 var build_synergy_system = preload("res://scripts/systems/BuildSynergySystem.gd").new()
+var equipment_grant_system = preload("res://scripts/systems/EquipmentOverCapSystem.gd").new()
 
 func prepare_options(state, count: int = 3) -> Array:
 	var weighted: Array = []
@@ -44,6 +45,8 @@ func prepare_options(state, count: int = 3) -> Array:
 		_remove_weighted(weighted, kind, id)
 	if state.elapsed_seconds >= 1200.0 and state.has_available_overclock() and options.size() < count:
 		for option in overclock_system.make_options(state, count - options.size()):
+			if _is_sealed(state, String(option.get("uid", ""))):
+				continue
 			options.append(option)
 	if not has_regular_candidates(state) or options.size() < count:
 		_fill_infinite_options(state, options, used, count)
@@ -95,27 +98,30 @@ func apply_option(state, option_uid: String, events: Array) -> bool:
 	var id = String(option.get("id", ""))
 	var next_level = int(option.get("next_level", 1))
 	if kind == "weapon":
-		if int(state.weapons.get(id, 0)) <= 0 and state.weapons.keys().size() >= state.max_owned_weapons():
+		if state.is_run_sealed("weapon", id):
 			return false
-		state.weapons[id] = next_level
-		state.weapon_pick_counts[id] = int(state.weapon_pick_counts.get(id, 0)) + 1
+		if not equipment_grant_system.grant(state, "weapon", id, events, "level_up", false):
+			return false
 	elif kind == "passive":
-		if int(state.passives.get(id, 0)) <= 0 and state.passives.keys().size() >= state.max_owned_passives():
+		if state.is_run_sealed("passive", id):
 			return false
-		state.passives[id] = next_level
-		state.passive_pick_counts[id] = int(state.passive_pick_counts.get(id, 0)) + 1
-		if id == "max_hp":
-			state.max_hp += 18
-			state.hp = mini(state.max_hp, state.hp + 18)
+		if not equipment_grant_system.grant(state, "passive", id, events, "level_up", false):
+			return false
 	elif kind == "infinite":
+		if _is_sealed(state, option_uid):
+			return false
 		state.infinite_upgrades[id] = int(state.infinite_upgrades.get(id, 0)) + 1
 		if id == "infinite_hp":
 			state.max_hp += 10
 			state.hp = mini(state.max_hp, state.hp + 10)
 	elif kind == "overclock":
+		if _is_sealed(state, option_uid):
+			return false
 		if not overclock_system.apply_option(state, String(option.get("weapon", "")), id, events):
 			return false
 	elif kind == "contract":
+		if _is_sealed(state, option_uid):
+			return false
 		return rune_contract_system.apply_contract(state, id, events)
 	elif kind == "contract_skip":
 		return rune_contract_system.apply_contract(state, "skip", events)
@@ -154,15 +160,18 @@ func _fill_infinite_options(state, options: Array, used: Array, count: int) -> v
 			return
 		var id = String(raw_id)
 		var key = "infinite:%s" % id
-		if used.has(key):
+		if used.has(key) or _is_sealed(state, key):
 			continue
 		used.append(key)
 		options.append(_make_option(state, "infinite", id))
 	while options.size() < count and not infinite_ids.is_empty():
+		var added := false
 		for raw_id in infinite_ids:
 			if options.size() >= count:
 				return
 			var id = String(raw_id)
+			if _is_sealed(state, "infinite:%s" % id):
+				continue
 			var duplicate_in_screen = false
 			for option in options:
 				if String(option.get("kind", "")) == "infinite" and String(option.get("id", "")) == id:
@@ -170,6 +179,9 @@ func _fill_infinite_options(state, options: Array, used: Array, count: int) -> v
 					break
 			if not duplicate_in_screen:
 				options.append(_make_option(state, "infinite", id))
+				added = true
+		if not added:
+			break
 
 func _make_option(state, kind: String, id: String) -> Dictionary:
 	var current = 0
@@ -229,6 +241,9 @@ func _remove_weighted(weighted: Array, kind: String, id: String) -> void:
 	for i in range(weighted.size() - 1, -1, -1):
 		if String(weighted[i].get("id", "")) == id and String(weighted[i].get("kind", "")) == kind:
 			weighted.remove_at(i)
+
+func _is_sealed(state, uid: String) -> bool:
+	return uid != "" and state.run_sealed_option_uids.has(uid)
 
 func _weapon_description(state, id: String, next_level: int) -> String:
 	var base = String(state.weapon_defs.get(id, {}).get("description_ja", "武器強化"))

@@ -18,6 +18,7 @@ const BuildSynergySystemScript = preload("res://scripts/systems/BuildSynergySyst
 const MeleeRushSystemScript = preload("res://scripts/systems/MeleeRushSystem.gd")
 const ShockStackSystemScript = preload("res://scripts/systems/ShockStackSystem.gd")
 const FieldDropSystemScript = preload("res://scripts/systems/FieldDropSystem.gd")
+const FieldEquipmentPickupSystemScript = preload("res://scripts/systems/FieldEquipmentPickupSystem.gd")
 const FieldGimmickSystemScript = preload("res://scripts/systems/FieldGimmickSystem.gd")
 const UiSafeAreaSystemScript = preload("res://scripts/systems/UiSafeAreaSystem.gd")
 const FieldDropSpawnSystemScript = preload("res://scripts/systems/FieldDropSpawnSystem.gd")
@@ -31,10 +32,14 @@ const SpeedHoldSystemScript = preload("res://scripts/systems/SpeedHoldSystem.gd"
 const NotificationLogSystemScript = preload("res://scripts/systems/NotificationLogSystem.gd")
 const BossAlertSystemScript = preload("res://scripts/systems/BossAlertSystem.gd")
 const EquipmentHudSystemScript = preload("res://scripts/systems/EquipmentHudSystem.gd")
+const SelectionActionSystemScript = preload("res://scripts/systems/SelectionActionSystem.gd")
+const CorePickupChoiceSystemScript = preload("res://scripts/systems/CorePickupChoiceSystem.gd")
 const TouchControlSystemScript = preload("res://scripts/systems/TouchControlSystem.gd")
 const PerformanceProfileSystemScript = preload("res://scripts/systems/PerformanceProfileSystem.gd")
 const InputModeSystemScript = preload("res://scripts/systems/InputModeSystem.gd")
 const MobileSafeAreaSystemScript = preload("res://scripts/systems/MobileSafeAreaSystem.gd")
+const IosSafePlayAreaSystemScript = preload("res://scripts/systems/IosSafePlayAreaSystem.gd")
+const NotchLetterboxSystemScript = preload("res://scripts/systems/NotchLetterboxSystem.gd")
 const MobileHudLayoutSystemScript = preload("res://scripts/systems/MobileHudLayoutSystem.gd")
 const MobileScrollSystemScript = preload("res://scripts/systems/MobileScrollSystem.gd")
 const DebugOverlaySystemScript = preload("res://scripts/systems/DebugOverlaySystem.gd")
@@ -72,6 +77,7 @@ var build_synergy_system
 var melee_rush_system
 var shock_stack_system
 var field_drop_system
+var field_equipment_pickup_system
 var field_gimmick_system
 var ui_safe_area_system
 var field_drop_spawn_system
@@ -85,10 +91,14 @@ var speed_hold_system
 var notification_log_system
 var boss_alert_system
 var equipment_hud_system
+var selection_action_system
+var core_pickup_choice_system
 var touch_control_system
 var performance_profile_system
 var input_mode
 var mobile_safe_area_system
+var ios_safe_play_area_system
+var notch_letterbox_system
 var mobile_hud_layout_system
 var mobile_scroll_system
 var debug_overlay_system
@@ -125,6 +135,8 @@ var boss_alert_label: Label
 var boss_hp_label: Label
 var boss_hp_bar: ProgressBar
 var low_hp_overlay: ColorRect
+var safe_play_left_bar: ColorRect
+var safe_play_right_bar: ColorRect
 var pending_finish = false
 var initial_auto_infinite_enabled = true
 var initial_character_id = "noah"
@@ -184,6 +196,7 @@ func _ready() -> void:
 	melee_rush_system = MeleeRushSystemScript.new()
 	shock_stack_system = ShockStackSystemScript.new()
 	field_drop_system = FieldDropSystemScript.new()
+	field_equipment_pickup_system = FieldEquipmentPickupSystemScript.new()
 	field_gimmick_system = FieldGimmickSystemScript.new()
 	ui_safe_area_system = UiSafeAreaSystemScript.new()
 	field_drop_spawn_system = FieldDropSpawnSystemScript.new()
@@ -197,10 +210,14 @@ func _ready() -> void:
 	notification_log_system = NotificationLogSystemScript.new()
 	boss_alert_system = BossAlertSystemScript.new()
 	equipment_hud_system = EquipmentHudSystemScript.new()
+	selection_action_system = SelectionActionSystemScript.new()
+	core_pickup_choice_system = CorePickupChoiceSystemScript.new()
 	touch_control_system = TouchControlSystemScript.new()
 	performance_profile_system = PerformanceProfileSystemScript.new()
 	input_mode = InputModeSystemScript.new()
 	mobile_safe_area_system = MobileSafeAreaSystemScript.new()
+	ios_safe_play_area_system = IosSafePlayAreaSystemScript.new()
+	notch_letterbox_system = NotchLetterboxSystemScript.new()
 	mobile_hud_layout_system = MobileHudLayoutSystemScript.new()
 	mobile_scroll_system = MobileScrollSystemScript.new()
 	debug_overlay_system = DebugOverlaySystemScript.new()
@@ -253,6 +270,7 @@ func _ready() -> void:
 		state.background_particles.resize(state.max_background_particles())
 	state.effect_density = String(settings.get("effect_density", "normal"))
 	meta_system.apply_to_state(state, initial_character_id, initial_blessing_id, save_data)
+	selection_action_system.begin_run(state, save_data)
 	state.auto_infinite_enabled = initial_auto_infinite_enabled
 	state.auto_recall_drone_enabled = bool(save_data.get("settings", {}).get("auto_recall_drone", false))
 	build_synergy_system.process(state, [])
@@ -315,6 +333,8 @@ func _process(delta: float) -> void:
 	weapon_system.process(state, sim_delta, events)
 	pickup_system.process_gems(state, sim_delta, events)
 	field_drop_system.process(state, sim_delta, events)
+	if not state.level_up_pending:
+		field_equipment_pickup_system.process(state, sim_delta, events)
 	chest_system.process_pickups(state, events, sim_delta)
 	player_system.process_survival(state, sim_delta, events)
 	field_help_system.process(state, events)
@@ -368,6 +388,12 @@ func _unhandled_input(event: InputEvent) -> void:
 				_select_reward(2)
 			elif event.keycode == KEY_ENTER:
 				_select_reward(state.selected_reward_index)
+			elif event.keycode == KEY_S:
+				_on_touch_skip()
+			elif event.keycode == KEY_B:
+				var uid := String(state.level_up_options[state.selected_reward_index].get("uid", "")) if state.selected_reward_index >= 0 and state.selected_reward_index < state.level_up_options.size() else ""
+				if uid != "":
+					_on_touch_banish(uid)
 		elif event.keycode == KEY_ESCAPE:
 			_toggle_pause()
 		elif event.keycode == KEY_H:
@@ -377,12 +403,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_R:
 			_activate_recall_drone()
 
+func _runtime_safe_rect(viewport_size: Vector2, extra_margin: float = 16.0) -> Rect2:
+	var base_safe: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, extra_margin)
+	if ios_safe_play_area_system == null or input_mode == null:
+		return base_safe
+	return ios_safe_play_area_system.safe_play_rect(viewport_size, runtime_settings, input_mode.is_ios_touch(), base_safe)
+
 func _build_ui() -> void:
 	var requested_scale = float(SaveSystem.new().get_setting("ui_scale", 1.0))
 	var viewport_size = get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
 	var ui_scale = ui_safe_area_system.ui_scale_for(viewport_size, requested_scale, state.ui_layout_defs)
 	var safe_margin = float(state.ui_layout_defs.get("safe_margin", 24.0))
-	var mobile_safe: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 16.0)))
+	var mobile_safe: Rect2 = _runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 16.0)))
 	var safe_left: float = mobile_safe.position.x if input_mode.is_touch_mode() else safe_margin
 	var safe_right: float = viewport_size.x - mobile_safe.end.x if input_mode.is_touch_mode() else safe_margin
 	var safe_top: float = mobile_safe.position.y if input_mode.is_touch_mode() else float(state.ui_layout_defs.get("hud_top_margin", 18.0))
@@ -394,6 +426,7 @@ func _build_ui() -> void:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	_build_safe_play_bars(viewport_size, mobile_safe)
 
 	arena_view = ArenaViewScript.new()
 	arena_view.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -716,9 +749,10 @@ func _handle_events(events: Array) -> void:
 				message_label.text = "生存中のボスが強化！"
 			"field_event_start":
 				_play_sfx("levelup")
-				message_label.text = "イベント発生：%s　%s　残り%.0f秒" % [
+				message_label.text = "イベント発生：%s　報酬：%s　リスク：%s　残り%.0f秒" % [
 					String(event.get("name", "イベント")),
-					String(state.active_field_event.get("objective_ja", "目標を達成")),
+					String(event.get("reward", state.active_field_event.get("reward", ""))),
+					String(event.get("risk", state.active_field_event.get("risk", ""))),
 					float(event.get("duration", 0.0))
 				]
 			"field_event_end":
@@ -728,6 +762,8 @@ func _handle_events(events: Array) -> void:
 				message_label.text = "イベント成功：%s" % String(event.get("name", "イベント"))
 			"field_event_failed":
 				message_label.text = "イベント終了：%sの目標は未達成" % String(event.get("name", "イベント"))
+			"field_event_reward":
+				message_label.text = "イベント報酬：%s" % String(event.get("message", "報酬獲得"))
 			"recall_drone_ready":
 				message_label.text = "回収ドローン READY [R]"
 			"recall_drone":
@@ -746,6 +782,26 @@ func _handle_events(events: Array) -> void:
 			"field_drop_pickup":
 				_play_sfx("reward_select")
 				message_label.text = String(event.get("message", "フィールド報酬"))
+			"core_choice_open":
+				_play_sfx("levelup")
+				message_label.text = "%sの中身を選択できます" % ("武器コア" if String(event.get("kind", "")) == "weapon" else "パッシブ結晶")
+			"core_choice_accept":
+				_play_sfx("reward_select")
+				message_label.text = "%sを取得" % String(event.get("name", "コア報酬"))
+			"core_choice_decline":
+				message_label.text = "コアを見送りました"
+			"field_equipment_choice_open":
+				_play_sfx("levelup")
+				message_label.text = "フィールド装備発見：%s" % String(event.get("name", "装備"))
+			"field_equipment_pickup":
+				_play_sfx("reward_select")
+				message_label.text = "フィールド装備取得：%s" % String(event.get("name", "装備"))
+			"field_equipment_decline":
+				message_label.text = "フィールド装備を見送りました"
+			"selection_skip":
+				message_label.text = "選択をスキップしました"
+			"selection_seal":
+				message_label.text = "候補を封印：%s" % String(event.get("name", "候補"))
 			"dynamic_drop_spawn":
 				_play_sfx("levelup")
 				message_label.text = "遠方に%sが出現！ 距離%dm　矢印を追って回収" % [
@@ -797,7 +853,7 @@ func _refresh() -> void:
 		JaText.format_int(state.kills)
 	]
 	if input_mode.is_touch_mode():
-		hud_text += "　武器 %d/%d　パッシブ %d/%d" % [state.weapons.size(), state.max_owned_weapons(), state.passives.size(), state.max_owned_passives()]
+		hud_text += "　武器 %s　パッシブ %s" % [state.equipment_count_label("weapon"), state.equipment_count_label("passive")]
 	_set_label_text(hud_label, hud_text)
 	var equipment_signature := "%s:%s:%s" % [str(state.weapons), str(state.passives), str(state.evolved_weapons)]
 	if ui_dirty_flag_system.should_update("equipment", equipment_signature):
@@ -860,13 +916,18 @@ func _refresh() -> void:
 		if signature != last_reward_signature:
 			if last_reward_signature == "":
 				touch_rerolls_remaining = int(state.passives.get("reroll_ticket", 0))
-				touch_banishes_remaining = int(state.passives.get("banish_mark", 0))
+				touch_banishes_remaining = int(state.selection_seal_remaining)
 			last_reward_signature = signature
-			reward_popup.show_options(state.level_up_options, {
+			var controls: Dictionary = selection_action_system.controls_for(state, {
 				"rerolls": touch_rerolls_remaining,
-				"banishes": touch_banishes_remaining,
-				"can_skip": _has_contract_skip(state.level_up_options)
-			}, input_mode.is_touch_mode())
+				"banishes": int(state.selection_seal_remaining),
+				"can_skip": _has_contract_skip(state.level_up_options) or _has_pending_pickup_choice(),
+				"title": _reward_popup_title()
+			})
+			if _has_pending_pickup_choice():
+				controls["can_seal"] = false
+				controls["seal_remaining"] = 0
+			reward_popup.show_options(state.level_up_options, controls, input_mode.is_touch_mode())
 	else:
 		reward_popup.hide_popup()
 		last_reward_signature = ""
@@ -901,10 +962,12 @@ func _refresh_goal_hud() -> void:
 		event_label.visible = not state.active_field_event.is_empty()
 		exploration_label.visible = false
 	if not state.active_field_event.is_empty():
-		_set_label_text(event_label, "イベント：%s　残り%.0f秒\n目標：%s" % [
+		_set_label_text(event_label, "イベント：%s　残り%.0f秒\n目標：%s\n報酬：%s / リスク：%s" % [
 			String(state.active_field_event.get("name_ja", "イベント")),
 			state.field_event_timer,
-			String(state.active_field_event.get("objective_ja", "生存"))
+			String(state.active_field_event.get("success_condition_ja", state.active_field_event.get("objective_ja", "生存"))),
+			String(state.active_field_event.get("reward", "")),
+			String(state.active_field_event.get("risk", ""))
 		])
 	else:
 		_set_label_text(event_label, "次イベント：%s" % ("未定" if state.next_field_event_time <= 0.0 else JaText.format_time(maxf(0.0, state.next_field_event_time - state.elapsed_seconds))))
@@ -951,28 +1014,42 @@ func _select_reward(index: int) -> void:
 
 func _on_reward_chosen(reward_id: String) -> void:
 	var events: Array = []
+	if not state.pending_core_choice.is_empty():
+		if core_pickup_choice_system.accept_current(state, reward_id, events):
+			_handle_events(events)
+			_refresh()
+		return
+	if not state.pending_field_equipment_choice.is_empty():
+		if field_equipment_pickup_system.accept_current(state, reward_id, events):
+			_handle_events(events)
+			_refresh()
+		return
 	if level_up_system.apply_option(state, reward_id, events):
 		_handle_events(events)
 		_refresh()
 
 func _on_touch_reroll() -> void:
-	if touch_rerolls_remaining <= 0 or not state.level_up_pending:
+	if touch_rerolls_remaining <= 0 or not state.level_up_pending or _has_pending_pickup_choice():
 		return
 	touch_rerolls_remaining -= 1
 	state.level_up_options = level_up_system.prepare_options(state, 3)
 	last_reward_signature = _reward_signature(state.level_up_options)
-	reward_popup.show_options(state.level_up_options, {
+	reward_popup.show_options(state.level_up_options, selection_action_system.controls_for(state, {
 		"rerolls": touch_rerolls_remaining,
-		"banishes": touch_banishes_remaining,
-		"can_skip": _has_contract_skip(state.level_up_options)
-	}, input_mode.is_touch_mode())
+		"banishes": int(state.selection_seal_remaining),
+		"can_skip": _has_contract_skip(state.level_up_options),
+		"title": _reward_popup_title()
+	}), input_mode.is_touch_mode())
 	touch_control_system.feedback_light()
 	_refresh()
 
 func _on_touch_banish(reward_id: String) -> void:
-	if touch_banishes_remaining <= 0 or not state.level_up_pending:
+	if not state.level_up_pending or _has_pending_pickup_choice():
 		return
-	touch_banishes_remaining -= 1
+	var events: Array = []
+	if not selection_action_system.seal_option(state, reward_id, events):
+		return
+	touch_banishes_remaining = int(state.selection_seal_remaining)
 	var replacement_pool: Array = level_up_system.prepare_options(state, 4)
 	var next_options: Array = []
 	for option in state.level_up_options:
@@ -991,27 +1068,56 @@ func _on_touch_banish(reward_id: String) -> void:
 			next_options.append(option)
 	state.level_up_options = next_options
 	last_reward_signature = _reward_signature(state.level_up_options)
-	reward_popup.show_options(state.level_up_options, {
+	reward_popup.show_options(state.level_up_options, selection_action_system.controls_for(state, {
 		"rerolls": touch_rerolls_remaining,
-		"banishes": touch_banishes_remaining,
-		"can_skip": _has_contract_skip(state.level_up_options)
-	}, input_mode.is_touch_mode())
+		"banishes": int(state.selection_seal_remaining),
+		"can_skip": _has_contract_skip(state.level_up_options),
+		"title": _reward_popup_title()
+	}), input_mode.is_touch_mode())
+	_handle_events(events)
 	touch_control_system.feedback_light()
 	_refresh()
 
 func _on_touch_skip() -> void:
 	if not state.level_up_pending:
 		return
+	var events: Array = []
+	if not state.pending_core_choice.is_empty():
+		if core_pickup_choice_system.decline_current(state, events):
+			_handle_events(events)
+			_refresh()
+		return
+	if not state.pending_field_equipment_choice.is_empty():
+		if field_equipment_pickup_system.decline_current(state, events):
+			_handle_events(events)
+			_refresh()
+		return
 	for option in state.level_up_options:
 		if String(option.get("kind", "")) == "contract_skip":
 			_on_reward_chosen(String(option.get("uid", "")))
 			return
+	if selection_action_system.skip_current(state, events):
+		_handle_events(events)
+		touch_control_system.feedback_light()
+		_refresh()
 
 func _has_contract_skip(options: Array) -> bool:
 	for option in options:
 		if String(option.get("kind", "")) == "contract_skip":
 			return true
 	return false
+
+func _has_pending_pickup_choice() -> bool:
+	return not state.pending_core_choice.is_empty() or not state.pending_field_equipment_choice.is_empty()
+
+func _reward_popup_title() -> String:
+	if not state.pending_core_choice.is_empty():
+		return "コアの中身を選択"
+	if not state.pending_field_equipment_choice.is_empty():
+		return "フィールド装備"
+	if not state.level_up_options.is_empty() and String(state.level_up_options[0].get("kind", "")).begins_with("contract"):
+		return "ルーン契約"
+	return "レベルアップ！"
 
 func _reward_signature(options: Array) -> String:
 	var ids: Array = []
@@ -1125,6 +1231,12 @@ func _summary() -> Dictionary:
 		"melee_rush_kills": state.melee_rush_kills,
 		"shock_explosions": state.shock_explosions,
 		"field_drops_collected": state.field_drops_collected,
+		"field_equipment_collected": state.field_equipment_collected,
+		"reward_room_pickups": state.reward_room_pickups,
+		"field_over_cap_pickups": state.field_over_cap_pickups,
+		"selection_skip_rewards": state.selection_skip_rewards,
+		"selection_seals_used": state.selection_seals_used,
+		"run_sealed_history": state.run_sealed_history,
 		"field_gimmicks_triggered": state.field_gimmicks_triggered,
 		"dynamic_drops_spawned": state.dynamic_drops_spawned,
 		"exploration_score": state.exploration_score,
@@ -1203,10 +1315,21 @@ func _hud_panel_style(accent: Color) -> StyleBoxFlat:
 	style.content_margin_bottom = 9
 	return style
 
+func _build_safe_play_bars(viewport_size: Vector2, play_rect: Rect2) -> void:
+	safe_play_left_bar = ColorRect.new()
+	safe_play_right_bar = ColorRect.new()
+	for bar in [safe_play_left_bar, safe_play_right_bar]:
+		bar.color = Color(0.0, 0.0, 0.0, 1.0)
+		bar.mouse_filter = Control.MOUSE_FILTER_STOP
+		bar.visible = false
+		add_child(bar)
+	if input_mode.is_ios_touch() and bool(runtime_settings.get("notch_protection", true)):
+		notch_letterbox_system.apply_to_color_rects(safe_play_left_bar, safe_play_right_bar, viewport_size, play_rect)
+
 func _build_pause_ui() -> void:
 	var safe_margin = float(state.ui_layout_defs.get("safe_margin", 24.0))
 	var viewport_size := get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
-	var mobile_safe: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 0.0)))
+	var mobile_safe: Rect2 = _runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 0.0)))
 	pause_backdrop = ColorRect.new()
 	pause_backdrop.visible = false
 	pause_backdrop.color = Color(0.005, 0.009, 0.018, 0.78)
@@ -1353,7 +1476,7 @@ func _build_touch_controls(ui_scale: float) -> void:
 	var viewport_size := get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
 	var layout: Dictionary = mobile_layout
 	if layout.is_empty():
-		var safe_rect: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 16.0)))
+		var safe_rect: Rect2 = _runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 16.0)))
 		var layout_settings := runtime_settings.duplicate(true)
 		layout_settings["_device_size"] = _layout_device_size()
 		layout = mobile_hud_layout_system.layout(viewport_size, safe_rect, layout_settings)
@@ -1366,7 +1489,7 @@ func _build_touch_controls(ui_scale: float) -> void:
 		float(layout.get("joystick_visual_extent", 196.0)),
 		float(layout.get("joystick_knob_extent", 82.0))
 	)
-	var joystick_safe_rect: Rect2 = mobile_safe_area_system.runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 16.0)))
+	var joystick_safe_rect: Rect2 = _runtime_safe_rect(viewport_size, float(runtime_settings.get("safe_area_margin", 16.0)))
 	virtual_joystick.configure_anywhere(viewport_size, joystick_safe_rect, runtime_settings, joystick_rect, [
 		layout["actions_rect"], layout["pause_rect"], layout["log_rect"], layout["map_rect"], layout["minimap_rect"]
 	])

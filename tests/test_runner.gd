@@ -149,6 +149,16 @@ func _initialize() -> void:
 		,"res://tests/test_candidate_pool_respects_disabled_items.gd"
 		,"res://tests/test_weapon_passive_balance_after_toggle.gd"
 		,"res://tests/test_desktop_after_progress_toggle_energy_update.gd"
+		,"res://tests/test_selection_skip_seal_actions.gd"
+		,"res://tests/test_exploration_reward_rooms.gd"
+		,"res://tests/test_exploration_vs_camping_balance.gd"
+		,"res://tests/test_event_reward_motivation.gd"
+		,"res://tests/test_normal_enemy_no_projectiles_explosives_falling.gd"
+		,"res://tests/test_core_pickup_choice_ui.gd"
+		,"res://tests/test_field_equipment_placement.gd"
+		,"res://tests/test_equipment_over_cap_field_pickup.gd"
+		,"res://tests/test_ios_safe_play_area_letterbox.gd"
+		,"res://tests/test_ios_default_lightweight_settings.gd"
 	]
 	for suite_path in suites:
 		var suite = load(suite_path).new()

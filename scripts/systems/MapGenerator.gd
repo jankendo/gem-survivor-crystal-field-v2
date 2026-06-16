@@ -4,8 +4,10 @@ class_name MapGenerator
 const CrystalWallScript = preload("res://scripts/core/CrystalWall.gd")
 const RunRngScript = preload("res://scripts/core/RunRng.gd")
 const ProceduralMapSystemScript = preload("res://scripts/systems/ProceduralMapSystem.gd")
+const FieldEquipmentRewardSystemScript = preload("res://scripts/systems/FieldEquipmentRewardSystem.gd")
 
 var procedural_map_system = ProceduralMapSystemScript.new()
+var field_equipment_reward_system = FieldEquipmentRewardSystemScript.new()
 var tile_collision = preload("res://scripts/systems/TileCollisionSystem.gd").new()
 
 func seed_value_from_text(seed_text: String, fallback: int = 0) -> int:
@@ -46,6 +48,7 @@ func generate(state, seed_text: String = "", fallback_seed: int = 0) -> Dictiona
 		"decorations": [],
 		"field_drops": [],
 		"field_gimmicks": [],
+		"field_equipment": [],
 		"navigation_targets": {},
 		"safe_radius": float(generation_config.get("safe_radius", 600.0)),
 		"open_corridors": int(layout.get("open_corridors", 4)),
@@ -65,6 +68,7 @@ func generate(state, seed_text: String = "", fallback_seed: int = 0) -> Dictiona
 	map["decorations"] = _generate_decorations(map, center, rng)
 	map["field_drops"] = _generate_field_drops(state, map, rng)
 	map["field_gimmicks"] = _generate_field_gimmicks(state, map, rng)
+	map["field_equipment"] = field_equipment_reward_system.generate_for_map(state, map, rng)
 	map["navigation_targets"] = _navigation_targets(map)
 	return map
 
@@ -109,6 +113,9 @@ func signature(map_data: Dictionary) -> String:
 	for gimmick in map_data.get("field_gimmicks", []):
 		var p: Vector2 = gimmick.get("position", Vector2.ZERO)
 		parts.append("g:%s:%d:%d" % [String(gimmick.get("id", "")), int(p.x), int(p.y)])
+	for equipment in map_data.get("field_equipment", []):
+		var p: Vector2 = equipment.get("position", Vector2.ZERO)
+		parts.append("e:%s:%s:%d:%d" % [String(equipment.get("kind", "")), String(equipment.get("id", "")), int(p.x), int(p.y)])
 	return "|".join(parts)
 
 func start_area_is_safe(map_data: Dictionary, center: Vector2) -> bool:
@@ -234,6 +241,10 @@ func _navigation_targets(map_data: Dictionary) -> Dictionary:
 		var id = String(drop.get("id", ""))
 		if id in ["evolution_core", "overclock_core", "weapon_core"] and not result.has(id):
 			result[id] = drop.get("position", Vector2.ZERO)
+	for equipment in map_data.get("field_equipment", []):
+		var key = "field_weapon" if String(equipment.get("kind", "")) == "weapon" else "field_passive"
+		if not result.has(key):
+			result[key] = equipment.get("position", Vector2.ZERO)
 	for gimmick in map_data.get("field_gimmicks", []):
 		var id = String(gimmick.get("id", ""))
 		if id in ["healing_spring", "spawn_rift", "sealed_chest_pillar"] and not result.has(id):

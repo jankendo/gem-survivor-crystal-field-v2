@@ -76,6 +76,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/generate_progress_qa.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/generate_safe_play_area_qa.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/generate_exploration_balance_report.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/generate_candidate_pool_qa.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run full balance tests
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.full_test == 'true' }}
@@ -104,7 +110,13 @@ jobs:
             "res://tests/auto_play_ios_perf_30min.gd",
             "res://tests/auto_play_wall_slide_5min.gd",
             "res://tests/auto_play_disabled_pool_10min.gd",
-            "res://tests/auto_play_balance_disabled_pool_10min.gd"
+            "res://tests/auto_play_balance_disabled_pool_10min.gd",
+            "res://tests/auto_play_skip_seal_10min.gd",
+            "res://tests/auto_play_exploration_reward_15min.gd",
+            "res://tests/auto_play_event_motivation_15min.gd",
+            "res://tests/auto_play_field_equipment_pickups_15min.gd",
+            "res://tests/auto_play_ios_lightweight_energy_20min.gd",
+            "res://tests/auto_play_camping_vs_exploration_20min.gd"
           )
           foreach ($script in $scripts) {
             & $godot --headless --path . --script $script
@@ -177,6 +189,27 @@ jobs:
             test-output/ios_perf_5min.csv
             test-output/ios_performance_log*.csv
             test-output/ios_performance_report.md
+          if-no-files-found: error
+
+      - name: Upload Safe Play Area QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Safe-Play-Area-QA
+          path: test-output/safe_play_area_qa.md
+          if-no-files-found: error
+
+      - name: Upload exploration balance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Exploration-Balance-Report
+          path: test-output/exploration_balance_report.md
+          if-no-files-found: error
+
+      - name: Upload candidate pool QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Candidate-Pool-QA
+          path: test-output/candidate_pool_qa.md
           if-no-files-found: error
 
   ios-unsigned-build:

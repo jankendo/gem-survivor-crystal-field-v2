@@ -78,12 +78,36 @@ func _finish_event(state, events: Array) -> void:
 	var id = String(state.active_field_event.get("id", ""))
 	var name = String(state.active_field_event.get("name_ja", "イベント"))
 	var success = _event_succeeded(state)
+	if success:
+		_apply_success_reward(state, id, events)
 	state.active_field_event = {}
 	state.field_event_timer = 0.0
 	state.field_event_pulse = 0.0
 	_schedule_next_event(state)
 	events.append({"type": "field_event_success" if success else "field_event_failed", "id": id, "name": name})
 	events.append({"type": "field_event_end", "id": id, "name": name, "success": success})
+
+func _apply_success_reward(state, id: String, events: Array) -> void:
+	match id:
+		"gem_storm", "meteor_rain":
+			if state.selection_skip_remaining < state.selection_skip_max:
+				state.selection_skip_remaining += 1
+				events.append({"type": "field_event_reward", "id": id, "reward": "skip_charge", "message": "スキップ+1"})
+			else:
+				state.add_score(420, state.player_position)
+				events.append({"type": "field_event_reward", "id": id, "reward": "score", "message": "スコア+420"})
+		"elite_hunt":
+			if state.selection_seal_remaining < state.selection_seal_max:
+				state.selection_seal_remaining += 1
+				events.append({"type": "field_event_reward", "id": id, "reward": "seal_charge", "message": "封印+1"})
+			else:
+				state.add_score(520, state.player_position)
+				events.append({"type": "field_event_reward", "id": id, "reward": "score", "message": "スコア+520"})
+		"crystal_surge", "danger_bloom", "cursed_treasure":
+			state.exploration_chain += 1
+			state.exploration_chain_max = maxi(state.exploration_chain_max, state.exploration_chain)
+			state.add_score(600, state.player_position)
+			events.append({"type": "field_event_reward", "id": id, "reward": "exploration_chain", "message": "探索チェーン+1 / スコア+600"})
 
 func _event_succeeded(state) -> bool:
 	var success_type = String(state.active_field_event.get("success_type", "survive"))

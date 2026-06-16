@@ -2,6 +2,23 @@
 
 Godot 4.2 + GDScript製のWindows/iOS向けサバイバーアクションです。内部フォルダ名とexe名は既存配布互換のため`ChronoMergeTactics`のままです。iOSはGitHub Actionsで未署名IPAを生成します。
 
+## 探索動機強化・Safe Play Area・iOS最軽量設定・スキップ封印設計メモ
+
+2026年6月16日に、Apple公式の[Layout](https://developer.apple.com/design/human-interface-guidelines/layout)、[Designing for games](https://developer.apple.com/design/human-interface-guidelines/designing-for-games)、[Design great interfaces for handheld games](https://developer.apple.com/videos/play/meet-with-apple/243/)、[Reducing your app's battery use](https://developer.apple.com/documentation/xcode/reducing-your-app-s-battery-use)と、Godot 4.2公式の[Multiple resolutions](https://docs.godotengine.org/en/4.2/tutorials/rendering/multiple_resolutions.html)、[CPU optimization](https://docs.godotengine.org/en/4.2/tutorials/performance/cpu_optimization.html)、[GPU optimization](https://docs.godotengine.org/en/4.2/tutorials/performance/gpu_optimization.html)、[Exporting for iOS](https://docs.godotengine.org/en/4.2/tutorials/export/exporting_for_ios.html)を確認しました。
+
+今回の設計原則は以下です。
+
+* 通常レベルアップは武器5枠、パッシブ5枠で止める。フィールド装備とコアだけが`6/5`、`7/5`のように上限超過できる。
+* スキップはラン中の選択画面を閉じ、HP/スコアの小報酬を受け取る。封印はロードアウトOFFとは別に、現在ランだけ候補から外す。
+* フィールドには具体的な武器/パッシブ名付き装備をseed再現可能に配置する。初期部屋付近には強報酬を置かず、遠方・危険地帯・イベント部屋ほど報酬を強くする。
+* イベントは開始時点でリスク、報酬、残り時間、成功条件を見せる。成功時はスキップ/封印補充、探索チェーン、スコアなど具体的な報酬を返す。
+* 通常雑魚は弾、爆弾、落下、地面指定、遠距離攻撃を出さない。これらはボス、エリート、イベント、ギミック、プレイヤー武器だけが使う。
+* iPhone横画面はSafe Areaだけでなく中央のSafe Play Areaを使う。ノッチ側も反対側も同じ幅の黒帯で捨て、黒帯は入力を受け付けない。
+* iOS初期値は省電力優先にする。バッテリーセーバーON、45 FPS、描画品質low、背景粒子OFF、通知2件、ミニマップ低頻度、装備HUD簡易、重要操作のみ振動、UIアニメ低、タッチ監査/デバッグOFF、ノッチ保護ONを既定にする。
+* WindowsのWASD/矢印、F/右クリック、R、Shift、Esc、1/2/3、Enter、マウス操作は維持する。
+
+主な実装ファイルは`SelectionActionSystem.gd`、`EquipmentCapacitySystem.gd`、`EquipmentOverCapSystem.gd`、`CorePickupChoiceSystem.gd`、`FieldEquipmentPlacementSystem.gd`、`FieldEquipmentPickupSystem.gd`、`IosSafePlayAreaSystem.gd`、`NotchLetterboxSystem.gd`、`SafePlayInputMapper.gd`です。バランス値は`data/selection_actions.json`、`data/field_equipment_rewards.json`、`data/ios_lightweight_defaults.json`へ分離しています。
+
 ## iOS実機UX最終調整メモ
 
 2026年6月14日の実機映像では、ポーズ中の一部ボタンが押せない、一覧をスクロールバーからしか動かせない、CPU/FPS/GPU/Memory系の開発者表示が通常画面へ残る、HUDとモーダルの入力優先順位が不明確という問題を確認しました。
@@ -668,6 +685,9 @@ python "D:\user\documents\Chrono Merge Tactics\tools\generate_survivor_assets.py
 | data/mastery.json | キャラクター熟練度 |
 | data/blessings.json | 祝福ロードアウト |
 | data/collection.json | 図鑑分類 |
+| data/selection_actions.json | スキップ/封印の基礎回数、ショップ/実績解放、スキップ小報酬 |
+| data/field_equipment_rewards.json | マップ配置の具体名付き武器/パッシブ、報酬部屋、配置上限 |
+| data/ios_lightweight_defaults.json | iOS初期の最軽量設定と高品質切替候補 |
 
 ## テスト方法
 
@@ -692,6 +712,12 @@ $PROJECT = "D:\user\documents\Chrono Merge Tactics"
 & $GODOT --headless --path $PROJECT --script "res://tests/auto_play_true_dungeon_10min.gd"
 & $GODOT --headless --path $PROJECT --script "res://tests/auto_play_speed_hold_5min.gd"
 & $GODOT --headless --path $PROJECT --script "res://tests/auto_play_boss_alert_log_10min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_skip_seal_10min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_exploration_reward_15min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_event_motivation_15min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_field_equipment_pickups_15min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_ios_lightweight_energy_20min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_camping_vs_exploration_20min.gd"
 ```
 
 追加/更新テスト:
@@ -755,6 +781,16 @@ $PROJECT = "D:\user\documents\Chrono Merge Tactics"
 * `test_boss_alert_system.gd`
 * `test_equipment_hud_system.gd`
 * `test_effect_completeness.gd`
+* `test_selection_skip_seal_actions.gd`
+* `test_exploration_reward_rooms.gd`
+* `test_exploration_vs_camping_balance.gd`
+* `test_event_reward_motivation.gd`
+* `test_normal_enemy_no_projectiles_explosives_falling.gd`
+* `test_core_pickup_choice_ui.gd`
+* `test_field_equipment_placement.gd`
+* `test_equipment_over_cap_field_pickup.gd`
+* `test_ios_safe_play_area_letterbox.gd`
+* `test_ios_default_lightweight_settings.gd`
 * `auto_play_meta_progression.gd`
 * `auto_play_10min.gd`
 * `auto_play_30min_balance.gd`
@@ -764,6 +800,12 @@ $PROJECT = "D:\user\documents\Chrono Merge Tactics"
 * `auto_play_true_dungeon_10min.gd`
 * `auto_play_speed_hold_5min.gd`
 * `auto_play_boss_alert_log_10min.gd`
+* `auto_play_skip_seal_10min.gd`
+* `auto_play_exploration_reward_15min.gd`
+* `auto_play_event_motivation_15min.gd`
+* `auto_play_field_equipment_pickups_15min.gd`
+* `auto_play_ios_lightweight_energy_20min.gd`
+* `auto_play_camping_vs_exploration_20min.gd`
 
 ## ビルド方法
 
@@ -784,7 +826,7 @@ $OUT = "D:\user\documents\Chrono Merge Tactics\builds\ChronoMergeTactics.exe"
 * `windows-build`: `windows-latest`で標準テスト後に`builds/windows/ChronoMergeTactics.exe`を生成し、Windows上でサイズまで検証。
 * `ios-unsigned-build`: `macos-latest`で配布用Windows ZIPをクロスexportし、GodotのXcode project生成と未署名`xcodebuild`も実行。
 * Godot本体とexport templatesは公式`4.2-stable`をActions内で取得します。大容量テンプレートはリポジトリへ含めません。
-* `workflow_dispatch`の`full_test=true`で30分テストと7カテゴリの10分バランステストも実行します。
+* `workflow_dispatch`の`full_test=true`で30分テスト、7カテゴリの10分バランステスト、スキップ/封印、探索報酬、イベント報酬、フィールド装備、iOS最軽量、省電力、キャンプ対探索の長時間検証も実行します。
 
 Artifacts:
 
@@ -796,6 +838,9 @@ Artifacts:
 | `iOS-Performance-Report` | 5分標準ログ、`full_test=true`時の10/20/30分ログ、解析Markdown |
 | `iOS-Energy-Report` | 標準/省電力モードの20分相当ログ、要約JSON、消費傾向レポート |
 | `Progress-QA-Report` | 解放/実績の現在値・目標値・リザルト差分・永続化の検証結果 |
+| `Safe-Play-Area-QA` | 左右黒帯、Safe Play Area、黒帯入力拒否、iOS軽量既定値のQA |
+| `Exploration-Balance-Report` | 探索報酬、遠方/危険部屋、イベント報酬、初期位置滞在との差分設計 |
+| `Candidate-Pool-QA` | スキップ/封印、ロードアウトOFF、コア選択、5枠上限とフィールド上限超過のQA |
 
 GitHubの`Actions`から対象runを開き、画面下部の`Artifacts`から取得します。
 

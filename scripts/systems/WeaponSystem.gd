@@ -10,6 +10,7 @@ var field_system = preload("res://scripts/systems/CrystalFieldSystem.gd").new()
 var rune_contract_system = preload("res://scripts/systems/RuneContractSystem.gd").new()
 var shock_stack_system = preload("res://scripts/systems/ShockStackSystem.gd").new()
 var melee_rush_system = preload("res://scripts/systems/MeleeRushSystem.gd").new()
+var enemy_projectile_policy = preload("res://scripts/systems/EnemyProjectilePolicySystem.gd").new()
 var field_gimmick_system = preload("res://scripts/systems/FieldGimmickSystem.gd").new()
 var enemy_grid = preload("res://scripts/systems/SpatialHashGrid.gd").new(160.0)
 
@@ -581,7 +582,7 @@ func _damage_enemy(state, enemy, damage: int, events: Array, source: String, hit
 	exp_system.drop_for_enemy(state, enemy, events)
 	if enemy.splits > 0 and enemy.split_type != "":
 		_spawn_split_children(state, enemy, death_pos, events)
-	if enemy.behavior == "bomber":
+	if enemy.behavior == "bomber" and enemy_projectile_policy.can_emit_explosive(enemy):
 		_explode(state, death_pos, 108.0, maxi(5, int(enemy.damage * 0.75)), events, "bomber")
 	if source == "ice_orbit" and state.has_overclock("ice_orbit", "powder_chain"):
 		_slow_nearby(state, death_pos, 170.0, 1.8)

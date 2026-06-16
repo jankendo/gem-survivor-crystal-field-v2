@@ -32,6 +32,9 @@ func goals_for_state(state) -> Array:
 		var weapon_core = _nearest_drop_or_gimmick(state, ["weapon_core"], [])
 		if not weapon_core.is_empty():
 			goals.append(_goal("weapon_core", "武器コアを探す", "武器枠に空きがあります", weapon_core, 5, state))
+	var field_equipment = _nearest_field_equipment(state)
+	if not field_equipment.is_empty():
+		goals.append(_goal("field_equipment", String(field_equipment.get("name_ja", "フィールド装備")) + "を回収", "マップ配置の具体報酬。5枠超過でも取得できます", field_equipment, 5, state))
 	var synergy = _near_synergy(state)
 	if not synergy.is_empty():
 		goals.append(_goal("synergy", "ビルド相性を完成", "%sまであと1タグ" % synergy, {"position": state.player_position, "name_ja": synergy}, 6, state))
@@ -55,6 +58,7 @@ func _nearest_evolution_target(state) -> Dictionary:
 
 func _nearest_midgame_target(state) -> Dictionary:
 	var best = _nearest_drop_or_gimmick(state, ["weapon_core", "passive_core", "crystal_cache"], ["sealed_chest_pillar"])
+	best = _nearer(state, best, _nearest_field_equipment(state))
 	if best.is_empty() and not state.danger_zones.is_empty():
 		best = {"position": state.danger_zones[0].get("position", state.player_position), "name_ja": "危険地帯"}
 	return best if not best.is_empty() else {"position": state.player_position, "name_ja": "周辺探索"}
@@ -75,6 +79,14 @@ func _nearest_drop_or_gimmick(state, drop_ids: Array, gimmick_ids: Array) -> Dic
 			continue
 		if gimmick_ids.has(String(gimmick.get("id", ""))):
 			best = _nearer(state, best, {"position": gimmick.get("position", Vector2.ZERO), "name_ja": gimmick.get("name_ja", "")})
+	return best
+
+func _nearest_field_equipment(state) -> Dictionary:
+	var best: Dictionary = {}
+	for equipment in state.field_equipment:
+		if bool(equipment.get("collected", false)):
+			continue
+		best = _nearer(state, best, {"position": equipment.get("position", Vector2.ZERO), "name_ja": equipment.get("name_ja", "フィールド装備")})
 	return best
 
 func _nearer(state, current: Dictionary, candidate: Dictionary) -> Dictionary:
@@ -114,4 +126,3 @@ func _goal(id: String, title: String, reason: String, target: Dictionary, priori
 		"distance": pos.distance_to(state.player_position),
 		"priority": priority
 	}
-

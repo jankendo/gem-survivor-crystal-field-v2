@@ -223,7 +223,11 @@ func _process_enemy_special(state, enemy, delta: float, events: Array) -> void:
 			state.game_over = true
 			state.game_over_reason = "%sに吸い尽くされました" % enemy.name_ja
 	elif enemy.behavior == "crystal_sniper":
-		_process_crystal_spike(state, enemy, events)
+		if projectile_policy.can_emit_ground_attack(enemy):
+			_process_crystal_spike(state, enemy, events)
+		elif enemy.action_timer <= 0.0:
+			enemy.action_timer = 3.2
+			events.append({"type": "enemy_special_blocked", "blocked": "ground_attack", "enemy": enemy.type})
 	elif enemy.behavior == "swarm_mother" and enemy.action_timer <= 0.0:
 		enemy.action_timer = 5.0
 		_spawn_boss_minions(state, enemy.position, "bat", 3, events)

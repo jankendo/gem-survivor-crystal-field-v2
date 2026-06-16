@@ -85,6 +85,7 @@ func _draw() -> void:
 	_draw_crystal_walls()
 	_draw_field_gimmicks()
 	_draw_field_drops()
+	_draw_field_equipment()
 	_draw_gems()
 	_draw_chests()
 	_draw_bombs()
@@ -213,6 +214,20 @@ func _draw_field_drops() -> void:
 		draw_circle(pos, 22.0, Color(color.r, color.g, color.b, 0.16 + alpha * 0.18))
 		draw_polygon(PackedVector2Array([pos + Vector2(0, -15), pos + Vector2(14, 0), pos + Vector2(0, 15), pos + Vector2(-14, 0)]), PackedColorArray([Color.WHITE, Color(color.r, color.g, color.b, alpha), Color(color.r, color.g, color.b, alpha * 0.9), Color(color.r, color.g, color.b, alpha)]))
 		draw_arc(pos, 26.0 + 3.0 * sin(state.elapsed_seconds * 3.0), 0.0, TAU, 36, Color(color.r, color.g, color.b, alpha * 0.65), 2.0)
+
+func _draw_field_equipment() -> void:
+	for equipment in state.field_equipment:
+		if bool(equipment.get("collected", false)):
+			continue
+		if not _is_world_visible(equipment.get("position", Vector2.ZERO), 42.0):
+			continue
+		var pos = world_to_screen(equipment.get("position", Vector2.ZERO))
+		var color = _data_color(equipment, Color(0.72, 0.92, 1.0))
+		var rect := Rect2(pos - Vector2(16, 16), Vector2(32, 32))
+		draw_rect(rect, Color(color.r, color.g, color.b, 0.24), true)
+		draw_rect(rect, Color(color.r, color.g, color.b, 0.92), false, 3.0)
+		draw_circle(pos, 6.0, Color(1.0, 1.0, 1.0, 0.92))
+		draw_arc(pos, 26.0 + 2.0 * sin(state.elapsed_seconds * 2.5), 0.0, TAU, 28, Color(color.r, color.g, color.b, 0.58), 2.0)
 
 func _draw_field_gimmicks() -> void:
 	for gimmick in state.field_gimmicks:
@@ -715,6 +730,10 @@ func _draw_minimap_content(rect: Rect2, show_legend: bool) -> void:
 	for drop in state.field_drops:
 		if not bool(drop.get("collected", false)):
 			draw_circle(rect.position + (drop.get("position", Vector2.ZERO) as Vector2) * scale, minimap_icon_size * 0.45, _data_color(drop, Color.WHITE))
+	for equipment in state.field_equipment:
+		if not bool(equipment.get("collected", false)):
+			var p = rect.position + (equipment.get("position", Vector2.ZERO) as Vector2) * scale
+			draw_rect(Rect2(p - Vector2.ONE * minimap_icon_size * 0.45, Vector2.ONE * minimap_icon_size * 0.90), _data_color(equipment, Color(0.72, 0.92, 1.0)), true)
 	for gimmick in state.field_gimmicks:
 		if not bool(gimmick.get("destroyed", false)):
 			draw_rect(Rect2(rect.position + (gimmick.get("position", Vector2.ZERO) as Vector2) * scale - Vector2.ONE * minimap_icon_size * 0.35, Vector2.ONE * minimap_icon_size * 0.7), _data_color(gimmick, Color.WHITE), true)
@@ -727,7 +746,7 @@ func _draw_minimap_content(rect: Rect2, show_legend: bool) -> void:
 	if show_legend:
 		draw_string(font, rect.position + Vector2(16, 28), "拡大マップ　上部の「閉じる」で戻る", HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 32.0, 18, Color(0.94, 0.98, 1.0))
 		var legend_y = rect.end.y - 34.0
-		draw_string(font, Vector2(rect.position.x + 16.0, legend_y), "黄 破壊壁　灰 構造壁　緑 回復　赤 ボス　青 ドロップ", HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 32.0, 16, Color(0.90, 0.94, 0.98))
+		draw_string(font, Vector2(rect.position.x + 16.0, legend_y), "黄 破壊壁　灰 構造壁　緑 回復　赤 ボス　青 ドロップ　四角 装備", HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 32.0, 16, Color(0.90, 0.94, 0.98))
 
 func _terrain_minimap_icon(terrain_id: String) -> String:
 	match terrain_id:

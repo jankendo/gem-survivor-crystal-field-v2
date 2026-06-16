@@ -8,6 +8,8 @@ func make_offer(state, count: int = 3) -> Array:
 	for id in state.rune_contract_defs.keys():
 		if state.rune_contracts.has(String(id)):
 			continue
+		if state.run_sealed_option_uids.has("contract:%s" % String(id)):
+			continue
 		choices.append(String(id))
 	choices = state.rng.shuffled(choices)
 	var options: Array = []

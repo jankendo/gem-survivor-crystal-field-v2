@@ -10,6 +10,7 @@ func targets_for_state(state, max_count: int = 3) -> Array:
 	var targets: Array = []
 	_add_goals(state, targets)
 	_add_drops(state, targets)
+	_add_field_equipment(state, targets)
 	_add_chests(state, targets)
 	_add_boss(state, targets)
 	_add_gimmicks(state, targets)
@@ -50,6 +51,13 @@ func _add_drops(state, targets: Array) -> void:
 		if id == "heal_ore" and state.hp_ratio() <= 0.50:
 			priority = 2
 		targets.append(_target(String(drop.get("name_ja", id)), drop.get("position", Vector2.ZERO), _color(drop), priority, state))
+
+func _add_field_equipment(state, targets: Array) -> void:
+	for equipment in state.field_equipment:
+		if bool(equipment.get("collected", false)):
+			continue
+		var priority = maxi(int(equipment.get("priority", 4)), 4)
+		targets.append(_target(String(equipment.get("name_ja", equipment.get("id", "装備"))), equipment.get("position", Vector2.ZERO), _color(equipment), priority, state))
 
 func _add_chests(state, targets: Array) -> void:
 	for chest in state.chests:
@@ -96,11 +104,11 @@ func _add_danger_zone(state, targets: Array) -> void:
 			nearest_distance = distance
 			nearest_danger = zone
 	if not nearest_danger.is_empty():
-		targets.append(_target("危険地帯", nearest_danger.get("position", Vector2.ZERO), Color(1.0, 0.22, 0.48), 7, state))
+		targets.append(_target("危険地帯", nearest_danger.get("position", Vector2.ZERO), Color(1.0, 0.22, 0.48), 3, state))
 
 func _add_field_event_candidate(state, targets: Array) -> void:
 	if state.navigation_targets.has("field_event"):
-		targets.append(_target("イベント候補", state.navigation_targets["field_event"], Color(0.72, 0.46, 1.0), 6, state))
+		targets.append(_target("イベント候補", state.navigation_targets["field_event"], Color(0.72, 0.46, 1.0), 3, state))
 
 func _target(label: String, pos: Vector2, color: Color, priority: int, state) -> Dictionary:
 	return {"label": label, "pos": pos, "color": color, "priority": priority, "distance": pos.distance_to(state.player_position)}

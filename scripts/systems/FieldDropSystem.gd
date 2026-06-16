@@ -6,6 +6,7 @@ const ProjectileScript = preload("res://scripts/core/Projectile.gd")
 
 var evolution_system = preload("res://scripts/systems/EvolutionSystem.gd").new()
 var overclock_system = preload("res://scripts/systems/OverclockSystem.gd").new()
+var core_choice_system = preload("res://scripts/systems/CorePickupChoiceSystem.gd").new()
 
 func process(state, delta: float, events: Array) -> void:
 	for drop in state.field_drops:
@@ -24,9 +25,9 @@ func _collect_drop(state, drop: Dictionary, events: Array) -> void:
 	var message = ""
 	match id:
 		"weapon_core":
-			message = _apply_weapon_core(state)
+			message = _open_core_choice(state, drop, events, "weapon")
 		"passive_core":
-			message = _apply_passive_core(state)
+			message = _open_core_choice(state, drop, events, "passive")
 		"evolution_core":
 			message = _apply_evolution_core(state, events)
 		"overclock_core":
@@ -39,6 +40,10 @@ func _collect_drop(state, drop: Dictionary, events: Array) -> void:
 			message = _apply_magnet_ore(state)
 		"crystal_cache":
 			message = _apply_crystal_cache(state, drop.get("position", state.player_position), events)
+		"skip_charge":
+			message = _apply_skip_charge(state)
+		"seal_charge":
+			message = _apply_seal_charge(state)
 		_:
 			message = String(drop.get("name_ja", "ドロップ")) + "獲得"
 	state.add_floating_text(message, drop.get("position", state.player_position), _drop_color(drop))
@@ -53,41 +58,28 @@ func _collect_drop(state, drop: Dictionary, events: Array) -> void:
 		"in_danger": bool(drop.get("spawn_in_danger", state.is_position_in_danger_zone(drop.get("position", state.player_position))))
 	})
 
+func _open_core_choice(state, drop: Dictionary, events: Array, kind: String) -> String:
+	if core_choice_system.open_choice(state, kind, drop, events):
+		return "%sを発見！ 中身を選択" % String(drop.get("name_ja", "コア"))
+	return "%s！ 候補なしでスコア化" % String(drop.get("name_ja", "コア"))
+
 func _apply_weapon_core(state) -> String:
-	var candidates: Array = []
-	for raw_id in state.weapon_defs.keys():
-		var id = String(raw_id)
-		if state.can_offer_weapon(id):
-			var weight = 6.0 if state.weapons.has(id) else 2.0
-			candidates.append({"id": id, "weight": weight})
-	if candidates.is_empty():
-		state.add_score(900)
-		return "武器コア！ スコア+900"
-	var chosen = state.rng.weighted_choice(candidates)
-	var id = String(chosen.get("id", "magic_bolt"))
-	var before = int(state.weapons.get(id, 0))
-	state.weapons[id] = before + 1
-	state.weapon_pick_counts[id] = int(state.weapon_pick_counts.get(id, 0)) + 1
-	return "武器コア！ %s Lv%d → Lv%d" % [state.weapon_name(id), before, before + 1]
+	var events: Array = []
+	return _open_core_choice(state, {
+		"id": "weapon_core",
+		"runtime_id": "test_weapon_core",
+		"name_ja": "武器コア",
+		"position": state.player_position
+	}, events, "weapon")
 
 func _apply_passive_core(state) -> String:
-	var candidates: Array = []
-	for raw_id in state.passive_defs.keys():
-		var id = String(raw_id)
-		if state.can_offer_passive(id):
-			candidates.append({"id": id, "weight": 5.0 if state.passives.has(id) else 2.0})
-	if candidates.is_empty():
-		state.add_score(700)
-		return "パッシブ結晶！ スコア+700"
-	var chosen = state.rng.weighted_choice(candidates)
-	var id = String(chosen.get("id", "might"))
-	var before = int(state.passives.get(id, 0))
-	state.passives[id] = before + 1
-	state.passive_pick_counts[id] = int(state.passive_pick_counts.get(id, 0)) + 1
-	if id == "max_hp":
-		state.max_hp += 18
-		state.hp = mini(state.max_hp, state.hp + 18)
-	return "パッシブ結晶！ %s Lv%d → Lv%d" % [state.passive_name(id), before, before + 1]
+	var events: Array = []
+	return _open_core_choice(state, {
+		"id": "passive_core",
+		"runtime_id": "test_passive_core",
+		"name_ja": "パッシブコア",
+		"position": state.player_position
+	}, events, "passive")
 
 func _apply_evolution_core(state, events: Array) -> String:
 	if evolution_system.apply_first_available_evolution(state, events):
@@ -132,6 +124,20 @@ func _apply_crystal_cache(state, pos: Vector2, events: Array) -> String:
 		events.append({"type": "gem_drop", "pos": gem.position, "value": gem.value, "enemy": "crystal_cache"})
 	state.add_score(650, pos)
 	return "結晶貯蔵庫！ ジェム放出"
+
+func _apply_skip_charge(state) -> String:
+	if state.selection_skip_remaining < state.selection_skip_max:
+		state.selection_skip_remaining += 1
+		return "スキップの欠片！ スキップ+1"
+	state.add_score(450)
+	return "スキップ満タン！ スコア+450"
+
+func _apply_seal_charge(state) -> String:
+	if state.selection_seal_remaining < state.selection_seal_max:
+		state.selection_seal_remaining += 1
+		return "封印の欠片！ 封印+1"
+	state.add_score(550)
+	return "封印満タン！ スコア+550"
 
 func _drop_color(drop: Dictionary) -> Color:
 	var values: Array = drop.get("color", [1.0, 1.0, 1.0])

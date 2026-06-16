@@ -25,6 +25,9 @@ def main() -> int:
         "Windows artifact archive": "zip -qry ../ChronoMergeTactics-Windows.zip" in text,
         "iOS artifact": "GemSurvivor-iOS-unsigned-IPA" in text,
         "balance report artifact": "Balance-Report" in text,
+        "safe play area artifact": "Safe-Play-Area-QA" in text,
+        "exploration balance artifact": "Exploration-Balance-Report" in text,
+        "candidate pool artifact": "Candidate-Pool-QA" in text,
     }
     failures = [name for name, passed in checks.items() if not passed]
     if failures:

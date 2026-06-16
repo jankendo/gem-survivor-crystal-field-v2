@@ -45,6 +45,21 @@ func nearest_target(state, max_distance: float = 230.0) -> Dictionary:
 			best["id"] = String(drop.get("id", ""))
 			best["position"] = drop.get("position", Vector2.ZERO)
 			best["distance"] = distance
+	for equipment in state.field_equipment:
+		if bool(equipment.get("collected", false)):
+			continue
+		var equipment_distance = (equipment.get("position", Vector2.ZERO) as Vector2).distance_to(state.player_position)
+		if equipment_distance <= best_distance:
+			best_distance = equipment_distance
+			best = {
+				"title_ja": String(equipment.get("name_ja", equipment.get("id", "フィールド装備"))),
+				"body_ja": "%s。通常5枠を超えて取得できます。近づくと取得/見送りを選べます。" % String(equipment.get("reason_ja", "探索報酬")),
+				"kind": "equipment",
+				"id": String(equipment.get("runtime_id", equipment.get("id", ""))),
+				"name_ja": String(equipment.get("name_ja", "フィールド装備")),
+				"position": equipment.get("position", Vector2.ZERO),
+				"distance": equipment_distance
+			}
 	for gimmick in state.field_gimmicks:
 		if bool(gimmick.get("destroyed", false)) or state.elapsed_seconds < float(gimmick.get("unlock_seconds", 0.0)):
 			continue
@@ -65,4 +80,3 @@ func discovery_key(target: Dictionary) -> String:
 
 func _entry_for(state, section: String, id: String) -> Dictionary:
 	return state.field_help_defs.get(section, {}).get(id, {}).duplicate(true)
-

@@ -20,5 +20,14 @@ func source_class(enemy) -> String:
 func can_emit_projectile(enemy) -> bool:
 	return ALLOWED_CLASSES.has(source_class(enemy))
 
+func can_emit_ground_attack(enemy) -> bool:
+	return ALLOWED_CLASSES.has(source_class(enemy))
+
+func can_emit_explosive(enemy) -> bool:
+	return ALLOWED_CLASSES.has(source_class(enemy))
+
+func can_emit_falling_attack(enemy) -> bool:
+	return ALLOWED_CLASSES.has(source_class(enemy))
+
 func requires_warning(enemy) -> bool:
 	return can_emit_projectile(enemy)

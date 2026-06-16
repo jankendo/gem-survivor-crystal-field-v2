@@ -2,6 +2,7 @@ extends RefCounted
 class_name SaveSystem
 
 const SAVE_PATH := "user://chrono_merge_tactics.save"
+const IosDefaultSettingsSystemScript = preload("res://scripts/systems/IosDefaultSettingsSystem.gd")
 
 static var write_count := 0
 
@@ -284,7 +285,15 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 			"ui_animation_amount": "standard",
 			"minimap_update_hz": 8,
 			"background_particles": true,
-			"low_power_mode": false
+			"low_power_mode": false,
+			"battery_saver": false,
+			"damage_number_mode": "standard",
+			"target_fps": 60,
+			"touch_haptics_mode": "standard",
+			"performance_log_amount": "standard",
+			"notch_protection": true,
+			"safe_play_display_mode": "letterbox",
+			"max_notifications_visible": 3
 		}
 	var stat_defaults := {
 		"total_kills": 0,
@@ -389,12 +398,20 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 		"minimap_update_hz": 8,
 		"background_particles": true,
 		"low_power_mode": false,
-		"battery_saver": false
+		"battery_saver": false,
+		"damage_number_mode": "standard",
+		"target_fps": 60,
+		"touch_haptics_mode": "standard",
+		"performance_log_amount": "standard",
+		"notch_protection": true,
+		"safe_play_display_mode": "letterbox",
+		"max_notifications_visible": 3
 	}
 	var settings: Dictionary = data.get("settings", {})
 	for key in setting_defaults.keys():
 		if not settings.has(key):
 			settings[key] = setting_defaults[key]
+	settings = IosDefaultSettingsSystemScript.new().apply_defaults(settings, OS.get_name())
 	data["settings"] = settings
 	return data
 

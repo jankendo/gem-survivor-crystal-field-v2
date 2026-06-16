@@ -41,7 +41,7 @@ func compact_text(state) -> String:
 func weapon_text(state) -> String:
 	if not show_weapons:
 		return ""
-	var lines: Array = ["武器 %d/%d" % [state.weapons.size(), state.max_owned_weapons()]]
+	var lines: Array = ["武器 %s" % state.equipment_count_label("weapon")]
 	for raw_id in state.weapons.keys():
 		var id = String(raw_id)
 		var evolved = state.evolved_weapons.has(id) or (id == "magic_bolt" and state.evolved_magic_bolt)
@@ -51,11 +51,11 @@ func weapon_text(state) -> String:
 func passive_text(state) -> String:
 	if not show_passives:
 		return ""
-	var lines: Array = ["パッシブ %d/%d" % [state.passives.size(), state.max_owned_passives()]]
+	var lines: Array = ["パッシブ %s" % state.equipment_count_label("passive")]
 	for raw_id in state.passives.keys():
 		var id = String(raw_id)
 		lines.append("%s Lv%d" % [state.passive_name(id), int(state.passives[id])])
 	return "\n".join(lines)
 
 func _signature(state, prefix: String) -> String:
-	return "%s:%s:%s:%s" % [prefix, str(state.weapons), str(state.passives), str(state.evolved_weapons)]
+	return "%s:%s:%s:%s:%d" % [prefix, str(state.weapons), str(state.passives), str(state.evolved_weapons), int(state.field_over_cap_pickups)]

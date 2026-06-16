@@ -130,6 +130,7 @@ var map_data: Dictionary = {}
 var navigation_targets: Dictionary = {}
 var field_drops: Array = []
 var field_gimmicks: Array = []
+var field_equipment: Array = []
 
 var selected_character_id: String = "noah"
 var selected_character_name: String = "探鉱者ノア"
@@ -174,6 +175,8 @@ var balance_log_timer: float = 0.0
 var balance_log_rows: Array = []
 var build_synergy_defs: Dictionary = {}
 var field_drop_defs: Dictionary = {}
+var field_equipment_defs: Dictionary = {}
+var selection_action_defs: Dictionary = {}
 var field_gimmick_defs: Dictionary = {}
 var ui_layout_defs: Dictionary = {}
 var field_help_defs: Dictionary = {}
@@ -194,6 +197,9 @@ var melee_rush_triggered_levels: Array = []
 var melee_speed_timer: float = 0.0
 var shock_explosions: int = 0
 var field_drops_collected: int = 0
+var field_equipment_collected: int = 0
+var reward_room_pickups: int = 0
+var field_over_cap_pickups: int = 0
 var field_gimmicks_triggered: int = 0
 var cursed_relic_count: int = 0
 var unlocked_weapon_ids: Array = []
@@ -227,6 +233,18 @@ var exploration_chain_timer: float = 0.0
 var exploration_chain_currency_bonus: int = 0
 var field_event_successes: int = 0
 var field_event_failures: int = 0
+var selection_skip_max: int = 1
+var selection_skip_remaining: int = 1
+var selection_seal_max: int = 0
+var selection_seal_remaining: int = 0
+var selection_skip_rewards: int = 0
+var selection_seals_used: int = 0
+var run_sealed_option_uids: Array = []
+var run_sealed_history: Array = []
+var pending_core_choice: Dictionary = {}
+var pending_field_equipment_choice: Dictionary = {}
+var field_weapon_over_cap_ids: Array = []
+var field_passive_over_cap_ids: Array = []
 
 var enemies: Array = []
 var gems: Array = []
@@ -361,6 +379,7 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	navigation_targets = {}
 	field_drops = []
 	field_gimmicks = []
+	field_equipment = []
 	selected_character_id = "noah"
 	selected_character_name = "探鉱者ノア"
 	selected_blessing_id = "attack"
@@ -411,6 +430,9 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	melee_speed_timer = 0.0
 	shock_explosions = 0
 	field_drops_collected = 0
+	field_equipment_collected = 0
+	reward_room_pickups = 0
+	field_over_cap_pickups = 0
 	field_gimmicks_triggered = 0
 	cursed_relic_count = 0
 	unlocked_weapon_ids = []
@@ -444,6 +466,18 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	exploration_chain_currency_bonus = 0
 	field_event_successes = 0
 	field_event_failures = 0
+	selection_skip_max = int(selection_action_defs.get("skip_base_count", 1))
+	selection_skip_remaining = selection_skip_max
+	selection_seal_max = int(selection_action_defs.get("seal_base_count", 0))
+	selection_seal_remaining = selection_seal_max
+	selection_skip_rewards = 0
+	selection_seals_used = 0
+	run_sealed_option_uids = []
+	run_sealed_history = []
+	pending_core_choice = {}
+	pending_field_equipment_choice = {}
+	field_weapon_over_cap_ids = []
+	field_passive_over_cap_ids = []
 	enemies = []
 	gems = []
 	projectiles = []
@@ -498,6 +532,8 @@ func _load_definitions() -> void:
 	weapon_effect_defs = _json_dict("res://data/weapon_effects.json", {})
 	build_synergy_defs = _json_dict("res://data/build_synergies.json", {})
 	field_drop_defs = _json_dict("res://data/field_drops.json", {})
+	field_equipment_defs = _json_dict("res://data/field_equipment_rewards.json", {"config": {}, "reward_rooms": {}, "weapon_pool": [], "passive_pool": []})
+	selection_action_defs = _json_dict("res://data/selection_actions.json", {"skip_base_count": 1, "seal_base_count": 0})
 	field_drop_spawn_config = field_drop_defs.get("_config", {}).duplicate(true)
 	field_drop_defs.erase("_config")
 	field_gimmick_defs = _json_dict("res://data/field_gimmicks.json", {})
@@ -529,6 +565,7 @@ func _build_crystal_field() -> void:
 	navigation_targets = map_data.get("navigation_targets", {})
 	field_drops = map_data.get("field_drops", [])
 	field_gimmicks = map_data.get("field_gimmicks", [])
+	field_equipment = map_data.get("field_equipment", [])
 	crystal_walls = map_generator.build_walls(self, map_data)
 	var rooms: Array = map_data.get("rooms", [])
 	if not rooms.is_empty():
@@ -572,10 +609,30 @@ func max_chests() -> int:
 	return int(balance_data.get("max_chests", 3))
 
 func max_owned_weapons() -> int:
-	return int(balance_data.get("max_owned_weapons", 6))
+	return normal_weapon_cap()
 
 func max_owned_passives() -> int:
-	return int(balance_data.get("max_owned_passives", 6))
+	return normal_passive_cap()
+
+func normal_weapon_cap() -> int:
+	return int(balance_data.get("normal_owned_weapons_cap", balance_data.get("max_owned_weapons", 5)))
+
+func normal_passive_cap() -> int:
+	return int(balance_data.get("normal_owned_passives_cap", balance_data.get("max_owned_passives", 5)))
+
+func equipment_over_cap_count(kind: String) -> int:
+	if kind == "weapon":
+		return maxi(0, weapons.keys().size() - normal_weapon_cap())
+	return maxi(0, passives.keys().size() - normal_passive_cap())
+
+func equipment_count_label(kind: String) -> String:
+	var count = weapons.keys().size() if kind == "weapon" else passives.keys().size()
+	var cap = normal_weapon_cap() if kind == "weapon" else normal_passive_cap()
+	var extra = maxi(0, count - cap)
+	return "%d/%d%s" % [count, cap, " +%d" % extra if extra > 0 else ""]
+
+func is_run_sealed(kind: String, id: String) -> bool:
+	return run_sealed_option_uids.has("%s:%s" % [kind, id])
 
 func combo_timeout() -> float:
 	return float(balance_data.get("combo_timeout", 1.5))
@@ -911,6 +968,8 @@ func update_minute_buckets() -> void:
 func can_offer_weapon(id: String) -> bool:
 	if is_weapon_evolved(id):
 		return false
+	if is_run_sealed("weapon", id):
+		return false
 	if not unlocked_weapon_ids.is_empty() and not unlocked_weapon_ids.has(id) and not weapons.has(id):
 		return false
 	if int(weapons.get(id, 0)) > 0:
@@ -920,6 +979,8 @@ func can_offer_weapon(id: String) -> bool:
 	return weapons.keys().size() < max_owned_weapons()
 
 func can_offer_passive(id: String) -> bool:
+	if is_run_sealed("passive", id):
+		return false
 	if not unlocked_passive_ids.is_empty() and not unlocked_passive_ids.has(id) and not passives.has(id):
 		return false
 	if int(passives.get(id, 0)) > 0:
@@ -1106,7 +1167,7 @@ func get_weapon_label() -> String:
 	var labels: Array = []
 	for id in weapons.keys():
 		labels.append("%s Lv%d" % [weapon_name(String(id)), int(weapons[id])])
-	return "武器 %d/%d：" % [weapons.keys().size(), max_owned_weapons()] + " / ".join(labels)
+	return "武器 %s：" % equipment_count_label("weapon") + " / ".join(labels)
 
 func get_passive_label() -> String:
 	var labels: Array = []
@@ -1114,7 +1175,7 @@ func get_passive_label() -> String:
 		labels.append("%s Lv%d" % [passive_name(String(id)), int(passives[id])])
 	if labels.is_empty():
 		return "パッシブ 0/%d：なし" % max_owned_passives()
-	return "パッシブ %d/%d：" % [passives.keys().size(), max_owned_passives()] + " / ".join(labels)
+	return "パッシブ %s：" % equipment_count_label("passive") + " / ".join(labels)
 
 func weapon_name(id: String) -> String:
 	if is_weapon_evolved(id):
@@ -1333,8 +1394,12 @@ func _fallback_balance() -> Dictionary:
 		"player_hp": 110,
 		"player_move_speed": 226.0,
 		"base_magnet_radius": 86.0,
-		"max_owned_weapons": 6,
-		"max_owned_passives": 6,
+		"max_owned_weapons": 5,
+		"max_owned_passives": 5,
+		"normal_owned_weapons_cap": 5,
+		"normal_owned_passives_cap": 5,
+		"field_pickup_can_exceed_cap": true,
+		"field_over_cap_max_bonus": 3,
 		"max_enemies": 600,
 		"max_gems": 1000,
 		"max_projectiles": 500,
