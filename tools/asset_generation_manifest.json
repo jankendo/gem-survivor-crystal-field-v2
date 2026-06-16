@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "generated_on": "2026-06-16",
+  "generator": "tools/generate_high_quality_assets.py",
+  "output_root": "assets/generated",
+  "source": "procedural_svg_only_no_external_assets",
+  "license_note": "Original project-generated assets. No downloaded or third-party copyrighted files are used.",
+  "style": {
+    "theme": "crystal survivor tactical icons",
+    "background": "deep navy transparent-safe tile",
+    "materials": ["faceted crystal", "soft inner glow", "clear silhouette", "high-contrast rim"],
+    "constraints": ["readable at 48px", "works on dark UI", "deterministic from id"]
+  },
+  "categories": {
+    "characters": {"data": "data/characters.json", "field": "generated_sprite"},
+    "enemies": {"data": "data/enemies.json", "field": "generated_sprite"},
+    "bosses": {"data": "data/bosses.json", "field": "generated_sprite"},
+    "weapons": {"data": "data/weapons.json", "field": "generated_icon"},
+    "passives": {"data": "data/passives.json", "field": "generated_icon"},
+    "evolutions": {"data": "data/evolutions.json", "field": "generated_icon"},
+    "blessings": {"data": "data/blessings.json", "field": "generated_icon"},
+    "field_drops": {"data": "data/field_drops.json", "field": "generated_icon", "skip_keys": ["_config"]},
+    "field_gimmicks": {"data": "data/field_gimmicks.json", "field": "generated_icon"},
+    "field_events": {"data": "data/field_events.json", "field": "generated_icon", "array_key": "events"}
+  }
+}

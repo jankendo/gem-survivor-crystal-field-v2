@@ -88,16 +88,25 @@ func _choose_pool_entry(state, pool, kind: String, used_items: Array, rng) -> Di
 		var id := String(entry.get("id", ""))
 		if id == "" or used_items.has("%s:%s" % [kind, id]):
 			continue
-		if kind == "weapon":
-			if state.disabled_weapon_ids.has(id) or (not state.unlocked_weapon_ids.is_empty() and not state.unlocked_weapon_ids.has(id)):
-				continue
-		else:
-			if state.disabled_passive_ids.has(id) or (not state.unlocked_passive_ids.is_empty() and not state.unlocked_passive_ids.has(id)):
-				continue
+		if not is_id_run_available(state, kind, id):
+			continue
 		var candidate: Dictionary = entry.duplicate(true)
 		candidate["weight"] = float(entry.get("weight", 1.0))
 		weighted.append(candidate)
 	return rng.weighted_choice(weighted) if not weighted.is_empty() else {}
+
+func is_id_run_available(state, kind: String, id: String) -> bool:
+	if id == "":
+		return false
+	if state.run_sealed_option_uids.has("%s:%s" % [kind, id]):
+		return false
+	if kind == "weapon":
+		return state.weapon_defs.has(id) and state.unlocked_weapon_ids.has(id) and not state.disabled_weapon_ids.has(id)
+	return state.passive_defs.has(id) and state.unlocked_passive_ids.has(id) and not state.disabled_passive_ids.has(id)
+
+func replacement_for(state, kind: String, used_items: Array, rng) -> Dictionary:
+	var pool_key := "weapon_pool" if kind == "weapon" else "passive_pool"
+	return _choose_pool_entry(state, state.field_equipment_defs.get(pool_key, []), kind, used_items, rng)
 
 func _position_in_room(room: Dictionary, state, rng) -> Vector2:
 	var base: Vector2 = room.get("position", state.field_size * 0.5)

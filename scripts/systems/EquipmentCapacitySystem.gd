@@ -32,12 +32,12 @@ func can_take(state, kind: String, id: String, allow_over_cap: bool = false) -> 
 	if kind == "weapon":
 		if state.disabled_weapon_ids.has(id):
 			return false
-		if not state.unlocked_weapon_ids.is_empty() and not state.unlocked_weapon_ids.has(id):
+		if not state.unlocked_weapon_ids.has(id):
 			return false
 	else:
 		if state.disabled_passive_ids.has(id):
 			return false
-		if not state.unlocked_passive_ids.is_empty() and not state.unlocked_passive_ids.has(id):
+		if not state.unlocked_passive_ids.has(id):
 			return false
 	if state.run_sealed_option_uids.has("%s:%s" % [kind, id]):
 		return false

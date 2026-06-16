@@ -6,7 +6,8 @@
     "passive_level": 3,
     "name_ja": "星砕きの魔弾",
     "description_ja": "魔弾が多弾・貫通・爆発を備えた星砕きの魔弾へ進化",
-    "effect_id": "magic_bolt"
+    "effect_id": "magic_bolt",
+    "generated_icon": "res://assets/generated/evolutions/starbreaker_bolt.svg"
   },
   "eternal_ice_ring": {
     "weapon": "ice_orbit",
@@ -15,7 +16,8 @@
     "passive_level": 3,
     "name_ja": "永久氷環",
     "description_ja": "氷輪が広い永続環となり敵を強く鈍足化",
-    "effect_id": "ice_orbit"
+    "effect_id": "ice_orbit",
+    "generated_icon": "res://assets/generated/evolutions/eternal_ice_ring.svg"
   },
   "divine_chain": {
     "weapon": "thunder_chain",
@@ -24,7 +26,8 @@
     "passive_level": 3,
     "name_ja": "天罰連鎖",
     "description_ja": "雷撃が長く速く連鎖し、群れを一掃",
-    "effect_id": "thunder_chain"
+    "effect_id": "thunder_chain",
+    "generated_icon": "res://assets/generated/evolutions/divine_chain.svg"
   },
   "final_fireworks": {
     "weapon": "bomb_seed",
@@ -33,7 +36,8 @@
     "passive_level": 2,
     "name_ja": "終焉花火",
     "description_ja": "爆種が連鎖花火となり広範囲へ多段爆発",
-    "effect_id": "bomb_seed"
+    "effect_id": "bomb_seed",
+    "generated_icon": "res://assets/generated/evolutions/final_fireworks.svg"
   },
   "gale_blade": {
     "weapon": "blade_fan",
@@ -42,7 +46,8 @@
     "passive_level": 3,
     "name_ja": "疾風刃",
     "description_ja": "刃扇が疾風刃へ進化し、高速で広い扇を刻む",
-    "effect_id": "blade_fan"
+    "effect_id": "blade_fan",
+    "generated_icon": "res://assets/generated/evolutions/gale_blade.svg"
   },
   "aurora_lance": {
     "weapon": "laser_lance",
@@ -51,7 +56,8 @@
     "passive_level": 3,
     "name_ja": "極光槍",
     "description_ja": "光槍が極光槍へ進化し、太い貫通レーザーになる",
-    "effect_id": "laser_lance"
+    "effect_id": "laser_lance",
+    "generated_icon": "res://assets/generated/evolutions/aurora_lance.svg"
   },
   "corrosion_domain": {
     "weapon": "poison_mist",
@@ -60,7 +66,8 @@
     "passive_level": 3,
     "name_ja": "腐蝕領域",
     "description_ja": "毒霧が腐蝕領域となり、周囲を常時削る",
-    "effect_id": "poison_mist"
+    "effect_id": "poison_mist",
+    "generated_icon": "res://assets/generated/evolutions/corrosion_domain.svg"
   },
   "star_guard_bit": {
     "weapon": "drone_bit",
@@ -69,7 +76,8 @@
     "passive_level": 3,
     "name_ja": "星衛ビット",
     "description_ja": "浮遊ビットが星衛ビットへ進化し、同時射撃数が増える",
-    "effect_id": "drone_bit"
+    "effect_id": "drone_bit",
+    "generated_icon": "res://assets/generated/evolutions/star_guard_bit.svg"
   },
   "eternal_gate": {
     "weapon": "rune_gate",
@@ -78,7 +86,8 @@
     "passive_level": 3,
     "name_ja": "永劫門",
     "description_ja": "大型ルーン門が複数発生し、通過する敵を焼く",
-    "effect_id": "rune_gate"
+    "effect_id": "rune_gate",
+    "generated_icon": "res://assets/generated/evolutions/eternal_gate.svg"
   },
   "meteor_cluster": {
     "weapon": "comet_staff",
@@ -87,7 +96,8 @@
     "passive_level": 3,
     "name_ja": "隕星群",
     "description_ja": "複数の彗星が連続落下し、群れをまとめて砕く",
-    "effect_id": "comet_staff"
+    "effect_id": "comet_staff",
+    "generated_icon": "res://assets/generated/evolutions/meteor_cluster.svg"
   },
   "death_soul_scythe": {
     "weapon": "soul_scythe",
@@ -96,7 +106,8 @@
     "passive_level": 3,
     "name_ja": "死魂鎌",
     "description_ja": "撃破でHPを吸収する広範囲斬撃",
-    "effect_id": "soul_scythe"
+    "effect_id": "soul_scythe",
+    "generated_icon": "res://assets/generated/evolutions/death_soul_scythe.svg"
   },
   "kaleido_shard": {
     "weapon": "mirror_shard",
@@ -105,7 +116,8 @@
     "passive_level": 3,
     "name_ja": "万華鏡片",
     "description_ja": "反射弾が分裂し、狭い逃げ場を切り開く",
-    "effect_id": "mirror_shard"
+    "effect_id": "mirror_shard",
+    "generated_icon": "res://assets/generated/evolutions/kaleido_shard.svg"
   },
   "sonic_domain": {
     "weapon": "sonic_wave",
@@ -114,7 +126,8 @@
     "passive_level": 3,
     "name_ja": "破音領域",
     "description_ja": "周期的に全周ノックバック領域を発生させる",
-    "effect_id": "sonic_wave"
+    "effect_id": "sonic_wave",
+    "generated_icon": "res://assets/generated/evolutions/sonic_domain.svg"
   },
   "gem_star_cannon": {
     "weapon": "gem_turret",
@@ -123,7 +136,8 @@
     "passive_level": 3,
     "name_ja": "宝星砲",
     "description_ja": "ジェム吸収時の残響で自動砲撃する",
-    "effect_id": "gem_turret"
+    "effect_id": "gem_turret",
+    "generated_icon": "res://assets/generated/evolutions/gem_star_cannon.svg"
   },
   "corridor_judgement": {
     "weapon": "corridor_blade",
@@ -132,7 +146,8 @@
     "passive_level": 3,
     "name_ja": "回廊断罪刃",
     "description_ja": "廊下で斬撃が延長され、二重に反響する",
-    "effect_id": "corridor_blade"
+    "effect_id": "corridor_blade",
+    "generated_icon": "res://assets/generated/evolutions/corridor_judgement.svg"
   },
   "infinite_ricochet": {
     "weapon": "wall_bounce_blaster",
@@ -141,7 +156,8 @@
     "passive_level": 3,
     "name_ja": "無限跳弾砲",
     "description_ja": "反射回数が増え、反射ごとに弾威力が上がる",
-    "effect_id": "wall_bounce_blaster"
+    "effect_id": "wall_bounce_blaster",
+    "generated_icon": "res://assets/generated/evolutions/infinite_ricochet.svg"
   },
   "divine_drill_lance": {
     "weapon": "drill_charge",
@@ -150,7 +166,8 @@
     "passive_level": 3,
     "name_ja": "神掘り破砕槍",
     "description_ja": "敵と結晶壁を貫き、終点で破砕爆発する",
-    "effect_id": "drill_charge"
+    "effect_id": "drill_charge",
+    "generated_icon": "res://assets/generated/evolutions/divine_drill_lance.svg"
   },
   "star_mine_lantern": {
     "weapon": "mine_lantern",
@@ -159,7 +176,8 @@
     "passive_level": 3,
     "name_ja": "星鉱灯",
     "description_ja": "未探索部屋を照らし、探索中の火力と報酬を増やす",
-    "effect_id": "mine_lantern"
+    "effect_id": "mine_lantern",
+    "generated_icon": "res://assets/generated/evolutions/star_mine_lantern.svg"
   },
   "curse_king_chain": {
     "weapon": "relic_chain",
@@ -168,7 +186,8 @@
     "passive_level": 3,
     "name_ja": "呪王鎖",
     "description_ja": "契約数に応じて鎖の範囲と攻撃回数が増える",
-    "effect_id": "relic_chain"
+    "effect_id": "relic_chain",
+    "generated_icon": "res://assets/generated/evolutions/curse_king_chain.svg"
   },
   "sanctuary_judgement": {
     "weapon": "shrine_beam",
@@ -177,7 +196,8 @@
     "passive_level": 3,
     "name_ja": "聖域裁光",
     "description_ja": "広い持続光線領域を複数設置する",
-    "effect_id": "shrine_beam"
+    "effect_id": "shrine_beam",
+    "generated_icon": "res://assets/generated/evolutions/sanctuary_judgement.svg"
   },
   "thorn_hell_garden": {
     "weapon": "thorn_seed",
@@ -186,7 +206,8 @@
     "passive_level": 3,
     "name_ja": "棘獄庭園",
     "description_ja": "棘罠が大きな毒沼を長時間生成する",
-    "effect_id": "thorn_seed"
+    "effect_id": "thorn_seed",
+    "generated_icon": "res://assets/generated/evolutions/thorn_hell_garden.svg"
   },
   "eternal_frost_wall": {
     "weapon": "frost_wall",
@@ -195,7 +216,8 @@
     "passive_level": 3,
     "name_ja": "永久氷壁",
     "description_ja": "広い冷気防壁が敵を強く鈍化し続ける",
-    "effect_id": "frost_wall"
+    "effect_id": "frost_wall",
+    "generated_icon": "res://assets/generated/evolutions/eternal_frost_wall.svg"
   },
   "golden_orbit": {
     "weapon": "coin_orbit",
@@ -204,7 +226,8 @@
     "passive_level": 3,
     "name_ja": "黄金軌道",
     "description_ja": "通貨獲得と連動して軌道数と攻撃力が増える",
-    "effect_id": "coin_orbit"
+    "effect_id": "coin_orbit",
+    "generated_icon": "res://assets/generated/evolutions/golden_orbit.svg"
   },
   "final_echo_bell": {
     "weapon": "echo_bell",
@@ -213,7 +236,8 @@
     "passive_level": 3,
     "name_ja": "終音鐘",
     "description_ja": "廊下で音波が三重に反響し、敵を押し戻す",
-    "effect_id": "echo_bell"
+    "effect_id": "echo_bell",
+    "generated_icon": "res://assets/generated/evolutions/final_echo_bell.svg"
   },
   "void_reflection": {
     "weapon": "void_mirror",
@@ -222,7 +246,8 @@
     "passive_level": 3,
     "name_ja": "虚空反照",
     "description_ja": "反射するたびに虚無爆発を起こす",
-    "effect_id": "void_mirror"
+    "effect_id": "void_mirror",
+    "generated_icon": "res://assets/generated/evolutions/void_reflection.svg"
   },
   "singularity_anchor": {
     "weapon": "gravity_anchor",
@@ -231,6 +256,7 @@
     "passive_level": 3,
     "name_ja": "特異点錨",
     "description_ja": "敵とジェムを強く吸引し、消滅時に爆発する",
-    "effect_id": "gravity_anchor"
+    "effect_id": "gravity_anchor",
+    "generated_icon": "res://assets/generated/evolutions/singularity_anchor.svg"
   }
 }

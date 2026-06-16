@@ -10,7 +10,7 @@ func test_windows_export_preset(t) -> void:
 	t.assert_eq(err, OK, "export_presets.cfg should load")
 	t.assert_eq(String(config.get_value("preset.0", "name", "")), "Windows Desktop", "Windows export preset name should match")
 	t.assert_eq(String(config.get_value("preset.0", "export_path", "")), "builds/ChronoMergeTactics.exe", "export path should target builds exe")
-	t.assert_eq(String(config.get_value("preset.0", "include_filter", "")), "assets/sounds/*.wav", "raw WAV files should be included for direct AudioManager loading")
+	t.assert_eq(String(config.get_value("preset.0", "include_filter", "")), "", "audio files should not be force-included after sound removal")
 	var exclude_filter := String(config.get_value("preset.0", "exclude_filter", ""))
 	t.assert_true(exclude_filter.find("tests/*") >= 0, "tests should be excluded from release export")
 	t.assert_true(exclude_filter.find("tools/*") >= 0, "tools should be excluded from release export")

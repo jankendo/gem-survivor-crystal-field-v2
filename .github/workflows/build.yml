@@ -82,6 +82,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/generate_candidate_pool_qa.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/validate_generated_assets.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/generate_ui_redesign_qa.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/generate_field_equipment_qa.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/generate_knockback_qa.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run full balance tests
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.full_test == 'true' }}
@@ -115,6 +123,9 @@ jobs:
             "res://tests/auto_play_exploration_reward_15min.gd",
             "res://tests/auto_play_event_motivation_15min.gd",
             "res://tests/auto_play_field_equipment_pickups_15min.gd",
+            "res://tests/auto_play_knockback_wall_10min.gd",
+            "res://tests/auto_play_map_pause_10min.gd",
+            "res://tests/auto_play_result_status_ui_flow.gd",
             "res://tests/auto_play_ios_lightweight_energy_20min.gd",
             "res://tests/auto_play_camping_vs_exploration_20min.gd"
           )
@@ -210,6 +221,34 @@ jobs:
         with:
           name: Candidate-Pool-QA
           path: test-output/candidate_pool_qa.md
+          if-no-files-found: error
+
+      - name: Upload asset QA report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Asset-QA-Report
+          path: test-output/asset_qa_report.md
+          if-no-files-found: error
+
+      - name: Upload UI redesign QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: UI-Redesign-QA
+          path: test-output/ui_redesign_qa.md
+          if-no-files-found: error
+
+      - name: Upload field equipment QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Field-Equipment-QA
+          path: test-output/field_equipment_qa.md
+          if-no-files-found: error
+
+      - name: Upload knockback QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Knockback-QA
+          path: test-output/knockback_qa.md
           if-no-files-found: error
 
   ios-unsigned-build:

@@ -28,6 +28,10 @@ def main() -> int:
         "safe play area artifact": "Safe-Play-Area-QA" in text,
         "exploration balance artifact": "Exploration-Balance-Report" in text,
         "candidate pool artifact": "Candidate-Pool-QA" in text,
+        "asset qa artifact": "Asset-QA-Report" in text,
+        "ui redesign artifact": "UI-Redesign-QA" in text,
+        "field equipment artifact": "Field-Equipment-QA" in text,
+        "knockback artifact": "Knockback-QA" in text,
     }
     failures = [name for name, passed in checks.items() if not passed]
     if failures:

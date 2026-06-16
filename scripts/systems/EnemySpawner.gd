@@ -2,12 +2,14 @@ extends RefCounted
 class_name EnemySpawner
 
 const EnemyScript = preload("res://scripts/core/SurvivorEnemy.gd")
+const EnemyPositionRecoverySystemScript = preload("res://scripts/systems/EnemyPositionRecoverySystem.gd")
 
 var field_system = preload("res://scripts/systems/CrystalFieldSystem.gd").new()
 var projectile_policy = preload("res://scripts/systems/EnemyProjectilePolicySystem.gd").new()
 var pathing = preload("res://scripts/systems/EnemyPathingSystem.gd").new()
 var ios_budget = preload("res://scripts/systems/IosPerformanceBudgetSystem.gd").new()
 var movement_resolver = preload("res://scripts/systems/PlayerMovementResolver.gd").new()
+var position_recovery = EnemyPositionRecoverySystemScript.new()
 
 func process(state, delta: float, events: Array) -> void:
 	if state.game_over or state.level_up_pending or state.chest_pending:
@@ -30,6 +32,8 @@ func process(state, delta: float, events: Array) -> void:
 
 func process_enemies(state, delta: float, events: Array) -> void:
 	state.ios_pathing_update_count = 0
+	_ensure_position_recovery()
+	position_recovery.process(state, events)
 	for enemy in state.enemies.duplicate():
 		enemy.tick_cooldowns(delta)
 		enemy.action_timer = maxf(0.0, enemy.action_timer - delta)
@@ -60,11 +64,19 @@ func process_enemies(state, delta: float, events: Array) -> void:
 		var velocity: Vector2 = direction * float(enemy.speed) * slow_multiplier * charge_multiplier
 		var movement := movement_resolver.resolve(state, enemy.position, velocity, movement_delta, enemy.radius)
 		enemy.position = movement.get("position", enemy.position)
+		_ensure_position_recovery()
+		position_recovery.recover_enemy(state, enemy, events, "enemy_movement")
 		if enemy.position.distance_to(previous) < 0.1 and enemy.behavior == "charger":
 			enemy.charge_timer = 0.0
 		if enemy.position.distance_to(state.player_position) > 1650.0:
 			enemy.position = pathing.recycle_position(state, state.player_position)
+			_ensure_position_recovery()
+			position_recovery.recover_enemy(state, enemy, events, "enemy_recycle")
 			events.append({"type": "enemy_recycle", "enemy": enemy.type})
+
+func _ensure_position_recovery() -> void:
+	if position_recovery == null:
+		position_recovery = EnemyPositionRecoverySystemScript.new()
 
 func _ai_update_interval(state, enemy) -> float:
 	if not String(state.performance_profile_id).begins_with("ios") or enemy.boss:

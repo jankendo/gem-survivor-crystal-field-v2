@@ -2,6 +2,23 @@
 
 Godot 4.2 + GDScript製のWindows/iOS向けサバイバーアクションです。内部フォルダ名とexe名は既存配布互換のため`ChronoMergeTactics`のままです。iOSはGitHub Actionsで未署名IPAを生成します。
 
+## フィールド装備取得修正・無音化・画像生成アセット・メニューUX改修メモ
+
+2026年6月16日に、Apple公式の[Layout](https://developer.apple.com/design/human-interface-guidelines/layout)、[Designing for games](https://developer.apple.com/design/human-interface-guidelines/designing-for-games)、[Game controls](https://developer.apple.com/design/human-interface-guidelines/game-controls)、[Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility)と、Godot 4.2公式の[GridContainer](https://docs.godotengine.org/en/4.2/classes/class_gridcontainer.html)、[ScrollContainer](https://docs.godotengine.org/en/4.2/classes/class_scrollcontainer.html)、[Pausing games](https://docs.godotengine.org/en/4.2/tutorials/scripting/pausing_games.html)、[AudioStreamPlayer](https://docs.godotengine.org/en/4.2/classes/class_audiostreamplayer.html)、[Importing images](https://docs.godotengine.org/en/4.2/tutorials/assets_pipeline/importing_images.html)を確認しました。
+
+今回の設計原則は以下です。
+
+* フィールド装備は解放済み、ロードアウトON、現在ランで封印されていない武器・パッシブだけを配置する。
+* 見えている報酬は必ず取得できる。古いセーブや生成済みmapで無効装備が残った場合は、操作不能にせずスコア変換する。
+* ノックバック、重力吸引、爆発、ギミック、近接、ボス行動は敵を歩行可能セル外へ押し出さない。もし外れた敵は即座に最寄りの歩行可能位置へ復帰させる。
+* 音声は省電力と実機安定性のため完全に廃止する。BGM、SE、UI音、攻撃音、宝箱音、警告音、音声ファイル読み込み、`AudioStreamPlayer`生成を行わない。
+* 画像素材はプロジェクト内で生成したオリジナル素材のみ使う。外部の著作物やダウンロード素材は使わない。
+* 拡大マップ表示中はゲーム進行を止める。敵、タイマー、イベント、ボス、ドロップ、移動、攻撃は止まり、マップUIだけ操作できる。
+* ステータスとリザルトは、成果、成長、次の目標がすぐ分かる文章にする。
+* 武器・パッシブはリストだけでなく、グリッド、フィルタ、詳細シート、統計パネルで確認できる構造にする。
+* iOSはカード、グリッド、詳細シート、下部タブを優先し、タップ対象とスクロールをSafe Area内に収める。
+* Windowsのマウス、キーボード、既存ショートカット、デスクトップHUDは維持する。
+
 ## 探索動機強化・Safe Play Area・iOS最軽量設定・スキップ封印設計メモ
 
 2026年6月16日に、Apple公式の[Layout](https://developer.apple.com/design/human-interface-guidelines/layout)、[Designing for games](https://developer.apple.com/design/human-interface-guidelines/designing-for-games)、[Design great interfaces for handheld games](https://developer.apple.com/videos/play/meet-with-apple/243/)、[Reducing your app's battery use](https://developer.apple.com/documentation/xcode/reducing-your-app-s-battery-use)と、Godot 4.2公式の[Multiple resolutions](https://docs.godotengine.org/en/4.2/tutorials/rendering/multiple_resolutions.html)、[CPU optimization](https://docs.godotengine.org/en/4.2/tutorials/performance/cpu_optimization.html)、[GPU optimization](https://docs.godotengine.org/en/4.2/tutorials/performance/gpu_optimization.html)、[Exporting for iOS](https://docs.godotengine.org/en/4.2/tutorials/export/exporting_for_ios.html)を確認しました。
@@ -944,7 +961,7 @@ python tools/validate_ios_workflow.py
 
 ### 省電力
 
-`data/ios_energy_budget.json`に60 FPS、更新頻度、ログ頻度、触覚回数、警告閾値を集約しました。`IosEnergyOptimizer`、`IosRenderBudgetSystem`、`IosFramePacingSystem`、`IosBackgroundThrottleSystem`が、HUD差分更新、非表示画面の停止、ポーズ/バックグラウンド抑制、フレーム計測を担当します。`SaveSystem`は同一内容の連続書き込みを避け、`AudioManager`は再生ノードを固定プール化し、触覚は1分あたり標準20回、省電力8回を上限にします。
+`data/ios_energy_budget.json`に60 FPS、更新頻度、ログ頻度、触覚回数、警告閾値を集約しました。`IosEnergyOptimizer`、`IosRenderBudgetSystem`、`IosFramePacingSystem`、`IosBackgroundThrottleSystem`が、HUD差分更新、非表示画面の停止、ポーズ/バックグラウンド抑制、フレーム計測を担当します。`SaveSystem`は同一内容の連続書き込みを避け、`AudioManager`は互換用no-opにして再生ノードを生成しません。触覚は1分あたり標準20回、省電力8回を上限にします。
 
 設定の「バッテリー節約」は任意です。標準モードの敵、エフェクト、背景、ゲーム内容は維持し、省電力モードでは更新頻度と非操作時処理をさらに抑えます。Dynamic Island、ノッチ、Home Indicatorを避けるSafe Areaと44pt以上の操作領域は両モードで維持します。
 

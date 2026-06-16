@@ -12,6 +12,7 @@ var shock_stack_system = preload("res://scripts/systems/ShockStackSystem.gd").ne
 var melee_rush_system = preload("res://scripts/systems/MeleeRushSystem.gd").new()
 var enemy_projectile_policy = preload("res://scripts/systems/EnemyProjectilePolicySystem.gd").new()
 var field_gimmick_system = preload("res://scripts/systems/FieldGimmickSystem.gd").new()
+var knockback_resolver = preload("res://scripts/systems/KnockbackResolver.gd").new()
 var enemy_grid = preload("res://scripts/systems/SpatialHashGrid.gd").new(160.0)
 
 func process(state, delta: float, events: Array) -> void:
@@ -396,7 +397,7 @@ func _process_sonic_wave(state, events: Array) -> void:
 		var distance = enemy.position.distance_to(state.player_position)
 		if distance <= radius + enemy.radius:
 			var direction = (enemy.position - state.player_position).normalized()
-			enemy.position += direction * (80.0 + level * 8.0) * (1.20 if state.active_synergies.has("guardian_field") else 1.0)
+			knockback_resolver.apply(state, enemy, direction, (80.0 + level * 8.0) * (1.20 if state.active_synergies.has("guardian_field") else 1.0), events, "sonic_wave")
 			_damage_enemy(state, enemy, damage, events, "sonic_wave", enemy.position)
 			hit_count += 1
 	field_system.damage_walls_in_radius(state, state.player_position, radius, max(1, int(damage * 0.45)), events, "sonic_wave")
@@ -510,7 +511,7 @@ func _process_black_hole_projectile(state, projectile, delta: float, events: Arr
 		var distance = enemy.position.distance_to(projectile.position)
 		if distance <= projectile.splash_radius + enemy.radius:
 			var direction = (projectile.position - enemy.position).normalized()
-			enemy.position += direction * pull_speed * delta
+			knockback_resolver.move_by(state, enemy, direction * pull_speed * delta, events, projectile.kind)
 			if enemy.can_take_periodic_hit(projectile.kind, periodic_interval):
 				_damage_enemy(state, enemy, projectile.damage, events, projectile.kind, enemy.position)
 	for gem in state.gems:

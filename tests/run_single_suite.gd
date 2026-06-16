@@ -13,7 +13,17 @@ func _initialize() -> void:
 		quit(2)
 		return
 	print("Running ", suite_path)
-	load(suite_path).new().run(self)
+	var suite_script = load(suite_path)
+	if suite_script == null or not suite_script.can_instantiate():
+		push_error("Suite failed to load: %s" % suite_path)
+		quit(2)
+		return
+	var suite = suite_script.new()
+	if suite == null or not suite.has_method("run"):
+		push_error("Suite has no run(t): %s" % suite_path)
+		quit(2)
+		return
+	suite.run(self)
 	if failures.is_empty():
 		print("Single suite passed: ", assertions)
 		quit(0)

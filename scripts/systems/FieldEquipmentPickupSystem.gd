@@ -1,6 +1,7 @@
 extends RefCounted
 class_name FieldEquipmentPickupSystem
 
+var capacity = preload("res://scripts/systems/EquipmentCapacitySystem.gd").new()
 var over_cap = preload("res://scripts/systems/EquipmentOverCapSystem.gd").new()
 
 func process(state, delta: float, events: Array) -> void:
@@ -11,6 +12,11 @@ func process(state, delta: float, events: Array) -> void:
 			continue
 		var pos: Vector2 = equipment.get("position", Vector2.ZERO)
 		if pos.distance_to(state.player_position) <= float(equipment.get("radius", 34.0)) + 22.0:
+			var kind := String(equipment.get("kind", "weapon"))
+			var item_id := String(equipment.get("id", ""))
+			if bool(equipment.get("invalid_conversion_only", false)) or not capacity.can_take(state, kind, item_id, true):
+				_convert_invalid(state, equipment, events, "invalid_or_unavailable")
+				return
 			open_choice(state, equipment, events)
 			return
 
@@ -61,7 +67,9 @@ func accept_current(state, uid: String, events: Array) -> bool:
 	var kind := String(option.get("equipment_kind", option.get("kind", "weapon")))
 	var id := String(option.get("id", ""))
 	if not over_cap.grant(state, kind, id, events, "field_equipment", true):
-		return false
+		_convert_invalid(state, equipment, events, "grant_rejected")
+		_close(state)
+		return true
 	equipment["collected"] = true
 	equipment["pending"] = false
 	state.field_equipment_collected += 1
@@ -70,6 +78,21 @@ func accept_current(state, uid: String, events: Array) -> bool:
 	events.append({"type": "field_equipment_pickup", "kind": kind, "id": id, "name": option.get("name_ja", id), "room_id": equipment.get("room_id", "")})
 	_close(state)
 	return true
+
+func _convert_invalid(state, equipment: Dictionary, events: Array, reason: String) -> void:
+	equipment["collected"] = true
+	equipment["pending"] = false
+	var score := 300
+	state.add_score(score, equipment.get("position", state.player_position))
+	state.field_equipment_converted += 1
+	state.message = "無効なフィールド装備をスコア+%dに変換" % score
+	events.append({
+		"type": "field_equipment_converted",
+		"id": equipment.get("id", ""),
+		"kind": equipment.get("kind", ""),
+		"reason": reason,
+		"score": score
+	})
 
 func decline_current(state, events: Array) -> bool:
 	if state.pending_field_equipment_choice.is_empty():

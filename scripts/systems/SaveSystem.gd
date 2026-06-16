@@ -244,11 +244,12 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 		data["field_help_discovered"] = {}
 	if not data.has("settings"):
 		data["settings"] = {
-			"bgm_volume": 0.85,
-			"se_volume": 0.90,
+			"audio_disabled": true,
+			"bgm_volume": 0.0,
+			"se_volume": 0.0,
 			"screen_shake": true,
 			"damage_numbers": true,
-			"gem_sound": true,
+			"gem_sound": false,
 			"auto_infinite": true,
 			"auto_recall_drone": false,
 			"fullscreen": false,
@@ -348,11 +349,12 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 			stats[key] = stat_defaults[key]
 	data["stats"] = stats
 	var setting_defaults := {
-		"bgm_volume": 0.85,
-		"se_volume": 0.90,
+		"audio_disabled": true,
+		"bgm_volume": 0.0,
+		"se_volume": 0.0,
 		"screen_shake": true,
 		"damage_numbers": true,
-		"gem_sound": true,
+		"gem_sound": false,
 		"auto_infinite": true,
 		"auto_recall_drone": false,
 		"fullscreen": false,

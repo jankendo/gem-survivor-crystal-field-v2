@@ -138,9 +138,22 @@ func show_summary(summary: Dictionary) -> void:
 	var score = int(summary.get("score", 0))
 	var best = int(summary.get("best_score", score))
 	var delta = int(summary.get("best_delta", maxi(best - score, 0)))
+	var progress_items = summary.get("progress_deltas", [])
+	var progress_count: int = progress_items.size() if progress_items is Array else 0
 	best_update_label.visible = bool(summary.get("best_updated", false))
 	score_line.text = "スコア：%s" % JaText.format_int(score)
 	lines.text = "\n".join([
+		"今回の成果：%s / %s / Lv%d" % [
+			JaText.format_int(int(summary.get("kills", 0))),
+			JaText.format_time(float(summary.get("survival_time", 0.0))),
+			int(summary.get("level", 1))
+		],
+		"成長：クリスタル貨+%s / 熟練Lv%d / 解放進捗%d件" % [
+			JaText.format_int(int(summary.get("currency_earned", 0))),
+			int(summary.get("mastery", {}).get("level", 0)),
+			progress_count
+		],
+		"次の目標：%s" % _next_goal(summary),
 		"キャラクター：%s" % String(summary.get("character_name", "探鉱者ノア")),
 		"祝福：%s" % String(summary.get("blessing_name", summary.get("blessing_id", "攻撃の祝福"))),
 		"祝福効果：%s" % String(summary.get("blessing_effect", "")),
@@ -230,3 +243,10 @@ func _progress_delta_text(value) -> String:
 			progress_formatter.format_value(current, target, value_type)
 		])
 	return "\n".join(lines)
+
+func _next_goal(summary: Dictionary) -> String:
+	if int(summary.get("currency_earned", 0)) > 0:
+		return "強化へ進み、次ランの火力か探索力を上げる"
+	if int(summary.get("kills", 0)) < 250:
+		return "序盤は敵を倒しやすい武器を優先してLvを伸ばす"
+	return "未解放の武器・パッシブ条件を確認して次のビルドを選ぶ"

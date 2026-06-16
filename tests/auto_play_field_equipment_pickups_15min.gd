@@ -12,6 +12,12 @@ func _initialize() -> void:
 	var events: Array = []
 	var picked := 0
 	for equipment in state.field_equipment:
+		var kind := String(equipment.get("kind", "weapon"))
+		var item_id := String(equipment.get("id", ""))
+		if kind == "weapon":
+			_assert(state.unlocked_weapon_ids.has(item_id) and not state.disabled_weapon_ids.has(item_id), "field autoplay found locked or disabled weapon")
+		else:
+			_assert(state.unlocked_passive_ids.has(item_id) and not state.disabled_passive_ids.has(item_id), "field autoplay found locked or disabled passive")
 		if picked >= 3:
 			break
 		state.player_position = equipment.get("position", state.player_position)

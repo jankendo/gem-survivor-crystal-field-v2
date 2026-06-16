@@ -19,6 +19,7 @@ const MeleeRushSystemScript = preload("res://scripts/systems/MeleeRushSystem.gd"
 const ShockStackSystemScript = preload("res://scripts/systems/ShockStackSystem.gd")
 const FieldDropSystemScript = preload("res://scripts/systems/FieldDropSystem.gd")
 const FieldEquipmentPickupSystemScript = preload("res://scripts/systems/FieldEquipmentPickupSystem.gd")
+const FieldEquipmentRewardSystemScript = preload("res://scripts/systems/FieldEquipmentRewardSystem.gd")
 const FieldGimmickSystemScript = preload("res://scripts/systems/FieldGimmickSystem.gd")
 const UiSafeAreaSystemScript = preload("res://scripts/systems/UiSafeAreaSystem.gd")
 const FieldDropSpawnSystemScript = preload("res://scripts/systems/FieldDropSpawnSystem.gd")
@@ -52,6 +53,7 @@ const IosEnergyOptimizerScript = preload("res://scripts/systems/IosEnergyOptimiz
 const IosEnergyLogSystemScript = preload("res://scripts/systems/IosEnergyLogSystem.gd")
 const IosFramePacingSystemScript = preload("res://scripts/systems/IosFramePacingSystem.gd")
 const IosBackgroundThrottleSystemScript = preload("res://scripts/systems/IosBackgroundThrottleSystem.gd")
+const MapPauseSystemScript = preload("res://scripts/systems/MapPauseSystem.gd")
 const ArenaViewScript = preload("res://scripts/ui/ArenaView.gd")
 const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.gd")
 const ConfirmDialogScript = preload("res://scripts/ui/components/ConfirmDialog.gd")
@@ -78,6 +80,7 @@ var melee_rush_system
 var shock_stack_system
 var field_drop_system
 var field_equipment_pickup_system
+var field_equipment_reward_system
 var field_gimmick_system
 var ui_safe_area_system
 var field_drop_spawn_system
@@ -111,6 +114,7 @@ var ios_energy_optimizer
 var ios_energy_log_system
 var ios_frame_pacing_system
 var ios_background_throttle_system
+var map_pause_system
 var arena_view
 var audio_manager: AudioManager
 var reward_popup: RewardPopup
@@ -197,6 +201,7 @@ func _ready() -> void:
 	shock_stack_system = ShockStackSystemScript.new()
 	field_drop_system = FieldDropSystemScript.new()
 	field_equipment_pickup_system = FieldEquipmentPickupSystemScript.new()
+	field_equipment_reward_system = FieldEquipmentRewardSystemScript.new()
 	field_gimmick_system = FieldGimmickSystemScript.new()
 	ui_safe_area_system = UiSafeAreaSystemScript.new()
 	field_drop_spawn_system = FieldDropSpawnSystemScript.new()
@@ -230,6 +235,7 @@ func _ready() -> void:
 	ios_energy_log_system = IosEnergyLogSystemScript.new()
 	ios_frame_pacing_system = IosFramePacingSystemScript.new()
 	ios_background_throttle_system = IosBackgroundThrottleSystemScript.new()
+	map_pause_system = MapPauseSystemScript.new()
 	state.start_new_run(0, initial_seed_text)
 	var save_data = initial_save_data if not initial_save_data.is_empty() else SaveSystem.new().load_data()
 	var settings: Dictionary = save_data.get("settings", {})
@@ -270,6 +276,7 @@ func _ready() -> void:
 		state.background_particles.resize(state.max_background_particles())
 	state.effect_density = String(settings.get("effect_density", "normal"))
 	meta_system.apply_to_state(state, initial_character_id, initial_blessing_id, save_data)
+	field_equipment_reward_system.sanitize_for_state(state)
 	selection_action_system.begin_run(state, save_data)
 	state.auto_infinite_enabled = initial_auto_infinite_enabled
 	state.auto_recall_drone_enabled = bool(save_data.get("settings", {}).get("auto_recall_drone", false))
@@ -295,9 +302,16 @@ func _process(delta: float) -> void:
 	if state.game_over:
 		speed_active = false
 		return
+	map_pause_system.refresh_modal_reasons(state, map_expanded)
 	if state.paused:
 		speed_active = false
 		_refresh_pause_ui()
+		return
+	if map_pause_system.gameplay_paused(state):
+		speed_active = false
+		touch_control_system.set_speed_pressed(false)
+		state.map_pause_count += 1
+		_refresh()
 		return
 	if state.level_up_pending:
 		speed_active = false
@@ -798,6 +812,8 @@ func _handle_events(events: Array) -> void:
 				message_label.text = "フィールド装備取得：%s" % String(event.get("name", "装備"))
 			"field_equipment_decline":
 				message_label.text = "フィールド装備を見送りました"
+			"field_equipment_converted":
+				message_label.text = "取得できないフィールド装備をスコアに変換"
 			"selection_skip":
 				message_label.text = "選択をスキップしました"
 			"selection_seal":
@@ -835,8 +851,7 @@ func _handle_events(events: Array) -> void:
 				message_label.text = "封印宝箱柱が開いた"
 
 func _play_sfx(name: String) -> void:
-	if audio_manager != null and audio_manager.play_sfx(name):
-		ios_energy_optimizer.audio_event_count = audio_manager.audio_event_count
+	return
 
 func _refresh() -> void:
 	var exp_percent = int(round(100.0 * clampf(float(state.exp) / float(maxi(state.exp_to_next, 1)), 0.0, 1.0)))
@@ -1454,6 +1469,7 @@ func _build_pause_ui() -> void:
 
 func _toggle_pause() -> void:
 	state.paused = not state.paused
+	map_pause_system.set_reason(state, MapPauseSystemScript.REASON_MENU, state.paused)
 	pause_overlay.visible = state.paused
 	pause_backdrop.visible = state.paused
 	touch_control_system.set_speed_pressed(false)
@@ -1617,6 +1633,7 @@ func _toggle_expanded_map() -> void:
 	if not bool(mobile_layout.get("map_tap_expand", true)):
 		return
 	map_expanded = not map_expanded
+	map_pause_system.set_reason(state, MapPauseSystemScript.REASON_MAP, map_expanded)
 	arena_view.set_map_expanded(map_expanded)
 	if goal_panel != null:
 		goal_panel.visible = not map_expanded

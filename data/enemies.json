@@ -8,7 +8,8 @@
     "exp": 5,
     "radius": 18.0,
     "unlock_seconds": 0,
-    "weight": 100
+    "weight": 100,
+    "generated_sprite": "res://assets/generated/enemies/slime.svg"
   },
   "bat": {
     "name_ja": "コウモリ",
@@ -19,7 +20,8 @@
     "exp": 5,
     "radius": 15.0,
     "unlock_seconds": 60,
-    "weight": 55
+    "weight": 55,
+    "generated_sprite": "res://assets/generated/enemies/bat.svg"
   },
   "ghost": {
     "name_ja": "ゴースト",
@@ -30,7 +32,8 @@
     "exp": 8,
     "radius": 20.0,
     "unlock_seconds": 140,
-    "weight": 28
+    "weight": 28,
+    "generated_sprite": "res://assets/generated/enemies/ghost.svg"
   },
   "golem": {
     "name_ja": "ゴーレム",
@@ -41,7 +44,8 @@
     "exp": 14,
     "radius": 25.0,
     "unlock_seconds": 210,
-    "weight": 35
+    "weight": 35,
+    "generated_sprite": "res://assets/generated/enemies/golem.svg"
   },
   "elite": {
     "name_ja": "エリート",
@@ -54,7 +58,8 @@
     "unlock_seconds": 300,
     "weight": 6,
     "elite": true,
-    "guaranteed_chest": true
+    "guaranteed_chest": true,
+    "generated_sprite": "res://assets/generated/enemies/elite.svg"
   },
   "splitter": {
     "name_ja": "分裂スライム",
@@ -67,7 +72,8 @@
     "unlock_seconds": 420,
     "weight": 34,
     "splits": 2,
-    "split_type": "splitter_child"
+    "split_type": "splitter_child",
+    "generated_sprite": "res://assets/generated/enemies/splitter.svg"
   },
   "splitter_child": {
     "name_ja": "小分裂スライム",
@@ -78,7 +84,8 @@
     "exp": 4,
     "radius": 14.0,
     "unlock_seconds": 99999,
-    "weight": 0
+    "weight": 0,
+    "generated_sprite": "res://assets/generated/enemies/splitter_child.svg"
   },
   "charger": {
     "name_ja": "突進獣",
@@ -90,7 +97,8 @@
     "radius": 23.0,
     "unlock_seconds": 600,
     "weight": 26,
-    "behavior": "charger"
+    "behavior": "charger",
+    "generated_sprite": "res://assets/generated/enemies/charger.svg"
   },
   "shooter": {
     "name_ja": "射撃虫",
@@ -102,7 +110,8 @@
     "radius": 18.0,
     "unlock_seconds": 720,
     "weight": 24,
-    "behavior": "shooter"
+    "behavior": "shooter",
+    "generated_sprite": "res://assets/generated/enemies/shooter.svg"
   },
   "shield_bug": {
     "name_ja": "盾虫",
@@ -114,7 +123,8 @@
     "radius": 25.0,
     "unlock_seconds": 900,
     "weight": 21,
-    "behavior": "shield"
+    "behavior": "shield",
+    "generated_sprite": "res://assets/generated/enemies/shield_bug.svg"
   },
   "healer": {
     "name_ja": "癒し胞子",
@@ -126,7 +136,8 @@
     "radius": 21.0,
     "unlock_seconds": 1080,
     "weight": 18,
-    "behavior": "healer"
+    "behavior": "healer",
+    "generated_sprite": "res://assets/generated/enemies/healer.svg"
   },
   "crystal_golem": {
     "name_ja": "結晶ゴーレム",
@@ -138,7 +149,8 @@
     "radius": 34.0,
     "unlock_seconds": 1200,
     "weight": 14,
-    "elite": true
+    "elite": true,
+    "generated_sprite": "res://assets/generated/enemies/crystal_golem.svg"
   },
   "reaper": {
     "name_ja": "死神",
@@ -151,7 +163,8 @@
     "unlock_seconds": 1500,
     "weight": 10,
     "behavior": "reaper",
-    "elite": true
+    "elite": true,
+    "generated_sprite": "res://assets/generated/enemies/reaper.svg"
   },
   "leech": {
     "name_ja": "吸血虫",
@@ -163,7 +176,8 @@
     "radius": 18.0,
     "unlock_seconds": 720,
     "weight": 26,
-    "behavior": "leech"
+    "behavior": "leech",
+    "generated_sprite": "res://assets/generated/enemies/leech.svg"
   },
   "bomber": {
     "name_ja": "爆弾虫",
@@ -175,7 +189,8 @@
     "radius": 22.0,
     "unlock_seconds": 900,
     "weight": 24,
-    "behavior": "bomber"
+    "behavior": "bomber",
+    "generated_sprite": "res://assets/generated/enemies/bomber.svg"
   },
   "crystal_sniper": {
     "name_ja": "結晶狙撃手",
@@ -187,7 +202,8 @@
     "radius": 21.0,
     "unlock_seconds": 960,
     "weight": 18,
-    "behavior": "crystal_sniper"
+    "behavior": "crystal_sniper",
+    "generated_sprite": "res://assets/generated/enemies/crystal_sniper.svg"
   },
   "swarm_mother": {
     "name_ja": "群母",
@@ -200,7 +216,8 @@
     "unlock_seconds": 1080,
     "weight": 14,
     "behavior": "swarm_mother",
-    "elite": true
+    "elite": true,
+    "generated_sprite": "res://assets/generated/enemies/swarm_mother.svg"
   },
   "void_knight": {
     "name_ja": "虚無騎士",
@@ -213,7 +230,8 @@
     "unlock_seconds": 1200,
     "weight": 12,
     "behavior": "void_knight",
-    "elite": true
+    "elite": true,
+    "generated_sprite": "res://assets/generated/enemies/void_knight.svg"
   },
   "curse_eye": {
     "name_ja": "呪眼",
@@ -225,6 +243,7 @@
     "radius": 24.0,
     "unlock_seconds": 1320,
     "weight": 12,
-    "behavior": "curse_eye"
+    "behavior": "curse_eye",
+    "generated_sprite": "res://assets/generated/enemies/curse_eye.svg"
   }
 }

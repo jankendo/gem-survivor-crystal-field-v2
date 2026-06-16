@@ -68,7 +68,8 @@ func _initialize() -> void:
 		"res://tests/test_ios_all_interactive_controls_reachable.gd",
 		"res://tests/test_desktop_controls_after_ios_polish.gd",
 		"res://tests/test_balance_log_system.gd",
-		"res://tests/test_audio_assets.gd",
+		"res://tests/test_audio_fully_disabled.gd",
+		"res://tests/test_generated_assets_complete.gd",
 		"res://tests/test_japanese_text.gd",
 		"res://tests/test_first_time_help.gd",
 		"res://tests/test_character_unlocks.gd",
@@ -157,12 +158,27 @@ func _initialize() -> void:
 		,"res://tests/test_core_pickup_choice_ui.gd"
 		,"res://tests/test_field_equipment_placement.gd"
 		,"res://tests/test_equipment_over_cap_field_pickup.gd"
+		,"res://tests/test_field_equipment_unlocked_only.gd"
+		,"res://tests/test_field_equipment_pickup_responsive.gd"
+		,"res://tests/test_knockback_does_not_push_enemy_outside_map.gd"
+		,"res://tests/test_map_open_pauses_game.gd"
+		,"res://tests/test_status_result_ux_quality.gd"
+		,"res://tests/test_equipment_grid_ui.gd"
+		,"res://tests/test_ios_menu_redesign_quality.gd"
+		,"res://tests/test_desktop_after_asset_ui_audio_update.gd"
 		,"res://tests/test_ios_safe_play_area_letterbox.gd"
 		,"res://tests/test_ios_default_lightweight_settings.gd"
 	]
 	for suite_path in suites:
-		var suite = load(suite_path).new()
 		print("Running ", suite_path)
+		var suite_script = load(suite_path)
+		if suite_script == null or not suite_script.can_instantiate():
+			failures.append("Suite failed to load: %s" % suite_path)
+			continue
+		var suite = suite_script.new()
+		if suite == null or not suite.has_method("run"):
+			failures.append("Suite has no run(t): %s" % suite_path)
+			continue
 		suite.run(self)
 	save.update_settings(original_settings)
 	if failures.is_empty():
