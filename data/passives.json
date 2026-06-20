@@ -346,5 +346,19 @@
       "gem"
     ],
     "generated_icon": "res://assets/generated/passives/crystal_wallet.svg"
+  },
+  "resonance_magnet_core": {
+    "name_ja": "共鳴磁核",
+    "max_level": 5,
+    "description_ja": "経験値獲得量UP。一定時間ごとに周囲の全ジェムを自動回収",
+    "tags": [
+      "utility",
+      "gem",
+      "explore"
+    ],
+    "exp_bonus_by_level": [0.10, 0.18, 0.26, 0.34, 0.42],
+    "collection_interval_by_level": [50.0, 45.0, 40.0, 35.0, 30.0],
+    "collection_radius_by_level": [900.0, 1050.0, 1200.0, 1500.0, 1850.0],
+    "generated_icon": "res://assets/generated/passives/resonance_magnet_core.svg"
   }
 }

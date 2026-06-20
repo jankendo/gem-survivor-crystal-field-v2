@@ -8,6 +8,20 @@ func set_seed_value(value: int) -> void:
 	run_seed = value
 	rng.seed = value
 
+func stream_seed(stream_name: String, salt = "") -> int:
+	var text := "%d:%s:%s" % [run_seed, stream_name, str(salt)]
+	var value := 2166136261
+	for i in range(text.length()):
+		value = int((value ^ text.unicode_at(i)) * 16777619) & 0x7fffffff
+	if value == 0:
+		value = 1
+	return value
+
+func stream_rng(stream_name: String, salt = ""):
+	var child := RunRng.new()
+	child.set_seed_value(stream_seed(stream_name, salt))
+	return child
+
 func next_int(max_exclusive: int) -> int:
 	if max_exclusive <= 0:
 		return 0

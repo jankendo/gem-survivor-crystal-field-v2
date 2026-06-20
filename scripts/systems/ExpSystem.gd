@@ -34,17 +34,24 @@ func add_exp(state, amount: int, events: Array) -> void:
 		return
 	state.exp += amount
 	state.gem_exp_collected += amount
-	while state.exp >= state.exp_to_next and not state.level_up_pending:
+	while state.exp >= state.exp_to_next:
 		state.exp -= state.exp_to_next
 		state.level += 1
 		state.levelups_last_minute += 1
 		state.refresh_exp_goal()
-		state.level_up_pending = true
-		state.selected_reward_index = 0
-		state.level_up_options = level_up_system.prepare_options(state, 3)
-		events.append({"type": "level_up", "level": state.level, "options": state.level_up_options})
-		if level_up_system.should_auto_pick_infinite(state, state.level_up_options):
-			level_up_system.auto_pick_infinite(state, events)
+		if state.level_up_pending:
+			state.queued_level_up_count += 1
+			events.append({"type": "level_up_queued", "level": state.level, "remaining": state.queued_level_up_count})
+			continue
+		_open_level_up(state, events)
+
+func _open_level_up(state, events: Array) -> void:
+	state.level_up_pending = true
+	state.selected_reward_index = 0
+	state.level_up_options = level_up_system.prepare_options(state, 3)
+	events.append({"type": "level_up", "level": state.level, "options": state.level_up_options})
+	if level_up_system.should_auto_pick_infinite(state, state.level_up_options):
+		level_up_system.auto_pick_infinite(state, events)
 
 func exp_ratio(state) -> float:
 	if state.exp_to_next <= 0:

@@ -4,9 +4,16 @@ class_name FieldEquipmentPlacementSystem
 func generate(state, map_data: Dictionary, rng) -> Array:
 	var defs: Dictionary = state.field_equipment_defs
 	var config: Dictionary = defs.get("config", {})
-	var max_total := int(config.get("max_per_run", 8))
-	var max_weapons := int(config.get("max_weapons_per_run", 4))
-	var max_passives := int(config.get("max_passives_per_run", 4))
+	var count_rng = state.rng.stream_rng("field_equipment_rarity", map_data.get("seed", state.map_seed))
+	var room_rng = state.rng.stream_rng("field_equipment_room", map_data.get("seed", state.map_seed))
+	var position_rng = state.rng.stream_rng("field_equipment_position", map_data.get("seed", state.map_seed))
+	var weapon_rng = state.rng.stream_rng("field_weapon_selection", map_data.get("seed", state.map_seed))
+	var passive_rng = state.rng.stream_rng("field_passive_selection", map_data.get("seed", state.map_seed))
+	var weapon_range: Dictionary = config.get("weapon_pickups_per_run", {"min": int(config.get("max_weapons_per_run", 4)), "max": int(config.get("max_weapons_per_run", 4))})
+	var passive_range: Dictionary = config.get("passive_pickups_per_run", {"min": int(config.get("max_passives_per_run", 4)), "max": int(config.get("max_passives_per_run", 4))})
+	var max_total := int(config.get("max_total_equipment_pickups", config.get("max_per_run", 8)))
+	var max_weapons := mini(int(config.get("max_weapons_per_run", 4)), count_rng.range_int(int(weapon_range.get("min", 2)), int(weapon_range.get("max", 4))))
+	var max_passives := mini(int(config.get("max_passives_per_run", 4)), count_rng.range_int(int(passive_range.get("min", 2)), int(passive_range.get("max", 4))))
 	var start_block := float(config.get("start_room_block_radius", 850.0))
 	var center: Vector2 = state.field_size * 0.5
 	var anchors := _reward_anchors(map_data, defs, center, start_block)
@@ -22,16 +29,17 @@ func generate(state, map_data: Dictionary, rng) -> Array:
 			kind = "passive"
 		elif passive_count >= max_passives:
 			kind = "weapon"
-		elif rng.chance(0.48):
+		elif count_rng.chance(0.48):
 			kind = "passive"
 		var pool_key := "weapon_pool" if kind == "weapon" else "passive_pool"
-		var entry := _choose_pool_entry(state, defs.get(pool_key, []), kind, used_items, rng)
+		var entry_rng = weapon_rng if kind == "weapon" else passive_rng
+		var entry := _choose_pool_entry(state, defs.get(pool_key, []), kind, used_items, entry_rng, bool(config.get("allow_duplicates_when_pool_short", true)))
 		if entry.is_empty():
 			break
-		var anchor: Dictionary = rng.weighted_choice(anchors)
+		var anchor: Dictionary = room_rng.weighted_choice(anchors)
 		var room: Dictionary = anchor.get("room", {})
 		var item_id := String(entry.get("id", ""))
-		var pos = _position_in_room(room, state, rng)
+		var pos = _position_in_room(room, state, position_rng)
 		var id := "field_%s_%s_%d" % [kind, item_id, results.size()]
 		results.append({
 			"runtime_id": id,
@@ -80,7 +88,7 @@ func _fallback_anchors(map_data: Dictionary, center: Vector2, start_block: float
 			result.append({"room": room, "weight": 1.0, "quality": "common", "reason_ja": "遠方探索報酬"})
 	return result
 
-func _choose_pool_entry(state, pool, kind: String, used_items: Array, rng) -> Dictionary:
+func _choose_pool_entry(state, pool, kind: String, used_items: Array, rng, allow_duplicates_when_pool_short: bool = true) -> Dictionary:
 	var weighted: Array = []
 	for entry in pool:
 		if not entry is Dictionary:
@@ -93,6 +101,16 @@ func _choose_pool_entry(state, pool, kind: String, used_items: Array, rng) -> Di
 		var candidate: Dictionary = entry.duplicate(true)
 		candidate["weight"] = float(entry.get("weight", 1.0))
 		weighted.append(candidate)
+	if weighted.is_empty() and allow_duplicates_when_pool_short:
+		for entry in pool:
+			if not entry is Dictionary:
+				continue
+			var id := String(entry.get("id", ""))
+			if id == "" or not is_id_run_available(state, kind, id):
+				continue
+			var duplicate: Dictionary = entry.duplicate(true)
+			duplicate["weight"] = float(entry.get("weight", 1.0)) * 0.35
+			weighted.append(duplicate)
 	return rng.weighted_choice(weighted) if not weighted.is_empty() else {}
 
 func is_id_run_available(state, kind: String, id: String) -> bool:

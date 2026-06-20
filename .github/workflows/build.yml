@@ -70,6 +70,24 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/auto_play_balance_candidate_audit.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_shop_reroll_flow.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_exp_multiplier_5min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_field_drop_persistence_30min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_random_field_equipment_15min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_resonance_magnet_15min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_global_magnet_stress.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_global_drone_15min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_character_evolution_20min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_character_evolution_balance_30min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/analyze_ios_performance.py test-output/ios_perf_5min.csv --output test-output/ios_performance_report.md
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/analyze_ios_energy.py
@@ -87,6 +105,16 @@ jobs:
           python tools/generate_ui_redesign_qa.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/generate_field_equipment_qa.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/generate_shop_reroll_qa.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/generate_experience_balance_report.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/generate_persistent_drop_qa.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/generate_global_gem_collection_qa.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/generate_character_evolution_qa.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/generate_knockback_qa.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -127,7 +155,14 @@ jobs:
             "res://tests/auto_play_map_pause_10min.gd",
             "res://tests/auto_play_result_status_ui_flow.gd",
             "res://tests/auto_play_ios_lightweight_energy_20min.gd",
-            "res://tests/auto_play_camping_vs_exploration_20min.gd"
+            "res://tests/auto_play_camping_vs_exploration_20min.gd",
+            "res://tests/auto_play_exp_curve_30min.gd",
+            "res://tests/auto_play_global_collection_ios_stress_20min.gd",
+            "res://tests/auto_play_all_character_evolution_conditions.gd",
+            "res://tests/auto_play_exp_balance_10min.gd",
+            "res://tests/auto_play_resonance_magnet_balance_15min.gd",
+            "res://tests/auto_play_global_gem_collection_balance_20min.gd",
+            "res://tests/auto_play_random_field_equipment_balance_20min.gd"
           )
           foreach ($script in $scripts) {
             & $godot --headless --path . --script $script
@@ -242,6 +277,41 @@ jobs:
         with:
           name: Field-Equipment-QA
           path: test-output/field_equipment_qa.md
+          if-no-files-found: error
+
+      - name: Upload shop reroll QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shop-Reroll-QA
+          path: test-output/shop_reroll_qa.md
+          if-no-files-found: error
+
+      - name: Upload experience balance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Experience-Balance-Report
+          path: test-output/experience_balance_report.md
+          if-no-files-found: error
+
+      - name: Upload persistent drop QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Persistent-Drop-QA
+          path: test-output/persistent_drop_qa.md
+          if-no-files-found: error
+
+      - name: Upload global gem collection QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Global-Gem-Collection-QA
+          path: test-output/global_gem_collection_qa.md
+          if-no-files-found: error
+
+      - name: Upload character evolution QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Character-Evolution-QA
+          path: test-output/character_evolution_qa.md
           if-no-files-found: error
 
       - name: Upload knockback QA

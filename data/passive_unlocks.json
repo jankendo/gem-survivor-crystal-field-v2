@@ -37,5 +37,6 @@
   "banish_mark": { "condition": { "type": "survive_seconds", "value": 1500 }, "text_ja": "25分生存" },
   "reflect_prism": { "condition": { "type": "weapon_level", "weapon": "wall_bounce_blaster", "level": 5 }, "text_ja": "壁跳弾砲をLv5にする" },
   "poison_vessel": { "condition": { "type": "weapon_level", "weapon": "thorn_seed", "level": 5 }, "text_ja": "棘種をLv5にする" },
-  "crystal_wallet": { "condition": { "type": "total_currency_earned", "value": 5000 }, "text_ja": "クリスタル貨を累計5000獲得" }
+  "crystal_wallet": { "condition": { "type": "total_currency_earned", "value": 5000 }, "text_ja": "クリスタル貨を累計5000獲得" },
+  "resonance_magnet_core": { "condition": { "type": "total_gems_collected", "value": 5000 }, "text_ja": "累計ジェム取得 5,000 / 5,000" }
 }

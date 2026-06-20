@@ -167,6 +167,14 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 		data["help_seen"] = false
 	if not data.has("crystal_currency"):
 		data["crystal_currency"] = 0
+	if not data.has("shop_save_seed"):
+		data["shop_save_seed"] = 314159
+	if not data.has("shop_cycle_id"):
+		data["shop_cycle_id"] = 0
+	if not data.has("shop_reroll_count"):
+		data["shop_reroll_count"] = 0
+	if not data.has("shop_featured_items"):
+		data["shop_featured_items"] = []
 	if not data.has("unlocked_characters"):
 		data["unlocked_characters"] = ["noah"]
 	if not (data.get("unlocked_characters", []) as Array).has("noah"):
@@ -222,6 +230,14 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 		data["character_records"] = {}
 	if not data.has("character_mastery"):
 		data["character_mastery"] = {}
+	if not data.has("character_evolutions_unlocked"):
+		data["character_evolutions_unlocked"] = {"noah": true}
+	if not data.has("character_evolution_progress"):
+		data["character_evolution_progress"] = {}
+	if not data.has("character_evolution_count_by_character"):
+		data["character_evolution_count_by_character"] = {}
+	if not data.has("fastest_evolution_time_by_character"):
+		data["fastest_evolution_time_by_character"] = {}
 	if not data.has("quests_completed"):
 		data["quests_completed"] = {}
 	if not data.has("quests_claimed"):
@@ -281,6 +297,8 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 			"equipment_hud_mode": "simple",
 			"developer_overlay": false,
 			"developer_mode": false,
+			"debug_exp_multiplier": 1.0,
+			"allow_debug_progress": false,
 			"touch_hit_test_debug": false,
 			"touch_action_audit": false,
 			"ui_animation_amount": "standard",
@@ -312,6 +330,9 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 		"best_exploration_score": 0,
 		"max_exploration_chain": 0,
 		"field_event_successes": 0
+		,"total_gems_collected": 0
+		,"magnet_ore_collected": 0
+		,"global_gem_collections": 0
 		,"rooms_discovered": 0,
 		"max_rooms_in_run": 0,
 		"shortcut_walls_broken": 0,
@@ -394,6 +415,8 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 		"equipment_hud_mode": "simple",
 		"developer_overlay": false,
 		"developer_mode": false,
+		"debug_exp_multiplier": 1.0,
+		"allow_debug_progress": false,
 		"touch_hit_test_debug": false,
 		"touch_action_audit": false,
 		"ui_animation_amount": "standard",

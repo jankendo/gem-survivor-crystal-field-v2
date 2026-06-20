@@ -3,6 +3,10 @@
     "max_per_run": 8,
     "max_weapons_per_run": 4,
     "max_passives_per_run": 4,
+    "weapon_pickups_per_run": { "min": 2, "max": 4 },
+    "passive_pickups_per_run": { "min": 2, "max": 4 },
+    "max_total_equipment_pickups": 6,
+    "allow_duplicates_when_pool_short": true,
     "min_distance": 1050.0,
     "rare_min_distance": 1700.0,
     "start_room_block_radius": 850.0,
@@ -29,6 +33,7 @@
     { "id": "luck", "weight": 1.2, "min_distance": 1250.0, "icon": "P", "color": [1.0, 0.86, 0.35] },
     { "id": "treasure_instinct", "weight": 1.0, "min_distance": 1450.0, "icon": "P", "color": [0.78, 1.0, 0.48] },
     { "id": "chain_reward", "weight": 1.0, "min_distance": 1450.0, "icon": "P", "color": [0.58, 1.0, 0.72] },
-    { "id": "event_focus", "weight": 0.9, "min_distance": 1650.0, "icon": "P", "color": [0.86, 0.58, 1.0] }
+    { "id": "event_focus", "weight": 0.9, "min_distance": 1650.0, "icon": "P", "color": [0.86, 0.58, 1.0] },
+    { "id": "resonance_magnet_core", "weight": 1.1, "min_distance": 1250.0, "icon": "P", "color": [0.50, 1.0, 0.92] }
   ]
 }

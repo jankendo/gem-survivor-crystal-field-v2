@@ -5,8 +5,8 @@ const ObjectiveIndicatorSystemScript = preload("res://scripts/systems/ObjectiveI
 
 func run(t) -> void:
 	test_force_spawn_is_seed_reproducible(t)
-	test_timed_spawn_notifies_and_adds_indicator(t)
-	test_dynamic_drop_expires(t)
+	test_timed_spawn_is_disabled_by_default(t)
+	test_forced_drop_never_expires(t)
 
 func _state():
 	var state = SurvivorState.new()
@@ -24,28 +24,30 @@ func test_force_spawn_is_seed_reproducible(t) -> void:
 	t.assert_true(not a_drop.is_empty(), "dynamic drop force spawn should create a drop")
 	t.assert_eq(a_drop.get("position"), b_drop.get("position"), "same seed should reproduce dynamic drop position")
 	t.assert_true(bool(a_drop.get("dynamic", false)), "spawned drop should be marked dynamic")
+	t.assert_true(bool(a_drop.get("persistent", false)), "forced event drop should be persistent")
 	t.assert_true(float(a_drop.get("spawn_distance", 0.0)) >= 420.0, "dynamic drop should respect minimum distance")
 
-func test_timed_spawn_notifies_and_adds_indicator(t) -> void:
+func test_timed_spawn_is_disabled_by_default(t) -> void:
 	var state = _state()
 	state.field_drop_spawn_config["base_spawn_chance"] = 1.0
 	state.next_dynamic_drop_time = state.elapsed_seconds
 	var events: Array = []
 	FieldDropSpawnSystemScript.new().process(state, 0.1, events)
-	t.assert_true(_has_event(events, "dynamic_drop_spawn"), "timed dynamic spawn should notify")
-	t.assert_true(state.dynamic_drops_spawned == 1, "timed dynamic spawn should respect run accounting")
+	t.assert_true(not _has_event(events, "dynamic_drop_spawn"), "timed dynamic spawn should be disabled")
+	t.assert_true(state.dynamic_drops_spawned == 0, "timed dynamic spawn should not update accounting")
 	var targets = ObjectiveIndicatorSystemScript.new().targets_for_state(state, 20)
-	t.assert_true(_targets_have_dynamic_drop(targets, state), "dynamic drop should appear in objective indicators")
+	t.assert_true(not _targets_have_dynamic_drop(targets, state), "no timed dynamic target should be added")
 
-func test_dynamic_drop_expires(t) -> void:
+func test_forced_drop_never_expires(t) -> void:
 	var state = _state()
 	var system = FieldDropSpawnSystemScript.new()
 	var events: Array = []
 	var drop = system.force_spawn(state, "heal_ore", events)
-	state.elapsed_seconds = float(drop.get("despawn_time", 0.0)) + 1.0
+	state.elapsed_seconds += 9999.0
 	system.process(state, 0.1, events)
-	t.assert_true(bool(drop.get("expired", false)), "uncollected dynamic drop should expire")
-	t.assert_true(_has_event(events, "dynamic_drop_expired"), "expiration should emit an event")
+	t.assert_true(not bool(drop.get("expired", false)), "uncollected forced drop should never expire")
+	t.assert_true(not bool(drop.get("collected", false)), "uncollected forced drop should remain until pickup")
+	t.assert_true(not _has_event(events, "dynamic_drop_expired"), "expiration should not emit an event")
 
 func _has_event(events: Array, type: String) -> bool:
 	for event in events:

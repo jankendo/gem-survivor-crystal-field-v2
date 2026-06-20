@@ -1,5 +1,7 @@
 .godot/
+.codex/
 builds/
+!builds/.gdignore
 *.log
 test-output/
 !test-output/

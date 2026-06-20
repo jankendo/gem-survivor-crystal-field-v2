@@ -49,6 +49,7 @@ var spawn_meter: float = 0.0
 var selected_reward_index: int = 0
 var level_up_pending: bool = false
 var level_up_options: Array = []
+var queued_level_up_count: int = 0
 var message: String = ""
 var chest_message: String = ""
 var chest_pending: bool = false
@@ -140,6 +141,16 @@ var selected_character_name: String = "探鉱者ノア"
 var selected_blessing_id: String = "attack"
 var character_modifiers: Dictionary = {}
 var blessing_modifiers: Dictionary = {}
+var character_evolution_unlocked_ids: Array = ["noah"]
+var character_evolution_available: bool = false
+var character_evolution_pending: bool = false
+var character_evolution_notified: bool = false
+var character_evolved: bool = false
+var character_evolution_id: String = ""
+var character_evolution_name: String = ""
+var character_evolution_time: float = 0.0
+var character_evolution_progress_text: String = ""
+var character_evolution_contribution: Dictionary = {}
 var meta_upgrade_levels: Dictionary = {}
 var currency_sink_levels: Dictionary = {}
 var meta_hp_mult: float = 1.0
@@ -162,6 +173,18 @@ var recall_drone_meter: float = 0.0
 var recall_drone_ready: bool = false
 var recall_drone_active_timer: float = 0.0
 var recall_drone_activations: int = 0
+var global_gem_collections: int = 0
+var global_gem_collection_batches: int = 0
+var global_gem_collection_exp: int = 0
+var global_gem_collection_last_count: int = 0
+var gems_collected_by_magnet: int = 0
+var gems_collected_by_drone: int = 0
+var gems_collected_by_passive: int = 0
+var magnet_ore_collected_run: int = 0
+var resonance_magnet_timer: float = 0.0
+var resonance_magnet_pulse_timer: float = 0.0
+var resonance_magnet_collections: int = 0
+var resonance_magnet_last_count: int = 0
 var gem_turret_charge: int = 0
 var exp_drop_meter: float = 1.0
 var elite_chest_cooldown: float = 0.0
@@ -179,6 +202,10 @@ var balance_log_rows: Array = []
 var build_synergy_defs: Dictionary = {}
 var field_drop_defs: Dictionary = {}
 var field_equipment_defs: Dictionary = {}
+var experience_settings: Dictionary = {}
+var gem_collection_effects: Dictionary = {}
+var character_evolution_defs: Dictionary = {}
+var character_evolution_unlock_defs: Dictionary = {}
 var selection_action_defs: Dictionary = {}
 var field_gimmick_defs: Dictionary = {}
 var ui_layout_defs: Dictionary = {}
@@ -301,6 +328,8 @@ var rune_contract_defs: Dictionary = {}
 var weapon_effect_defs: Dictionary = {}
 var effect_density: String = "normal"
 var performance_profile_id: String = "desktop_standard"
+var debug_exp_multiplier: float = 1.0
+var allow_debug_progress: bool = false
 var evolved_weapons: Dictionary = {}
 var evolved_magic_bolt: bool = false
 var last_evolution_seconds: float = -999.0
@@ -344,6 +373,7 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	selected_reward_index = 0
 	level_up_pending = false
 	level_up_options = []
+	queued_level_up_count = 0
 	message = ""
 	chest_message = ""
 	chest_pending = false
@@ -395,6 +425,16 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	selected_blessing_id = "attack"
 	character_modifiers = {}
 	blessing_modifiers = {}
+	character_evolution_unlocked_ids = ["noah"]
+	character_evolution_available = false
+	character_evolution_pending = false
+	character_evolution_notified = false
+	character_evolved = false
+	character_evolution_id = ""
+	character_evolution_name = ""
+	character_evolution_time = 0.0
+	character_evolution_progress_text = ""
+	character_evolution_contribution = {}
 	meta_upgrade_levels = {}
 	currency_sink_levels = {}
 	meta_hp_mult = 1.0
@@ -416,6 +456,18 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	recall_drone_ready = false
 	recall_drone_active_timer = 0.0
 	recall_drone_activations = 0
+	global_gem_collections = 0
+	global_gem_collection_batches = 0
+	global_gem_collection_exp = 0
+	global_gem_collection_last_count = 0
+	gems_collected_by_magnet = 0
+	gems_collected_by_drone = 0
+	gems_collected_by_passive = 0
+	magnet_ore_collected_run = 0
+	resonance_magnet_timer = 0.0
+	resonance_magnet_pulse_timer = 0.0
+	resonance_magnet_collections = 0
+	resonance_magnet_last_count = 0
 	gem_turret_charge = 0
 	exp_drop_meter = 1.0
 	elite_chest_cooldown = 0.0
@@ -429,6 +481,8 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	balance_log_timer = 0.0
 	balance_log_rows = []
 	performance_profile_id = "desktop_standard"
+	debug_exp_multiplier = 1.0
+	allow_debug_progress = false
 	active_synergies = {}
 	active_synergy_history = []
 	build_tag_counts = {}
@@ -549,6 +603,10 @@ func _load_definitions() -> void:
 	build_synergy_defs = _json_dict("res://data/build_synergies.json", {})
 	field_drop_defs = _json_dict("res://data/field_drops.json", {})
 	field_equipment_defs = _json_dict("res://data/field_equipment_rewards.json", {"config": {}, "reward_rooms": {}, "weapon_pool": [], "passive_pool": []})
+	experience_settings = _json_dict("res://data/experience_settings.json", {"normal_exp_balance_multiplier": 1.25})
+	gem_collection_effects = _json_dict("res://data/gem_collection_effects.json", {"global_collection": {"batch_size": 160}})
+	character_evolution_defs = _json_dict("res://data/character_evolutions.json", {})
+	character_evolution_unlock_defs = _json_dict("res://data/character_evolution_unlocks.json", {})
 	selection_action_defs = _json_dict("res://data/selection_actions.json", {"skip_base_count": 1, "seal_base_count": 0})
 	field_drop_spawn_config = field_drop_defs.get("_config", {}).duplicate(true)
 	field_drop_defs.erase("_config")
@@ -1094,6 +1152,9 @@ func get_gem_value_multiplier(pos: Vector2 = Vector2.INF) -> float:
 	var multiplier = float(difficulty_snapshot().get("gem_value_multiplier", 1.0)) + 0.03 * float(infinite_upgrades.get("infinite_greed", 0))
 	multiplier *= rune_contract_gem_multiplier()
 	multiplier *= modifier_mult("gem_value_mult", 1.0)
+	multiplier *= normal_exp_balance_multiplier()
+	multiplier *= passive_exp_multiplier()
+	multiplier *= debug_exp_multiplier
 	if active_field_event.get("id", "") == "gem_storm":
 		multiplier *= 1.65
 	if recall_drone_active_timer > 0.0:
@@ -1108,6 +1169,35 @@ func get_gem_value_multiplier(pos: Vector2 = Vector2.INF) -> float:
 		else:
 			multiplier *= float(balance_data.get("danger_gem_multiplier", 1.3)) * danger_bonus
 	return multiplier
+
+func normal_exp_balance_multiplier() -> float:
+	return float(experience_settings.get("normal_exp_balance_multiplier", 1.25))
+
+func passive_exp_multiplier() -> float:
+	var multiplier = 1.0
+	var level = int(passives.get("resonance_magnet_core", 0))
+	if level > 0:
+		var bonuses: Array = passive_defs.get("resonance_magnet_core", {}).get("exp_bonus_by_level", [0.10, 0.18, 0.26, 0.34, 0.42])
+		var index = clampi(level - 1, 0, maxi(0, bonuses.size() - 1))
+		multiplier *= 1.0 + float(bonuses[index])
+	return multiplier
+
+func resonance_magnet_interval() -> float:
+	var level = int(passives.get("resonance_magnet_core", 0))
+	var values: Array = passive_defs.get("resonance_magnet_core", {}).get("collection_interval_by_level", [50.0, 45.0, 40.0, 35.0, 30.0])
+	if level <= 0 or values.is_empty():
+		return 0.0
+	return float(values[clampi(level - 1, 0, values.size() - 1)])
+
+func resonance_magnet_radius() -> float:
+	var level = int(passives.get("resonance_magnet_core", 0))
+	var values: Array = passive_defs.get("resonance_magnet_core", {}).get("collection_radius_by_level", [900.0, 1050.0, 1200.0, 1500.0, 1850.0])
+	if level <= 0 or values.is_empty():
+		return 0.0
+	return float(values[clampi(level - 1, 0, values.size() - 1)])
+
+func progress_saving_allowed() -> bool:
+	return is_equal_approx(debug_exp_multiplier, 1.0) or allow_debug_progress
 
 func get_combo_exp_multiplier() -> float:
 	if pickup_combo_count >= 200:
@@ -1284,15 +1374,16 @@ func _exp_needed_for_level(value: int) -> int:
 func refresh_exp_goal() -> void:
 	exp_to_next = _exp_needed_for_level(level)
 
-func update_best_score(events: Array) -> void:
+func update_best_score(events: Array, allow_save: bool = true) -> void:
 	title_badges = build_title_badges()
 	var final_score = score + int(elapsed_seconds) * 6 + kills * 9 + level * 120 + gems_collected * 2 + crystals_destroyed * 75 + chests_opened * 160 + rune_contracts.size() * 900 + _total_overclock_count() * 650
 	score = final_score
 	if score > best_score:
 		best_score = score
-		best_score_updated = true
-		SaveSystem.new().save_best_score(best_score)
-		events.append({"type": "best_score", "value": best_score})
+		if allow_save:
+			best_score_updated = true
+			SaveSystem.new().save_best_score(best_score)
+			events.append({"type": "best_score", "value": best_score})
 
 func build_title_badges() -> Array:
 	var badges: Array = []

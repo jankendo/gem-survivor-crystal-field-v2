@@ -5,6 +5,7 @@ var overclock_system = preload("res://scripts/systems/OverclockSystem.gd").new()
 var rune_contract_system = preload("res://scripts/systems/RuneContractSystem.gd").new()
 var build_synergy_system = preload("res://scripts/systems/BuildSynergySystem.gd").new()
 var equipment_grant_system = preload("res://scripts/systems/EquipmentOverCapSystem.gd").new()
+var modal_queue_system = preload("res://scripts/systems/GameModalQueueSystem.gd").new()
 
 func prepare_options(state, count: int = 3) -> Array:
 	var weighted: Array = []
@@ -136,7 +137,11 @@ func apply_option(state, option_uid: String, events: Array) -> bool:
 	else:
 		state.message = "%s Lv%d" % [String(option.get("name_ja", "")), next_level]
 	events.append({"type": "reward_select", "kind": kind, "id": id, "level": next_level, "name": option.get("name_ja", "")})
+	open_queued_level_up_if_ready(state, events)
 	return true
+
+func open_queued_level_up_if_ready(state, events: Array) -> bool:
+	return modal_queue_system.open_next_level_up(state, events, self)
 
 func _best_infinite_option(state, options: Array) -> Dictionary:
 	var priority = ["infinite_damage", "infinite_speed", "infinite_area", "infinite_magnet", "infinite_hp", "infinite_greed"]

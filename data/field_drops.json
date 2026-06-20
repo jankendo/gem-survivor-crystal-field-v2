@@ -1,10 +1,12 @@
 {
   "_config": {
+    "time_spawn_enabled": false,
+    "time_despawn_enabled": false,
     "initial_delay": 45.0,
     "roll_interval": 30.0,
-    "base_spawn_chance": 0.58,
-    "max_dynamic_per_run": 12,
-    "despawn_seconds": 180.0,
+    "base_spawn_chance": 0.0,
+    "max_dynamic_per_run": 0,
+    "despawn_seconds": 0.0,
     "spawn_log_enabled": false,
     "spawn_log_path": "user://dynamic_field_drops.csv"
   },

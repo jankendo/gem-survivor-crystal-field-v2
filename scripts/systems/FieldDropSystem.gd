@@ -7,6 +7,8 @@ const ProjectileScript = preload("res://scripts/core/Projectile.gd")
 var evolution_system = preload("res://scripts/systems/EvolutionSystem.gd").new()
 var overclock_system = preload("res://scripts/systems/OverclockSystem.gd").new()
 var core_choice_system = preload("res://scripts/systems/CorePickupChoiceSystem.gd").new()
+var global_collection_system = preload("res://scripts/systems/GlobalGemCollectionSystem.gd").new()
+var character_evolution_system = preload("res://scripts/systems/CharacterEvolutionSystem.gd").new()
 
 func process(state, delta: float, events: Array) -> void:
 	for drop in state.field_drops:
@@ -37,7 +39,7 @@ func _collect_drop(state, drop: Dictionary, events: Array) -> void:
 		"heal_ore":
 			message = _apply_heal_ore(state)
 		"magnet_ore":
-			message = _apply_magnet_ore(state)
+			message = _apply_magnet_ore(state, events)
 		"crystal_cache":
 			message = _apply_crystal_cache(state, drop.get("position", state.player_position), events)
 		"skip_charge":
@@ -82,6 +84,8 @@ func _apply_passive_core(state) -> String:
 	}, events, "passive")
 
 func _apply_evolution_core(state, events: Array) -> String:
+	if character_evolution_system.apply_evolution(state, events, "evolution_core"):
+		return "進化核！ %sへ進化" % state.character_evolution_name
 	if evolution_system.apply_first_available_evolution(state, events):
 		return "進化核！ %sへ進化" % String(events[events.size() - 1].get("name", "進化武器"))
 	state.add_score(1200)
@@ -107,11 +111,10 @@ func _apply_heal_ore(state) -> String:
 	state.hp = mini(state.max_hp, state.hp + heal)
 	return "回復鉱石！ HP +%d" % heal
 
-func _apply_magnet_ore(state) -> String:
-	for gem in state.gems:
-		if gem.position.distance_to(state.player_position) <= 1150.0:
-			gem.attracting = true
-	return "磁力鉱石！ 周辺ジェム吸引"
+func _apply_magnet_ore(state, events: Array) -> String:
+	state.magnet_ore_collected_run += 1
+	var result = global_collection_system.collect_all(state, events, "magnet")
+	return "磁力鉱石！ 全フィールドジェム回収 %d / EXP %d" % [int(result.get("count", 0)), int(result.get("exp", 0))]
 
 func _apply_crystal_cache(state, pos: Vector2, events: Array) -> String:
 	for i in range(8):

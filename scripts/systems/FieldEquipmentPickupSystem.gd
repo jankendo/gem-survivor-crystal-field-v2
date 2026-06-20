@@ -24,6 +24,8 @@ func open_choice(state, equipment: Dictionary, events: Array) -> bool:
 	equipment["pending"] = true
 	var kind := String(equipment.get("kind", "weapon"))
 	var item_id := String(equipment.get("id", ""))
+	var owned = state.weapons if kind == "weapon" else state.passives
+	var owned_text = "既に所持中。取得するとLv+1 / " if int(owned.get(item_id, 0)) > 0 else ""
 	var option := {
 		"uid": "field_equipment:%s" % String(equipment.get("runtime_id", item_id)),
 		"kind": kind,
@@ -31,7 +33,7 @@ func open_choice(state, equipment: Dictionary, events: Array) -> bool:
 		"id": item_id,
 		"name_ja": String(equipment.get("name_ja", item_id)),
 		"next_level": int((state.weapons if kind == "weapon" else state.passives).get(item_id, 0)) + 1,
-		"description_ja": "%s。通常5枠を超えていても取得できます" % String(equipment.get("reason_ja", "フィールド報酬")),
+		"description_ja": "%s%s。通常5枠を超えていても取得できます" % [owned_text, String(equipment.get("reason_ja", "フィールド報酬"))],
 		"type_label": "フィールド武器" if kind == "weapon" else "フィールドパッシブ",
 		"type_color": "weapon" if kind == "weapon" else "passive",
 		"evolution_hint": "マップ配置の具体報酬 / 取得しない選択可"

@@ -6,6 +6,7 @@ const CurrencySystemScript = preload("res://scripts/systems/CurrencySystem.gd")
 const UnlockSystemScript = preload("res://scripts/systems/UnlockSystem.gd")
 const CurrencySinkSystemScript = preload("res://scripts/systems/CurrencySinkSystem.gd")
 const ProgressTrackerSystemScript = preload("res://scripts/systems/ProgressTrackerSystem.gd")
+const CharacterEvolutionSystemScript = preload("res://scripts/systems/CharacterEvolutionSystem.gd")
 
 var characters: Dictionary = {}
 var unlocks: Dictionary = {}
@@ -15,9 +16,12 @@ var mastery: Dictionary = {}
 var blessings: Dictionary = {}
 var collection: Dictionary = {}
 var field_help: Dictionary = {}
+var character_evolutions: Dictionary = {}
+var character_evolution_unlocks: Dictionary = {}
 var unlock_system = UnlockSystemScript.new()
 var currency_sink_system = CurrencySinkSystemScript.new()
 var progress_tracker = ProgressTrackerSystemScript.new()
+var character_evolution_system = CharacterEvolutionSystemScript.new()
 
 func _init() -> void:
 	reload()
@@ -31,6 +35,8 @@ func reload() -> void:
 	blessings = _json_dict("res://data/blessings.json", {})
 	collection = _json_dict("res://data/collection.json", {})
 	field_help = _json_dict("res://data/field_help.json", {})
+	character_evolutions = _json_dict("res://data/character_evolutions.json", {})
+	character_evolution_unlocks = _json_dict("res://data/character_evolution_unlocks.json", {})
 
 func character_ids() -> Array:
 	return characters.keys()
@@ -139,6 +145,7 @@ func update_after_run(save: SaveSystem, summary: Dictionary) -> Dictionary:
 	var unlocked_items = unlock_system.update_after_run(save_data)
 	var unlocked = _unlock_condition_characters(save_data)
 	var mastery_result = _update_mastery(save_data, character_id, summary)
+	character_evolution_system.update_after_run(save_data, summary)
 	_discover_from_summary(save_data, summary)
 	var progress_after := _progress_snapshot(save_data)
 	var progress_deltas := _progress_deltas(progress_before, progress_after)
@@ -320,6 +327,9 @@ func _update_stats(save_data: Dictionary, summary: Dictionary) -> void:
 	stats["field_drops_collected"] = int(stats.get("field_drops_collected", 0)) + int(summary.get("field_drops_collected", 0))
 	stats["field_gimmicks_triggered"] = int(stats.get("field_gimmicks_triggered", 0)) + int(summary.get("field_gimmicks_triggered", 0))
 	stats["field_gimmicks_used"] = int(stats.get("field_gimmicks_used", 0)) + int(summary.get("field_gimmicks_triggered", 0))
+	stats["total_gems_collected"] = int(stats.get("total_gems_collected", 0)) + int(summary.get("gems_collected", 0))
+	stats["magnet_ore_collected"] = int(stats.get("magnet_ore_collected", 0)) + int(summary.get("magnet_ore_collected", 0))
+	stats["global_gem_collections"] = int(stats.get("global_gem_collections", 0)) + int(summary.get("global_gem_collections", 0))
 	stats["bosses_killed"] = int(stats.get("bosses_killed", 0)) + int(summary.get("boss_defeats", 0))
 	stats["evolution_count"] = int(stats.get("evolution_count", 0)) + int(summary.get("evolved_weapon_count", 0))
 	stats["overclock_count"] = int(stats.get("overclock_count", 0)) + int(summary.get("overclock_count", 0))
@@ -520,6 +530,8 @@ func _condition_met(save_data: Dictionary, condition: Dictionary) -> bool:
 			return int(stats.get("total_crystals", 0)) >= int(condition.get("count", condition.get("value", 0)))
 		"field_drop_count":
 			return int(stats.get("field_drops_collected", 0)) >= int(condition.get("count", condition.get("value", 0)))
+		"total_gems_collected":
+			return int(stats.get("total_gems_collected", 0)) >= int(condition.get("count", condition.get("value", 0)))
 		"gimmick_count":
 			return int(stats.get("field_gimmicks_triggered", 0)) >= int(condition.get("count", condition.get("value", 0)))
 		"secret_void_mapper":

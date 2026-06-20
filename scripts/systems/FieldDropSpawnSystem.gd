@@ -4,9 +4,10 @@ class_name FieldDropSpawnSystem
 func process(state, delta: float, events: Array) -> void:
 	state.dynamic_drop_rate_timer = maxf(0.0, state.dynamic_drop_rate_timer - delta)
 	state.rare_drop_bonus_timer = maxf(0.0, state.rare_drop_bonus_timer - delta)
-	_expire_old_drops(state, events)
 	var config: Dictionary = state.field_drop_spawn_config
 	if config.is_empty():
+		return
+	if not bool(config.get("time_spawn_enabled", false)):
 		return
 	if state.next_dynamic_drop_time <= 0.0:
 		state.next_dynamic_drop_time = float(config.get("initial_delay", 45.0))
@@ -53,7 +54,6 @@ func _choose_drop(state) -> Dictionary:
 func _spawn_drop(state, id: String, candidate: Dictionary, events: Array) -> Dictionary:
 	var def: Dictionary = candidate.get("def", state.field_drop_defs.get(id, {}))
 	var pos = _spawn_position(state, def)
-	var despawn_seconds = float(state.field_drop_spawn_config.get("despawn_seconds", 180.0))
 	var distance = pos.distance_to(state.player_position)
 	var drop = {
 		"id": id,
@@ -66,8 +66,8 @@ func _spawn_drop(state, id: String, candidate: Dictionary, events: Array) -> Dic
 		"priority": int(def.get("priority", 9)),
 		"color": def.get("color", [1.0, 1.0, 1.0]),
 		"dynamic": true,
+		"persistent": true,
 		"spawn_time": state.elapsed_seconds,
-		"despawn_time": state.elapsed_seconds + despawn_seconds,
 		"spawn_distance": distance,
 		"spawn_in_danger": state.is_position_in_danger_zone(pos)
 	}
@@ -84,7 +84,7 @@ func _spawn_drop(state, id: String, candidate: Dictionary, events: Array) -> Dic
 		"distance_from_player": distance,
 		"biome": biome,
 		"reason": reason,
-		"despawn_time": drop["despawn_time"]
+		"despawn_time": 0.0
 	}
 	state.dynamic_drop_log.append(log_row)
 	_append_log_if_enabled(state, log_row)
@@ -96,7 +96,7 @@ func _spawn_drop(state, id: String, candidate: Dictionary, events: Array) -> Dic
 		"distance": distance,
 		"biome": biome,
 		"reason": reason,
-		"despawn_time": drop["despawn_time"]
+		"despawn_time": 0.0
 	})
 	return drop
 
@@ -126,6 +126,8 @@ func _spawn_position(state, def: Dictionary) -> Vector2:
 	), 22.0, state.player_position)
 
 func _expire_old_drops(state, events: Array) -> void:
+	if not bool(state.field_drop_spawn_config.get("time_despawn_enabled", false)):
+		return
 	for drop in state.field_drops:
 		if not bool(drop.get("dynamic", false)) or bool(drop.get("collected", false)):
 			continue

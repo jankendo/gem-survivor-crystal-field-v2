@@ -2,6 +2,52 @@
 
 Godot 4.2 + GDScript製のWindows/iOS向けサバイバーアクションです。内部フォルダ名とexe名は既存配布互換のため`ChronoMergeTactics`のままです。iOSはGitHub Actionsで未署名IPAを生成します。
 
+## 2026-06-20 ショップ再抽選・全ジェム回収・キャラクター進化
+
+今回の更新では、Endless本編、Windows操作、iOSタッチ操作、Safe Play Area、完全無音仕様を維持したまま、ランごとの変化量と回収テンポを強化しました。
+
+### ショップ再抽選
+
+クリスタルショップ上部に「おすすめ商品」を4枠追加しました。永久カタログは従来どおり残り、おすすめ枠だけを再抽選できます。ショップ周期はラン終了で進み、現実時間、デイリー、ウィークリーでは更新しません。価格は`data/shop_reroll.json`で管理し、初回無料、以後`50 / 100 / 200 / 400`、周期内最大8回です。RNGは`RunRng.gd`の`shop_featured`ストリームを使い、`shop_save_seed + shop_cycle_id + shop_reroll_count`で再現します。再抽選後は候補、回数、通貨を即保存するため、再起動による無料候補変更はできません。
+
+### 経験値とデバッグ倍率
+
+通常プレイのジェム経験値は`data/experience_settings.json`の`normal_exp_balance_multiplier=1.25`で、従来より25%増えます。設定画面の「開発者」カテゴリに経験値倍率`0.25x / 0.5x / 1.0x / 1.5x / 2.0x / 3.0x / 5.0x / 10.0x / 20.0x`を追加しました。1.0x以外ではHUDに`テストEXP`を表示し、保存許可OFFの初期状態では通貨、解放、実績、最高記録を恒久保存しません。リザルト確認とテストログは可能です。
+
+### フィールド装備・永続ドロップ
+
+フィールド武器/パッシブはラン開始時にランダム抽選され、同一seedでは内容と位置が再現されます。武器内容、パッシブ内容、位置、部屋、レアリティのRNGストリームを分け、未解放、ロードアウトOFF、ラン封印、無効データは配置しません。配置数は`data/field_equipment_rewards.json`の`weapon_pickups_per_run`、`passive_pickups_per_run`、`max_total_equipment_pickups`で管理します。
+
+通常フィールドドロップはラン生成時または明確な報酬発生時にだけ配置され、取得まで消えません。時間経過だけによる出現、再出現、180秒消滅、期限切れ、移動は無効です。取得済みドロップも時間では復活しません。イベント、ボス、宝箱、破壊壁などの報酬は出現してよいですが、出現後は取得まで残ります。
+
+### 共鳴磁核・磁石・ドローン
+
+新パッシブ`resonance_magnet_core`（共鳴磁核）を追加しました。Lv1から経験値+10%、Lv5で+42%になり、50秒から30秒間隔で周辺ジェムを自動回収します。最大Lvでも全マップ回収ではなく、全フィールド回収は磁力鉱石と回収ドローンだけです。
+
+磁力鉱石と回収ドローンは`GemRegistry`、`GemCollectionBatchProcessor`、`GlobalGemCollectionSystem`を共有し、フィールド上の全アクティブジェムを集計回収します。個別Tween、個別Label、個別通知は作らず、160件単位のバッチ集計、代表テキスト、通知1件で処理します。大量EXPで複数レベルアップした場合は`GameModalQueueSystem`で選択画面を順番に開きます。
+
+### キャラクター進化
+
+全キャラクターに1ラン最大1回の進化データを追加しました。進化は別キャラクターではなく、選択中キャラのラン内強化です。Lv20以上、10分以上、キャラ別固有条件、進化核またはボス報酬で発動し、既存特性を強化し、副特性と進化画像を追加します。進化解放、進捗、回数、最速進化時刻は古いセーブを壊さず移行されます。キャラクター選択、HUD、ポーズ、リザルトで進化状態を確認できます。
+
+### テストとQA
+
+追加検証:
+
+```powershell
+& $GODOT --headless --path $PROJECT --script "res://tests/test_runner.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_shop_reroll_flow.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_exp_multiplier_5min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_field_drop_persistence_30min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_random_field_equipment_15min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_resonance_magnet_15min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_global_magnet_stress.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_global_drone_15min.gd"
+& $GODOT --headless --path $PROJECT --script "res://tests/auto_play_character_evolution_20min.gd"
+```
+
+CI artifactsには`Shop-Reroll-QA`、`Experience-Balance-Report`、`Persistent-Drop-QA`、`Global-Gem-Collection-QA`、`Character-Evolution-QA`が追加されます。iOS unsigned IPAは従来どおり未署名で、AltStore、Sideloadly、Xcodeなどで別途署名が必要です。
+
 ## フィールド装備取得修正・無音化・画像生成アセット・メニューUX改修メモ
 
 2026年6月16日に、Apple公式の[Layout](https://developer.apple.com/design/human-interface-guidelines/layout)、[Designing for games](https://developer.apple.com/design/human-interface-guidelines/designing-for-games)、[Game controls](https://developer.apple.com/design/human-interface-guidelines/game-controls)、[Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility)と、Godot 4.2公式の[GridContainer](https://docs.godotengine.org/en/4.2/classes/class_gridcontainer.html)、[ScrollContainer](https://docs.godotengine.org/en/4.2/classes/class_scrollcontainer.html)、[Pausing games](https://docs.godotengine.org/en/4.2/tutorials/scripting/pausing_games.html)、[AudioStreamPlayer](https://docs.godotengine.org/en/4.2/classes/class_audiostreamplayer.html)、[Importing images](https://docs.godotengine.org/en/4.2/tutorials/assets_pipeline/importing_images.html)を確認しました。
@@ -858,6 +904,11 @@ Artifacts:
 | `Safe-Play-Area-QA` | 左右黒帯、Safe Play Area、黒帯入力拒否、iOS軽量既定値のQA |
 | `Exploration-Balance-Report` | 探索報酬、遠方/危険部屋、イベント報酬、初期位置滞在との差分設計 |
 | `Candidate-Pool-QA` | スキップ/封印、ロードアウトOFF、コア選択、5枠上限とフィールド上限超過のQA |
+| `Shop-Reroll-QA` | おすすめ枠数、再抽選価格、周期、RNG/保存方式 |
+| `Experience-Balance-Report` | 通常EXP補正、デバッグEXP倍率、保存制限、目標レベル帯 |
+| `Persistent-Drop-QA` | 時間出現/消滅OFF、永続ドロップ対象、明示報酬の永続化 |
+| `Global-Gem-Collection-QA` | 全ジェム回収バッチ、磁石/ドローン/共鳴磁核の共有処理 |
+| `Character-Evolution-QA` | 全キャラ進化データ、進化画像、保存移行、1ラン1回制限 |
 
 GitHubの`Actions`から対象runを開き、画面下部の`Artifacts`から取得します。
 

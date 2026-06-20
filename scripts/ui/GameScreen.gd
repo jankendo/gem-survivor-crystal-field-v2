@@ -23,6 +23,8 @@ const FieldEquipmentRewardSystemScript = preload("res://scripts/systems/FieldEqu
 const FieldGimmickSystemScript = preload("res://scripts/systems/FieldGimmickSystem.gd")
 const UiSafeAreaSystemScript = preload("res://scripts/systems/UiSafeAreaSystem.gd")
 const FieldDropSpawnSystemScript = preload("res://scripts/systems/FieldDropSpawnSystem.gd")
+const ResonanceMagnetSystemScript = preload("res://scripts/systems/ResonanceMagnetSystem.gd")
+const CharacterEvolutionSystemScript = preload("res://scripts/systems/CharacterEvolutionSystem.gd")
 const FieldHelpSystemScript = preload("res://scripts/systems/FieldHelpSystem.gd")
 const GoalHintSystemScript = preload("res://scripts/systems/GoalHintSystem.gd")
 const ExplorationMasterySystemScript = preload("res://scripts/systems/ExplorationMasterySystem.gd")
@@ -84,6 +86,8 @@ var field_equipment_reward_system
 var field_gimmick_system
 var ui_safe_area_system
 var field_drop_spawn_system
+var resonance_magnet_system
+var character_evolution_system
 var field_help_system
 var goal_hint_system
 var exploration_mastery_system
@@ -205,6 +209,8 @@ func _ready() -> void:
 	field_gimmick_system = FieldGimmickSystemScript.new()
 	ui_safe_area_system = UiSafeAreaSystemScript.new()
 	field_drop_spawn_system = FieldDropSpawnSystemScript.new()
+	resonance_magnet_system = ResonanceMagnetSystemScript.new()
+	character_evolution_system = CharacterEvolutionSystemScript.new()
 	field_help_system = FieldHelpSystemScript.new()
 	goal_hint_system = GoalHintSystemScript.new()
 	exploration_mastery_system = ExplorationMasterySystemScript.new()
@@ -276,6 +282,15 @@ func _ready() -> void:
 		state.background_particles.resize(state.max_background_particles())
 	state.effect_density = String(settings.get("effect_density", "normal"))
 	meta_system.apply_to_state(state, initial_character_id, initial_blessing_id, save_data)
+	state.debug_exp_multiplier = clampf(float(settings.get("debug_exp_multiplier", 1.0)), 0.25, 20.0)
+	state.allow_debug_progress = bool(settings.get("allow_debug_progress", false))
+	var unlocked_evolutions: Dictionary = save_data.get("character_evolutions_unlocked", {"noah": true})
+	state.character_evolution_unlocked_ids = []
+	for id in unlocked_evolutions.keys():
+		if bool(unlocked_evolutions[id]):
+			state.character_evolution_unlocked_ids.append(String(id))
+	if state.selected_character_id == "noah" and not state.character_evolution_unlocked_ids.has("noah"):
+		state.character_evolution_unlocked_ids.append("noah")
 	field_equipment_reward_system.sanitize_for_state(state)
 	selection_action_system.begin_run(state, save_data)
 	state.auto_infinite_enabled = initial_auto_infinite_enabled
@@ -346,6 +361,8 @@ func _process(delta: float) -> void:
 	field_gimmick_system.process(state, sim_delta, events)
 	weapon_system.process(state, sim_delta, events)
 	pickup_system.process_gems(state, sim_delta, events)
+	resonance_magnet_system.process(state, sim_delta, events)
+	character_evolution_system.process(state, events)
 	field_drop_system.process(state, sim_delta, events)
 	if not state.level_up_pending:
 		field_equipment_pickup_system.process(state, sim_delta, events)
@@ -782,7 +799,16 @@ func _handle_events(events: Array) -> void:
 				message_label.text = "回収ドローン READY [R]"
 			"recall_drone":
 				_play_sfx("gem")
-				message_label.text = "回収ドローン発動！"
+				message_label.text = "回収ドローン発動！ 全ジェム %d / EXP %d" % [int(event.get("count", 0)), int(event.get("exp", 0))]
+			"global_gem_collection":
+				if int(event.get("count", 0)) > 0:
+					message_label.text = "全フィールドジェム回収：%d / EXP %d" % [int(event.get("count", 0)), int(event.get("exp", 0))]
+			"resonance_magnet_collect":
+				message_label.text = "共鳴磁核：周辺ジェム %d 回収" % int(event.get("count", 0))
+			"character_evolution_ready":
+				message_label.text = "キャラ進化条件達成：進化核を探そう"
+			"character_evolution":
+				message_label.text = "キャラ進化：%s" % String(event.get("name", "進化"))
 			"best_score":
 				_play_sfx("bestscore")
 			"build_synergy":
@@ -869,6 +895,12 @@ func _refresh() -> void:
 	]
 	if input_mode.is_touch_mode():
 		hud_text += "　武器 %s　パッシブ %s" % [state.equipment_count_label("weapon"), state.equipment_count_label("passive")]
+	if not is_equal_approx(state.debug_exp_multiplier, 1.0):
+		hud_text += "　テストEXP：%.1fx" % state.debug_exp_multiplier
+	if int(state.passives.get("resonance_magnet_core", 0)) > 0 and state.resonance_magnet_timer > 0.0:
+		hud_text += "　共鳴 %.0fs" % state.resonance_magnet_timer
+	if state.character_evolution_available:
+		hud_text += "　キャラ進化可"
 	_set_label_text(hud_label, hud_text)
 	var equipment_signature := "%s:%s:%s" % [str(state.weapons), str(state.passives), str(state.evolved_weapons)]
 	if ui_dirty_flag_system.should_update("equipment", equipment_signature):
@@ -1031,11 +1063,13 @@ func _on_reward_chosen(reward_id: String) -> void:
 	var events: Array = []
 	if not state.pending_core_choice.is_empty():
 		if core_pickup_choice_system.accept_current(state, reward_id, events):
+			level_up_system.open_queued_level_up_if_ready(state, events)
 			_handle_events(events)
 			_refresh()
 		return
 	if not state.pending_field_equipment_choice.is_empty():
 		if field_equipment_pickup_system.accept_current(state, reward_id, events):
+			level_up_system.open_queued_level_up_if_ready(state, events)
 			_handle_events(events)
 			_refresh()
 		return
@@ -1099,11 +1133,13 @@ func _on_touch_skip() -> void:
 	var events: Array = []
 	if not state.pending_core_choice.is_empty():
 		if core_pickup_choice_system.decline_current(state, events):
+			level_up_system.open_queued_level_up_if_ready(state, events)
 			_handle_events(events)
 			_refresh()
 		return
 	if not state.pending_field_equipment_choice.is_empty():
 		if field_equipment_pickup_system.decline_current(state, events):
+			level_up_system.open_queued_level_up_if_ready(state, events)
 			_handle_events(events)
 			_refresh()
 		return
@@ -1112,6 +1148,7 @@ func _on_touch_skip() -> void:
 			_on_reward_chosen(String(option.get("uid", "")))
 			return
 	if selection_action_system.skip_current(state, events):
+		level_up_system.open_queued_level_up_if_ready(state, events)
 		_handle_events(events)
 		touch_control_system.feedback_light()
 		_refresh()
@@ -1184,7 +1221,7 @@ func _release_removed_effects(type_id: String, previous: Array, current: Array) 
 
 func _finish_game(events: Array) -> void:
 	pending_finish = true
-	state.update_best_score(events)
+	state.update_best_score(events, state.progress_saving_allowed())
 	balance_log_system.flush(state)
 	_handle_events(events)
 	_play_sfx("gameover")
@@ -1247,6 +1284,20 @@ func _summary() -> Dictionary:
 		"shock_explosions": state.shock_explosions,
 		"field_drops_collected": state.field_drops_collected,
 		"field_equipment_collected": state.field_equipment_collected,
+		"global_gem_collections": state.global_gem_collections,
+		"global_gem_collection_batches": state.global_gem_collection_batches,
+		"global_gem_collection_exp": state.global_gem_collection_exp,
+		"gems_collected_by_magnet": state.gems_collected_by_magnet,
+		"gems_collected_by_drone": state.gems_collected_by_drone,
+		"gems_collected_by_passive": state.gems_collected_by_passive,
+		"magnet_ore_collected": state.magnet_ore_collected_run,
+		"character_evolved": state.character_evolved,
+		"character_evolution_name": state.character_evolution_name,
+		"character_evolution_time": state.character_evolution_time,
+		"character_evolution_contribution": state.character_evolution_contribution,
+		"debug_exp_multiplier": state.debug_exp_multiplier,
+		"allow_debug_progress": state.allow_debug_progress,
+		"debug_progress_blocked": not state.progress_saving_allowed(),
 		"reward_room_pickups": state.reward_room_pickups,
 		"field_over_cap_pickups": state.field_over_cap_pickups,
 		"selection_skip_rewards": state.selection_skip_rewards,
@@ -1921,6 +1972,8 @@ func _pause_summary_text() -> String:
 		"祝福：%s" % String(blessing_data.get("name_ja", state.selected_blessing_id)),
 		String(blessing_data.get("effect_description_ja", blessing_data.get("description_ja", ""))),
 		"進化可能：%d武器" % evolution_ready,
+		"キャラ進化：%s" % (state.character_evolution_name if state.character_evolved else state.character_evolution_progress_text),
+		"全ジェム回収：%d回 / 磁石%d / ドローン%d" % [state.global_gem_collections, state.gems_collected_by_magnet, state.gems_collected_by_drone],
 		"",
 		"おすすめ目標",
 		goal_text,
