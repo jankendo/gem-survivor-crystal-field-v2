@@ -182,6 +182,7 @@ func show_summary(summary: Dictionary) -> void:
 		"発動ビルド相性：%s" % _join_or_none(summary.get("synergy_history", summary.get("active_synergies", []))),
 		"探索ドロップ：%d個 / ギミック発動：%d回" % [int(summary.get("field_drops_collected", 0)), int(summary.get("field_gimmicks_triggered", 0))],
 		"動的ドロップ出現：%d個" % int(summary.get("dynamic_drops_spawned", 0)),
+		"ドロップ復活：%d個" % int(summary.get("field_drop_respawns_spawned", 0)),
 		"探索ランク：%s / 探索スコア：%d" % [String(summary.get("exploration_rank", "D")), int(summary.get("exploration_score", 0))],
 		"探索報酬：+%d%% / チェーン貨ボーナス：+%d" % [int(round(float(summary.get("exploration_currency_bonus", 0.0)) * 100.0)), int(summary.get("exploration_chain_currency_bonus", 0))],
 		"最大探索チェーン：x%d / 遠方回収：%d / 危険地帯回収：%d" % [int(summary.get("exploration_chain_max", 0)), int(summary.get("exploration_far_pickups", 0)), int(summary.get("exploration_danger_pickups", 0))],
@@ -190,6 +191,20 @@ func show_summary(summary: Dictionary) -> void:
 		"契約：%s" % _contract_label(summary.get("rune_contracts", [])),
 		"フィールドイベント：%d回" % int(summary.get("field_event_count", 0)),
 		"回収ドローン：%d回" % int(summary.get("recall_drone_activations", 0)),
+		"選択再抽選：%d回 / スキップ%d / 封印%d" % [int(summary.get("selection_rerolls_used", 0)), int(summary.get("selection_skip_rewards", 0)), int(summary.get("selection_seals_used", 0))],
+		"キャラ進化：%s" % (String(summary.get("character_evolution_name", "")) if bool(summary.get("character_evolved", false)) else "未発動"),
+		"全ジェム回収：%d回 / 磁石%d / ドローン%d / EXP%s" % [
+			int(summary.get("global_gem_collections", 0)),
+			int(summary.get("gems_collected_by_magnet", 0)),
+			int(summary.get("gems_collected_by_drone", 0)),
+			JaText.format_int(int(summary.get("global_gem_collection_exp", 0)))
+		],
+		"全回収検証：回収%d / 不足%d / 重複%d / %.0fms" % [
+			int(summary.get("global_gem_collection_last_metrics", {}).get("collected", 0)),
+			int(summary.get("global_gem_collection_last_metrics", {}).get("missing", 0)),
+			int(summary.get("global_gem_collection_last_metrics", {}).get("duplicate_targets", 0)),
+			float(summary.get("global_gem_collection_last_metrics", {}).get("duration_ms", 0.0))
+		],
 		"回収ジェム：%s" % JaText.format_int(int(summary.get("gems_collected", 0))),
 		"ジェムEXP：%s" % JaText.format_int(int(summary.get("gem_exp_collected", 0))),
 		"最大コンボ：%s" % JaText.format_int(int(summary.get("max_combo", 0))),

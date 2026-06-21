@@ -87,6 +87,7 @@ func _draw() -> void:
 	_draw_field_drops()
 	_draw_field_equipment()
 	_draw_gems()
+	_draw_gem_ring_effects()
 	_draw_chests()
 	_draw_bombs()
 	_draw_projectiles()
@@ -405,6 +406,35 @@ func _draw_gems() -> void:
 		var color = Color(0.35, 0.86, 1.0) if gem.value < 12 else Color(0.75, 0.42, 1.0)
 		draw_polygon(PackedVector2Array([pos + Vector2(0, -8), pos + Vector2(7, 0), pos + Vector2(0, 8), pos + Vector2(-7, 0)]), PackedColorArray([Color.WHITE, color, color.darkened(0.1), color]))
 		draw_circle(pos, 12.0, Color(color.r, color.g, color.b, 0.12))
+
+func _draw_gem_ring_effects() -> void:
+	for effect in state.gem_ring_effects:
+		var duration = maxf(0.1, float(effect.get("duration", 0.78)))
+		var t = clampf((state.elapsed_seconds - float(effect.get("start_time", state.elapsed_seconds))) / duration, 0.0, 1.0)
+		var collapse_start = clampf(float(effect.get("collapse_start", 0.48)), 0.05, 0.90)
+		var collapse_t = clampf((t - collapse_start) / maxf(0.01, 1.0 - collapse_start), 0.0, 1.0)
+		var ring_count = maxi(1, int(effect.get("ring_count", 1)))
+		var proxy_count = maxi(1, int(effect.get("proxy_nodes", 1)))
+		var center = world_to_screen(state.player_position)
+		var source = String(effect.get("source", "magnet"))
+		var color = Color(0.42, 0.95, 1.0)
+		if source == "drone":
+			color = Color(0.74, 0.58, 1.0)
+		elif source == "resonance_magnet_core":
+			color = Color(0.58, 1.0, 0.82)
+		var alpha = 0.90 * (1.0 - maxf(0.0, t - 0.72) / 0.28)
+		for ring in range(ring_count):
+			var radius = lerpf(58.0 + float(ring) * 28.0, 6.0 + float(ring) * 2.0, collapse_t)
+			draw_arc(center, radius, 0.0, TAU, 48, Color(color.r, color.g, color.b, alpha * 0.30), 2.0)
+		var per_ring = maxi(1, int(ceil(float(proxy_count) / float(ring_count))))
+		for i in range(proxy_count):
+			var ring_index = int(floor(float(i) / float(per_ring)))
+			var ring_slot = i % per_ring
+			var radius = lerpf(58.0 + float(ring_index) * 28.0, 5.0, collapse_t)
+			var angle = TAU * float(ring_slot) / float(per_ring) + state.elapsed_seconds * 5.0 + float(ring_index) * 0.72
+			var pos = center + Vector2(cos(angle), sin(angle)) * radius
+			var size = lerpf(5.5, 2.0, collapse_t)
+			draw_polygon(PackedVector2Array([pos + Vector2(0, -size), pos + Vector2(size, 0), pos + Vector2(0, size), pos + Vector2(-size, 0)]), PackedColorArray([Color.WHITE, Color(color.r, color.g, color.b, alpha), Color(color.r, color.g, color.b, alpha * 0.85), Color(color.r, color.g, color.b, alpha)]))
 
 func _draw_chests() -> void:
 	for chest in state.chests:

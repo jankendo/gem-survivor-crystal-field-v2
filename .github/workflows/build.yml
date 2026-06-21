@@ -279,10 +279,10 @@ jobs:
           path: test-output/field_equipment_qa.md
           if-no-files-found: error
 
-      - name: Upload shop reroll QA
+      - name: Upload selection reroll QA
         uses: actions/upload-artifact@v4
         with:
-          name: Shop-Reroll-QA
+          name: Selection-Reroll-QA
           path: test-output/shop_reroll_qa.md
           if-no-files-found: error
 

@@ -177,6 +177,9 @@ var global_gem_collections: int = 0
 var global_gem_collection_batches: int = 0
 var global_gem_collection_exp: int = 0
 var global_gem_collection_last_count: int = 0
+var global_gem_collection_last_metrics: Dictionary = {}
+var global_gem_collection_metrics: Array = []
+var gem_ring_effects: Array = []
 var gems_collected_by_magnet: int = 0
 var gems_collected_by_drone: int = 0
 var gems_collected_by_passive: int = 0
@@ -253,6 +256,10 @@ var dynamic_drops_spawned: int = 0
 var dynamic_drop_counts: Dictionary = {}
 var dynamic_drop_last_spawn: Dictionary = {}
 var dynamic_drop_log: Array = []
+var field_drop_respawn_queue: Array = []
+var field_drop_spawn_counts: Dictionary = {}
+var field_drop_respawns_spawned: int = 0
+var field_drop_respawn_check_timer: float = 0.0
 var dynamic_drop_rate_multiplier: float = 1.0
 var dynamic_drop_rate_timer: float = 0.0
 var rare_drop_multiplier: float = 1.0
@@ -270,6 +277,9 @@ var field_event_successes: int = 0
 var field_event_failures: int = 0
 var selection_skip_max: int = 1
 var selection_skip_remaining: int = 1
+var selection_reroll_max: int = 1
+var selection_reroll_remaining: int = 1
+var selection_rerolls_used: int = 0
 var selection_seal_max: int = 0
 var selection_seal_remaining: int = 0
 var selection_skip_rewards: int = 0
@@ -460,6 +470,9 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	global_gem_collection_batches = 0
 	global_gem_collection_exp = 0
 	global_gem_collection_last_count = 0
+	global_gem_collection_last_metrics = {}
+	global_gem_collection_metrics = []
+	gem_ring_effects = []
 	gems_collected_by_magnet = 0
 	gems_collected_by_drone = 0
 	gems_collected_by_passive = 0
@@ -521,6 +534,10 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	dynamic_drop_counts = {}
 	dynamic_drop_last_spawn = {}
 	dynamic_drop_log = []
+	field_drop_respawn_queue = []
+	field_drop_spawn_counts = {}
+	field_drop_respawns_spawned = 0
+	field_drop_respawn_check_timer = 0.0
 	dynamic_drop_rate_multiplier = 1.0
 	dynamic_drop_rate_timer = 0.0
 	rare_drop_multiplier = 1.0
@@ -538,6 +555,9 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	field_event_failures = 0
 	selection_skip_max = int(selection_action_defs.get("skip_base_count", 1))
 	selection_skip_remaining = selection_skip_max
+	selection_reroll_max = int(selection_action_defs.get("reroll_base_count", 1))
+	selection_reroll_remaining = selection_reroll_max
+	selection_rerolls_used = 0
 	selection_seal_max = int(selection_action_defs.get("seal_base_count", 0))
 	selection_seal_remaining = selection_seal_max
 	selection_skip_rewards = 0
@@ -583,6 +603,7 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	evolved_magic_bolt = false
 	last_evolution_seconds = -999.0
 	_build_crystal_field()
+	_rebuild_field_drop_spawn_counts()
 	update_current_biome()
 	_build_background_particles()
 
@@ -645,6 +666,14 @@ func _build_crystal_field() -> void:
 	if not rooms.is_empty():
 		player_position = rooms[0].get("position", field_size * 0.5)
 		camera_position = player_position
+
+func _rebuild_field_drop_spawn_counts() -> void:
+	field_drop_spawn_counts = {}
+	for drop in field_drops:
+		var id = String(drop.get("id", ""))
+		if id == "":
+			continue
+		field_drop_spawn_counts[id] = int(field_drop_spawn_counts.get(id, 0)) + 1
 
 func is_walkable_position(position: Vector2, radius: float = 0.0) -> bool:
 	return tile_collision_system.is_walkable(map_data, position, radius)
@@ -1149,12 +1178,11 @@ func get_score_multiplier(pos: Vector2 = Vector2.INF) -> float:
 	return multiplier
 
 func get_gem_value_multiplier(pos: Vector2 = Vector2.INF) -> float:
-	var multiplier = float(difficulty_snapshot().get("gem_value_multiplier", 1.0)) + 0.03 * float(infinite_upgrades.get("infinite_greed", 0))
+	var multiplier = 1.0 + 0.03 * float(infinite_upgrades.get("infinite_greed", 0))
 	multiplier *= rune_contract_gem_multiplier()
 	multiplier *= modifier_mult("gem_value_mult", 1.0)
 	multiplier *= normal_exp_balance_multiplier()
 	multiplier *= passive_exp_multiplier()
-	multiplier *= debug_exp_multiplier
 	if active_field_event.get("id", "") == "gem_storm":
 		multiplier *= 1.65
 	if recall_drone_active_timer > 0.0:
@@ -1168,7 +1196,7 @@ func get_gem_value_multiplier(pos: Vector2 = Vector2.INF) -> float:
 			multiplier *= float(balance_data.get("danger_low_hp_gem_multiplier", 1.5)) * danger_bonus
 		else:
 			multiplier *= float(balance_data.get("danger_gem_multiplier", 1.3)) * danger_bonus
-	return multiplier
+	return multiplier * debug_exp_multiplier
 
 func normal_exp_balance_multiplier() -> float:
 	return float(experience_settings.get("normal_exp_balance_multiplier", 1.25))
@@ -1213,10 +1241,7 @@ func get_combo_exp_multiplier() -> float:
 	return 1.0
 
 func get_exp_drop_multiplier() -> float:
-	var minutes = elapsed_minutes()
-	var value = 0.09 + minf(minutes, 30.0) * 0.003
-	if minutes < 3.0:
-		value = lerpf(0.24, value, clampf(minutes / 3.0, 0.0, 1.0))
+	var value = float(experience_settings.get("enemy_exp_drop_multiplier", 0.3))
 	if is_position_in_danger_zone(player_position):
 		value *= 1.12
 	if active_field_event.get("id", "") == "gem_storm":
@@ -1224,10 +1249,7 @@ func get_exp_drop_multiplier() -> float:
 	return value
 
 func should_drop_normal_exp() -> bool:
-	var minutes = elapsed_minutes()
-	var chance = 0.28 + minf(minutes, 30.0) * 0.004
-	if minutes < 3.0:
-		chance = lerpf(0.76, chance, clampf(minutes / 3.0, 0.0, 1.0))
+	var chance = float(experience_settings.get("normal_enemy_exp_drop_chance", 0.76))
 	if active_field_event.get("id", "") == "gem_storm":
 		chance += 0.16
 	if is_position_in_danger_zone(player_position):
@@ -1368,7 +1390,6 @@ func trim_runtime_arrays() -> void:
 func _exp_needed_for_level(value: int) -> int:
 	var required = 20.0 + floor(12.0 * pow(float(value), 1.55)) + floor(float(value * value) * 0.28)
 	required *= 1.0 + minf(1.00, maxf(0.0, float(value - 8)) * 0.05)
-	required *= 1.0 + maxf(0.0, elapsed_minutes() - 20.0) * 0.015
 	return maxi(8, int(round(required)))
 
 func refresh_exp_goal() -> void:

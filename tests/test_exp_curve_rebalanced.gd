@@ -15,5 +15,4 @@ func run(t) -> void:
 	var before = state._exp_needed_for_level(60)
 	state.elapsed_seconds = 1800.0
 	var after = state._exp_needed_for_level(60)
-	t.assert_true(after > before, "20min+ correction should increase required exp")
-
+	t.assert_eq(after, before, "required exp must depend only on level")

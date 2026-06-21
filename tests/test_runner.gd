@@ -26,6 +26,7 @@ func _initialize() -> void:
 		"res://tests/test_chest_pacing.gd",
 		"res://tests/test_boss_chest_spawn_limits.gd",
 		"res://tests/test_exp_curve_rebalanced.gd",
+		"res://tests/test_exp_invariants.gd",
 		"res://tests/test_overclock_system.gd",
 		"res://tests/test_field_events.gd",
 		"res://tests/test_rune_contracts.gd",

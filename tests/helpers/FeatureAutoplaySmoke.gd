@@ -2,7 +2,7 @@ extends RefCounted
 class_name FeatureAutoplaySmoke
 
 const ExpGemScript = preload("res://scripts/core/ExpGem.gd")
-const ShopRerollSystemScript = preload("res://scripts/systems/ShopRerollSystem.gd")
+const SelectionActionSystemScript = preload("res://scripts/systems/SelectionActionSystem.gd")
 const FieldDropSpawnSystemScript = preload("res://scripts/systems/FieldDropSpawnSystem.gd")
 const FieldDropSystemScript = preload("res://scripts/systems/FieldDropSystem.gd")
 const ResonanceMagnetSystemScript = preload("res://scripts/systems/ResonanceMagnetSystem.gd")
@@ -34,12 +34,12 @@ func run(kind: String) -> bool:
 	return false
 
 func _shop() -> bool:
-	var save = SaveSystem.new("user://auto_play_shop_reroll_flow.save")
-	save.save_data({"crystal_currency": 1200, "shop_save_seed": 4242})
-	var system = ShopRerollSystemScript.new()
-	var before = str(system.ensure_featured(save).get("shop_featured_items", []))
-	var result = system.reroll(save)
-	return bool(result.get("ok", false)) and before != str(save.load_data().get("shop_featured_items", []))
+	var state = SurvivorState.new()
+	state.start_new_run(0, "auto-levelup-reroll")
+	var selection = SelectionActionSystemScript.new()
+	selection.begin_run(state, {"currency_sink_levels": {"levelup_reroll_capacity": 2}, "stats": {}})
+	state.level_up_pending = true
+	return state.selection_reroll_max >= 3 and selection.consume_reroll(state, []) and state.selection_reroll_remaining == state.selection_reroll_max - 1
 
 func _exp() -> bool:
 	var state = SurvivorState.new()

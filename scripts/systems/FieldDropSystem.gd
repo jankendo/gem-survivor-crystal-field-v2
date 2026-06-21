@@ -59,6 +59,7 @@ func _collect_drop(state, drop: Dictionary, events: Array) -> void:
 		"spawn_distance": float(drop.get("spawn_distance", (drop.get("position", state.player_position) as Vector2).distance_to(state.field_size * 0.5))),
 		"in_danger": bool(drop.get("spawn_in_danger", state.is_position_in_danger_zone(drop.get("position", state.player_position))))
 	})
+	_schedule_respawn_after_pickup(state, id, drop, events)
 
 func _open_core_choice(state, drop: Dictionary, events: Array, kind: String) -> String:
 	if core_choice_system.open_choice(state, kind, drop, events):
@@ -147,3 +148,23 @@ func _drop_color(drop: Dictionary) -> Color:
 	if values.size() >= 3:
 		return Color(float(values[0]), float(values[1]), float(values[2]))
 	return Color.WHITE
+
+func _schedule_respawn_after_pickup(state, id: String, drop: Dictionary, events: Array) -> void:
+	var def: Dictionary = state.field_drop_defs.get(id, {})
+	if def.is_empty() or not bool(def.get("respawn_enabled", false)):
+		return
+	var spawned = int(state.field_drop_spawn_counts.get(id, 0))
+	if spawned >= int(def.get("max_spawned_per_run", spawned)):
+		return
+	var respawn_seconds = float(def.get("respawn_seconds", 120.0))
+	state.field_drop_respawn_queue.append({
+		"id": id,
+		"respawn_at": state.elapsed_seconds + maxf(0.1, respawn_seconds),
+		"source_position": drop.get("position", state.player_position),
+		"serial": spawned
+	})
+	events.append({
+		"type": "field_drop_respawn_scheduled",
+		"id": id,
+		"respawn_at": state.elapsed_seconds + maxf(0.1, respawn_seconds)
+	})

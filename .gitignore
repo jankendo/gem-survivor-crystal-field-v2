@@ -1,4 +1,5 @@
 .godot/
+.godot-user/
 .codex/
 builds/
 !builds/.gdignore

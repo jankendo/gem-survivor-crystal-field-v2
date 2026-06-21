@@ -16,12 +16,21 @@ func run_condition_progress(state) -> Dictionary:
 	var level_ok = state.level >= int(data.get("required_level", 20))
 	var time_ok = state.elapsed_seconds >= float(data.get("required_seconds", 600.0))
 	var unique = data.get("unique_condition", {})
+	var unique_current = _unique_condition_current(state, unique)
+	var unique_required = int(unique.get("value", 0))
 	var unique_ok = _unique_condition_met(state, unique)
 	return {
 		"complete": level_ok and time_ok and unique_ok,
 		"level_ok": level_ok,
 		"time_ok": time_ok,
 		"unique_ok": unique_ok,
+		"level_current": state.level,
+		"level_required": int(data.get("required_level", 20)),
+		"time_current": state.elapsed_seconds,
+		"time_required": float(data.get("required_seconds", 600.0)),
+		"unique_current": unique_current,
+		"unique_required": unique_required,
+		"unique_text": String(unique.get("text_ja", "固有条件")),
 		"text": "Lv%d/%d・%s/%s・%s" % [
 			state.level,
 			int(data.get("required_level", 20)),
@@ -30,6 +39,44 @@ func run_condition_progress(state) -> Dictionary:
 			String(unique.get("text_ja", "固有条件"))
 		]
 	}
+
+func run_condition_lines(state) -> Array:
+	var data = data_for(state)
+	if data.is_empty():
+		return ["進化データなし"]
+	var progress = run_condition_progress(state)
+	var lines: Array = [
+		"永久解放：%s" % ("解放済み" if state.character_evolution_unlocked_ids.has(state.selected_character_id) else "未解放"),
+		"ラン中発動：Lv%d/%d　生存%s/%s" % [
+			int(progress.get("level_current", state.level)),
+			int(progress.get("level_required", data.get("required_level", 20))),
+			_time_text(float(progress.get("time_current", state.elapsed_seconds))),
+			_time_text(float(progress.get("time_required", data.get("required_seconds", 600.0))))
+		],
+		"固有条件：%s　%d/%d" % [
+			String(progress.get("unique_text", "固有条件")),
+			int(progress.get("unique_current", 0)),
+			int(progress.get("unique_required", 0))
+		],
+		"進化前：%s" % String(data.get("base_trait_ja", "")),
+		"進化後：%s" % String(data.get("trait_upgrade_ja", ""))
+	]
+	var blockers: Array = []
+	if not state.character_evolution_unlocked_ids.has(state.selected_character_id):
+		blockers.append("永久解放が未達")
+	if not bool(progress.get("level_ok", false)):
+		blockers.append("Lv不足")
+	if not bool(progress.get("time_ok", false)):
+		blockers.append("生存時間不足")
+	if not bool(progress.get("unique_ok", false)):
+		blockers.append("固有条件不足")
+	if state.character_evolved:
+		lines.append("状態：進化済み %s" % state.character_evolution_name)
+	elif blockers.is_empty():
+		lines.append("状態：条件達成。進化核で発動")
+	else:
+		lines.append("発動できない理由：%s" % " / ".join(blockers))
+	return lines
 
 func can_evolve(state) -> bool:
 	if bool(state.character_evolved):
@@ -135,6 +182,21 @@ func _unique_condition_met(state, condition: Dictionary) -> bool:
 		"boss_defeats":
 			return state.boss_defeated_ids.size() >= int(condition.get("value", 1))
 	return true
+
+func _unique_condition_current(state, condition: Dictionary) -> int:
+	var type = String(condition.get("type", "gems_collected"))
+	match type:
+		"gems_collected":
+			return state.gems_collected
+		"kills":
+			return state.kills
+		"crystals_destroyed":
+			return state.crystals_destroyed
+		"rooms_discovered":
+			return state.rooms_discovered
+		"boss_defeats":
+			return state.boss_defeated_ids.size()
+	return int(condition.get("value", 0))
 
 func _time_text(seconds: float) -> String:
 	var total = int(floor(seconds))

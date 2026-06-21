@@ -842,6 +842,8 @@ func _handle_events(events: Array) -> void:
 				message_label.text = "取得できないフィールド装備をスコアに変換"
 			"selection_skip":
 				message_label.text = "選択をスキップしました"
+			"selection_reroll":
+				message_label.text = "候補を再抽選：残り%d" % int(event.get("remaining", 0))
 			"selection_seal":
 				message_label.text = "候補を封印：%s" % String(event.get("name", "候補"))
 			"dynamic_drop_spawn":
@@ -962,11 +964,11 @@ func _refresh() -> void:
 		var signature := _reward_signature(state.level_up_options)
 		if signature != last_reward_signature:
 			if last_reward_signature == "":
-				touch_rerolls_remaining = int(state.passives.get("reroll_ticket", 0))
+				touch_rerolls_remaining = int(state.selection_reroll_remaining)
 				touch_banishes_remaining = int(state.selection_seal_remaining)
 			last_reward_signature = signature
+			touch_rerolls_remaining = int(state.selection_reroll_remaining)
 			var controls: Dictionary = selection_action_system.controls_for(state, {
-				"rerolls": touch_rerolls_remaining,
 				"banishes": int(state.selection_seal_remaining),
 				"can_skip": _has_contract_skip(state.level_up_options) or _has_pending_pickup_choice(),
 				"title": _reward_popup_title()
@@ -1078,17 +1080,26 @@ func _on_reward_chosen(reward_id: String) -> void:
 		_refresh()
 
 func _on_touch_reroll() -> void:
-	if touch_rerolls_remaining <= 0 or not state.level_up_pending or _has_pending_pickup_choice():
+	if int(state.selection_reroll_remaining) <= 0 or not state.level_up_pending or _has_pending_pickup_choice():
 		return
-	touch_rerolls_remaining -= 1
-	state.level_up_options = level_up_system.prepare_options(state, 3)
+	var events: Array = []
+	if not selection_action_system.consume_reroll(state, events):
+		return
+	var before_signature := _reward_signature(state.level_up_options)
+	var next_options: Array = level_up_system.prepare_options(state, 3)
+	for i in range(4):
+		if _reward_signature(next_options) != before_signature:
+			break
+		next_options = level_up_system.prepare_options(state, 3)
+	state.level_up_options = next_options
+	touch_rerolls_remaining = int(state.selection_reroll_remaining)
 	last_reward_signature = _reward_signature(state.level_up_options)
 	reward_popup.show_options(state.level_up_options, selection_action_system.controls_for(state, {
-		"rerolls": touch_rerolls_remaining,
 		"banishes": int(state.selection_seal_remaining),
 		"can_skip": _has_contract_skip(state.level_up_options),
 		"title": _reward_popup_title()
 	}), input_mode.is_touch_mode())
+	_handle_events(events)
 	touch_control_system.feedback_light()
 	_refresh()
 
@@ -1118,7 +1129,6 @@ func _on_touch_banish(reward_id: String) -> void:
 	state.level_up_options = next_options
 	last_reward_signature = _reward_signature(state.level_up_options)
 	reward_popup.show_options(state.level_up_options, selection_action_system.controls_for(state, {
-		"rerolls": touch_rerolls_remaining,
 		"banishes": int(state.selection_seal_remaining),
 		"can_skip": _has_contract_skip(state.level_up_options),
 		"title": _reward_popup_title()
@@ -1195,6 +1205,9 @@ func _tick_flashes(delta: float) -> void:
 		if float(text_data.get("life", 0.0)) <= 0.0:
 			state.floating_texts.erase(text_data)
 			state.release_runtime("damage_text", text_data)
+	for ring in state.gem_ring_effects.duplicate():
+		if state.elapsed_seconds - float(ring.get("start_time", state.elapsed_seconds)) >= float(ring.get("duration", 0.78)):
+			state.gem_ring_effects.erase(ring)
 	if input_mode.is_ios_touch() and arena_view != null:
 		var visible_world: Vector2 = arena_view.size / maxf(arena_view.camera_zoom, 0.01)
 		var visible_flashes: Array = effect_batch_system.visible_items(state.hit_flashes, state.camera_position, visible_world, 128.0)
@@ -1287,6 +1300,7 @@ func _summary() -> Dictionary:
 		"global_gem_collections": state.global_gem_collections,
 		"global_gem_collection_batches": state.global_gem_collection_batches,
 		"global_gem_collection_exp": state.global_gem_collection_exp,
+		"global_gem_collection_last_metrics": state.global_gem_collection_last_metrics,
 		"gems_collected_by_magnet": state.gems_collected_by_magnet,
 		"gems_collected_by_drone": state.gems_collected_by_drone,
 		"gems_collected_by_passive": state.gems_collected_by_passive,
@@ -1301,10 +1315,12 @@ func _summary() -> Dictionary:
 		"reward_room_pickups": state.reward_room_pickups,
 		"field_over_cap_pickups": state.field_over_cap_pickups,
 		"selection_skip_rewards": state.selection_skip_rewards,
+		"selection_rerolls_used": state.selection_rerolls_used,
 		"selection_seals_used": state.selection_seals_used,
 		"run_sealed_history": state.run_sealed_history,
 		"field_gimmicks_triggered": state.field_gimmicks_triggered,
 		"dynamic_drops_spawned": state.dynamic_drops_spawned,
+		"field_drop_respawns_spawned": state.field_drop_respawns_spawned,
 		"exploration_score": state.exploration_score,
 		"exploration_rank": state.exploration_rank,
 		"exploration_currency_bonus": state.exploration_currency_bonus,
@@ -1850,6 +1866,10 @@ func _pause_passives_text() -> String:
 
 func _pause_evolution_text() -> String:
 	var lines: Array = []
+	lines.append("キャラクター進化")
+	lines.append_array(character_evolution_system.run_condition_lines(state))
+	lines.append("")
+	lines.append("武器進化")
 	for weapon_id in state.weapons.keys():
 		var id = String(weapon_id)
 		var evo = state.evolution_for_weapon(id)

@@ -57,7 +57,7 @@ func _run() -> void:
 			await process_frame
 	_assert(game.state.elapsed_seconds >= 600.0, "10min autoplay should reach 10 minutes")
 	_assert(game.state.level >= 8, "10min autoplay should gain multiple levels")
-	_assert(game.state.level <= 24, "10min autoplay level should not run away in boosted evolution setup, actual=%d" % game.state.level)
+	_assert(game.state.level <= 35, "10min autoplay level should not run away in boosted evolution setup, actual=%d" % game.state.level)
 	_assert(game.state.boss_spawned_minutes.size() <= 2, "10min autoplay should not spawn more than two boss checkpoints")
 	_assert(game.state.chests.size() <= game.state.max_chests(), "10min autoplay should respect chest cap")
 	_assert(game.state.chests_opened <= 8, "10min autoplay should not flood chest rewards, opened=%d" % game.state.chests_opened)

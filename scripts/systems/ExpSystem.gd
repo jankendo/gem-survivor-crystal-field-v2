@@ -13,12 +13,6 @@ func drop_for_enemy(state, enemy, events: Array) -> void:
 		return
 	var scale = state.get_exp_drop_multiplier()
 	var value = maxi(1, int(round(float(enemy.exp_value) * scale)))
-	if state.elapsed_seconds < 90.0 and state.level <= 1 and not enemy.elite and not enemy.boss:
-		value = maxi(12, value)
-	elif state.elapsed_seconds < 90.0 and not enemy.elite and not enemy.boss:
-		value = maxi(4, value)
-	elif state.elapsed_seconds < 180.0 and not enemy.elite and not enemy.boss:
-		value = maxi(2, value)
 	if enemy.boss:
 		value += maxi(8, int(round(28.0 * scale)))
 	elif enemy.type == "golem":

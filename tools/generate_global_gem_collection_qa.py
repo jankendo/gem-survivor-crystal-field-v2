@@ -20,11 +20,15 @@ def main() -> int:
                 "# Global Gem Collection QA",
                 "",
                 f"Batch size: {global_config.get('batch_size')}",
-                f"Representative effects cap: {global_config.get('max_representative_effects')}",
+                f"Ring proxy cap: {global_config.get('max_proxy_nodes')}",
+                f"Max active ring effects: {global_config.get('max_active_ring_effects')}",
+                f"Ring duration: {global_config.get('ring_duration')}",
                 f"Notification limit: {global_config.get('notification_limit')}",
                 "",
                 "Shared systems: `GemRegistry`, `GemCollectionBatchProcessor`, `GlobalGemCollectionSystem`.",
                 "Sources: magnet ore, recall drone, resonance magnet core.",
+                "Visual rule: gems gather into bounded ring proxies around the player, then collapse inward.",
+                "Metrics: collected, expected EXP, actual EXP, duplicates, missing, proxy nodes, duration, long frames.",
                 "iOS rule: no per-gem Tween, Label, or notification is created for global collection.",
                 f"Resonance levels: {len(resonance.get('levels', []))}",
             ]
@@ -34,6 +38,8 @@ def main() -> int:
     )
     if int(global_config.get("batch_size", 0)) <= 0:
         raise SystemExit("global collection batch size must be positive")
+    if int(global_config.get("max_proxy_nodes", 0)) <= 0:
+        raise SystemExit("global collection ring proxy cap must be positive")
     print(f"Global gem collection QA written: {OUT}")
     return 0
 

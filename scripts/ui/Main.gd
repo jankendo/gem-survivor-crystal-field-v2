@@ -14,7 +14,6 @@ const CollectionCardScript := preload("res://scripts/ui/components/CollectionCar
 const UiLayoutFixSystemScript := preload("res://scripts/systems/UiLayoutFixSystem.gd")
 const CurrencySinkSystemScript := preload("res://scripts/systems/CurrencySinkSystem.gd")
 const ShopCategorySystemScript := preload("res://scripts/systems/ShopCategorySystem.gd")
-const ShopRerollSystemScript := preload("res://scripts/systems/ShopRerollSystem.gd")
 const CollectionFilterSystemScript := preload("res://scripts/systems/CollectionFilterSystem.gd")
 const InputModeSystemScript := preload("res://scripts/systems/InputModeSystem.gd")
 const MobileSafeAreaSystemScript := preload("res://scripts/systems/MobileSafeAreaSystem.gd")
@@ -37,7 +36,6 @@ var meta_system = MetaProgressionSystemScript.new()
 var ui_layout_fix = UiLayoutFixSystemScript.new()
 var currency_sink_system = CurrencySinkSystemScript.new()
 var shop_category_system = ShopCategorySystemScript.new()
-var shop_reroll_system = ShopRerollSystemScript.new()
 var collection_filter_system = CollectionFilterSystemScript.new()
 var loadout_disable_system = LoadoutDisableSystemScript.new()
 var achievement_progress_system = AchievementProgressSystemScript.new()
@@ -613,7 +611,6 @@ func show_shop() -> void:
 	_add_background(Color(0.026, 0.034, 0.052))
 	var root := _page_box(42, 26, 42, 30)
 	_add_top_bar(root, "クリスタルショップ", "所持クリスタル貨：%s　%s" % [JaText.format_int(int(save_data.get("crystal_currency", 0))), shop_message], show_title)
-	_add_featured_shop(root)
 	var category_ids := shop_category_system.category_ids()
 	shop_category_index = clampi(shop_category_index, 0, maxi(0, category_ids.size() - 1))
 	var category_tabs: Container
@@ -693,41 +690,6 @@ func show_shop() -> void:
 			button.disabled = current >= max_level or not condition_ok or int(save_data.get("crystal_currency", 0)) < cost
 			button.pressed.connect(_purchase_currency_sink.bind(sink_id))
 			body.add_child(button)
-
-func _add_featured_shop(root: VBoxContainer) -> void:
-	save_data = shop_reroll_system.ensure_featured(save_system)
-	var featured: Array = save_data.get("shop_featured_items", [])
-	var header := HBoxContainer.new()
-	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_theme_constant_override("separation", 10)
-	root.add_child(header)
-	var status = "おすすめ商品　周期%d　再抽選%d/%d　無料%d　次回%s" % [
-		int(save_data.get("shop_cycle_id", 0)) + 1,
-		int(save_data.get("shop_reroll_count", 0)),
-		int(shop_reroll_system.config.get("max_rerolls_per_cycle", 8)),
-		shop_reroll_system.free_rerolls_remaining(save_data),
-		"無料" if shop_reroll_system.cost_for_count(int(save_data.get("shop_reroll_count", 0))) <= 0 else "費用:%s" % JaText.format_int(shop_reroll_system.cost_for_count(int(save_data.get("shop_reroll_count", 0))))
-	]
-	_add_label(header, status, 17, Color(1.0, 0.88, 0.42), HORIZONTAL_ALIGNMENT_LEFT)
-	var reroll_button = CrystalButtonScript.new()
-	reroll_button.setup("再抽選", Color(0.52, 1.0, 0.86), Vector2(150, 58 if input_mode.is_touch_mode() else 46))
-	reroll_button.disabled = not shop_reroll_system.can_reroll(save_data)
-	reroll_button.tooltip_text = "おすすめ枠だけを更新します。永久カタログは変わりません。"
-	reroll_button.pressed.connect(_reroll_shop_featured)
-	header.add_child(reroll_button)
-	var row = _horizontal_chip_container(root, "ShopFeaturedItems")
-	for item in featured:
-		var button = CrystalButtonScript.new()
-		var cost = int(item.get("cost", 0))
-		var text = "%s\n%s　費用：%s" % [
-			String(item.get("name_ja", item.get("id", ""))),
-			String(item.get("description_ja", "")),
-			JaText.format_int(cost)
-		]
-		button.setup(text, Color(1.0, 0.82, 0.36) if int(save_data.get("crystal_currency", 0)) >= cost else Color(0.58, 0.62, 0.72), Vector2(236, 88 if input_mode.is_touch_mode() else 76))
-		button.disabled = int(save_data.get("crystal_currency", 0)) < cost
-		button.pressed.connect(_purchase_featured_shop_item.bind(item))
-		row.add_child(button)
 
 func _select_shop_category(index: int) -> void:
 	shop_category_index = clampi(index, 0, shop_category_system.category_ids().size() - 1)
@@ -1183,7 +1145,6 @@ func _on_game_finished(summary: Dictionary) -> void:
 		}
 	else:
 		meta_result = meta_system.update_after_run(save_system, summary)
-		shop_reroll_system.advance_cycle(save_system)
 	for key in meta_result.keys():
 		summary[key] = meta_result[key]
 	summary["meta_result"] = meta_result
@@ -1235,29 +1196,6 @@ func _purchase_currency_sink(sink_id: String) -> void:
 	shop_message = "購入しました。" if currency_sink_system.purchase(save_system, sink_id) else "購入できません。条件・所持通貨・最大Lvを確認してください。"
 	_sync_from_save()
 	show_shop()
-
-func _reroll_shop_featured() -> void:
-	var result = shop_reroll_system.reroll(save_system)
-	if bool(result.get("ok", false)):
-		shop_message = "おすすめ商品を再抽選しました。消費：%s" % JaText.format_int(int(result.get("cost", 0)))
-	else:
-		shop_message = "再抽選できません。所持通貨または上限を確認してください。"
-	_sync_from_save()
-	show_shop()
-
-func _purchase_featured_shop_item(item: Dictionary) -> void:
-	var kind = String(item.get("kind", ""))
-	var id = String(item.get("id", ""))
-	match kind:
-		"character":
-			_purchase_character(id)
-		"meta":
-			_purchase_upgrade(id)
-		"sink":
-			_purchase_currency_sink(id)
-		_:
-			shop_message = "購入できません。"
-			show_shop()
 
 func _toggle_auto_infinite() -> void:
 	_update_setting("auto_infinite", not auto_infinite_enabled)
@@ -1512,14 +1450,26 @@ func _character_detail_text(character_id: String, data: Dictionary) -> String:
 	var evolution: Dictionary = meta_system.character_evolutions.get(character_id, {})
 	if not evolution.is_empty():
 		var unlocked_evolutions: Dictionary = save_data.get("character_evolutions_unlocked", {})
+		var unlocked_evolution = bool(unlocked_evolutions.get(character_id, character_id == "noah"))
+		var unlock_progress: Dictionary = save_data.get("character_evolution_progress", {}).get(character_id, {})
+		var mastery: Dictionary = save_data.get("character_mastery", {}).get(character_id, {})
+		var unlock_text = String(meta_system.character_evolution_unlocks.get(character_id, {}).get("text_ja", "熟練度350pt または 15分生存で解放"))
 		lines.append("進化後：%s" % String(evolution.get("evolved_name_ja", "")))
-		lines.append("進化特性：%s" % String(evolution.get("trait_upgrade_ja", "")))
-		lines.append("ラン内条件：Lv%d / %s / %s" % [
+		lines.append("【進化の永久解放】%s" % ("解放済み" if unlocked_evolution else "未解放"))
+		lines.append("条件：%s" % unlock_text)
+		lines.append("現在：熟練度%d/350　最長生存%s/15:00　前回ジェム%d" % [
+			int(mastery.get("points", 0)),
+			JaText.format_time(float(unlock_progress.get("best_survival", 0.0))),
+			int(unlock_progress.get("gems_collected", 0))
+		])
+		lines.append("【このランでの進化条件】")
+		lines.append("必要：Lv%d / 生存%s / %s / 進化核" % [
 			int(evolution.get("required_level", 20)),
 			JaText.format_time(float(evolution.get("required_seconds", 600.0))),
 			String(evolution.get("unique_condition", {}).get("text_ja", "固有条件"))
 		])
-		lines.append("進化解放：%s" % ("解放済み" if bool(unlocked_evolutions.get(character_id, character_id == "noah")) else String(meta_system.character_evolution_unlocks.get(character_id, {}).get("text_ja", "熟練度で解放"))))
+		lines.append("進化前：%s" % String(data.get("trait_ja", "")))
+		lines.append("進化後：%s" % String(evolution.get("trait_upgrade_ja", "")))
 	if not unlocked:
 		lines.append(meta_system.unlock_text(character_id, save_data))
 	return "\n".join(lines)

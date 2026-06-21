@@ -23,6 +23,7 @@
   "weapon_disable_slots": {"category": "loadout", "name_ja": "武器封印枠", "description_ja": "次回ランの武器候補からOFFにできる枠を増やす", "base_cost": 700, "max_level": 8, "effect_per_level_ja": "武器OFF枠 +1", "recommend_ja": "候補を整理したい人"},
   "passive_disable_slots": {"category": "loadout", "name_ja": "パッシブ封印枠", "description_ja": "次回ランのパッシブ候補からOFFにできる枠を増やす", "base_cost": 700, "max_level": 8, "effect_per_level_ja": "パッシブOFF枠 +1", "recommend_ja": "進化素材を狙いたい人"},
   "selection_skip_charm": {"category": "loadout", "name_ja": "スキップ護符", "description_ja": "ラン中の選択画面で報酬を少し受け取りつつ選択を見送れる回数を増やす", "base_cost": 900, "max_level": 5, "effect_per_level_ja": "スキップ +1", "recommend_ja": "悪い3択を安全に流したい人"},
+  "levelup_reroll_capacity": {"category": "loadout", "name_ja": "選択再構築", "description_ja": "レベルアップ時の3つの候補を引き直せる回数を増やす。ショップ商品を引き直す機能ではありません", "base_cost": 850, "max_level": 5, "effect_per_level_ja": "レベルアップ再抽選 +1", "recommend_ja": "進化素材や主力武器を狙いたい人"},
   "selection_seal_art": {"category": "loadout", "name_ja": "候補封印術", "description_ja": "ラン中だけ指定候補を候補プールから外す封印回数を増やす。ロードアウトOFFとは別枠", "base_cost": 1300, "max_level": 5, "effect_per_level_ja": "封印 +1", "recommend_ja": "狙う進化やビルドを絞りたい人"},
   "skin_azure": {"category": "cosmetic", "name_ja": "蒼晶テーマ", "description_ja": "青緑系UI配色。性能なし", "base_cost": 5000, "max_level": 1, "effect_per_level_ja": "外見解放", "recommend_ja": "長期収集"},
   "skin_ember": {"category": "cosmetic", "name_ja": "紅鉱テーマ", "description_ja": "赤金系UI配色。性能なし", "base_cost": 7500, "max_level": 1, "effect_per_level_ja": "外見解放", "recommend_ja": "長期収集"},

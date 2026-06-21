@@ -7,6 +7,7 @@ func run(t) -> void:
 	test_character_evolution_run_conditions(t)
 	test_character_evolution_once_per_run(t)
 	test_character_evolution_trait_upgrade(t)
+	test_character_evolution_ui_lines_split_unlock_and_run_conditions(t)
 	test_character_evolution_save_migration(t)
 
 func test_character_evolution_data_complete(t) -> void:
@@ -35,6 +36,17 @@ func test_character_evolution_trait_upgrade(t) -> void:
 	CharacterEvolutionSystemScript.new().apply_evolution(state, [])
 	t.assert_true(state.character_evolved, "character evolved flag should be set")
 	t.assert_true(state.get_damage_multiplier() > before, "character evolution should upgrade traits")
+
+func test_character_evolution_ui_lines_split_unlock_and_run_conditions(t) -> void:
+	var state = _ready_state()
+	state.level = 12
+	state.elapsed_seconds = 330.0
+	state.gems_collected = 90
+	var text = "\n".join(CharacterEvolutionSystemScript.new().run_condition_lines(state))
+	t.assert_true(text.find("永久解放") >= 0, "character evolution UI should show permanent unlock group")
+	t.assert_true(text.find("ラン中発動") >= 0, "character evolution UI should show run activation group")
+	t.assert_true(text.find("12/20") >= 0, "character evolution UI should show current and required level")
+	t.assert_true(text.find("発動できない理由") >= 0, "character evolution UI should explain blockers")
 
 func test_character_evolution_save_migration(t) -> void:
 	var save = SaveSystem.new("user://test_character_evolution_migration.save")

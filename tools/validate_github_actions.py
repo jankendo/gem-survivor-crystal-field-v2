@@ -31,7 +31,7 @@ def main() -> int:
         "asset qa artifact": "Asset-QA-Report" in text,
         "ui redesign artifact": "UI-Redesign-QA" in text,
         "field equipment artifact": "Field-Equipment-QA" in text,
-        "shop reroll artifact": "Shop-Reroll-QA" in text,
+        "selection reroll artifact": "Selection-Reroll-QA" in text,
         "experience balance artifact": "Experience-Balance-Report" in text,
         "persistent drop artifact": "Persistent-Drop-QA" in text,
         "global gem collection artifact": "Global-Gem-Collection-QA" in text,
