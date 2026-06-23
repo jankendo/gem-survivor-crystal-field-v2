@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "description": "Gem Survivor Crystal Field v2 asset replacement manifest. Existing generated SVG assets remain fallback until v2 raster assets are approved.",
+  "defaults": {
+    "preferred_formats": ["webp", "png"],
+    "fallback_policy": "use_current_source_when_future_path_is_missing",
+    "transparent_categories": [
+      "character_portrait",
+      "character_sprite",
+      "enemy_sprite",
+      "boss_sprite",
+      "weapon_icon",
+      "passive_icon",
+      "evolution_icon",
+      "field_drop_icon",
+      "field_gimmick_icon"
+    ]
+  },
+  "assets": [
+    {
+      "asset_id": "character.noah",
+      "category": "character_portrait",
+      "current_source": "res://assets/generated/characters/noah.svg",
+      "future_path": "res://assets/v2/character_portrait/noah.webp",
+      "future_style": "dark fantasy crystal survivor portrait",
+      "target_resolution": "1024x1536",
+      "gameplay_role": "default player character",
+      "notes": "Keep silhouette readable and beginner-friendly.",
+      "priority": "P0",
+      "replacement_status": "fallback"
+    },
+    {
+      "asset_id": "character.mio",
+      "category": "character_portrait",
+      "current_source": "res://assets/generated/characters/mio.svg",
+      "future_path": "res://assets/v2/character_portrait/mio.webp",
+      "future_style": "agile crystal survivor portrait",
+      "target_resolution": "1024x1536",
+      "gameplay_role": "unlockable player character",
+      "notes": "Use a distinct pose from Noah.",
+      "priority": "P1",
+      "replacement_status": "fallback"
+    },
+    {
+      "asset_id": "enemy.slime",
+      "category": "enemy_sprite",
+      "current_source": "res://assets/generated/enemies/slime.svg",
+      "future_path": "res://assets/v2/enemy_sprite/slime.webp",
+      "future_style": "small dark crystal creature",
+      "target_resolution": "512x512",
+      "gameplay_role": "basic early enemy",
+      "notes": "Must be readable at 32px.",
+      "priority": "P0",
+      "replacement_status": "fallback"
+    },
+    {
+      "asset_id": "enemy.elite",
+      "category": "enemy_sprite",
+      "current_source": "res://assets/generated/enemies/elite.svg",
+      "future_path": "res://assets/v2/enemy_sprite/elite.webp",
+      "future_style": "elite crystal armored enemy",
+      "target_resolution": "512x512",
+      "gameplay_role": "reward-bearing elite",
+      "notes": "Needs visible elite outline and reward expectation.",
+      "priority": "P0",
+      "replacement_status": "fallback"
+    },
+    {
+      "asset_id": "boss.boss_5",
+      "category": "boss_sprite",
+      "current_source": "res://assets/generated/bosses/boss_5.svg",
+      "future_path": "res://assets/v2/boss_sprite/boss_5.webp",
+      "future_style": "first boss with glowing crystal core",
+      "target_resolution": "1024x1024",
+      "gameplay_role": "first 5 minute boss",
+      "notes": "Large silhouette, clear weak core.",
+      "priority": "P0",
+      "replacement_status": "fallback"
+    },
+    {
+      "asset_id": "weapon.magic_bolt",
+      "category": "weapon_icon",
+      "current_source": "res://assets/generated/weapons/magic_bolt.svg",
+      "future_path": "res://assets/v2/weapon_icon/magic_bolt.webp",
+      "future_style": "readable cyan crystal magic bolt icon",
+      "target_resolution": "256x256",
+      "gameplay_role": "default ranged weapon",
+      "notes": "The first weapon icon must be extremely clear.",
+      "priority": "P0",
+      "replacement_status": "fallback"
+    },
+    {
+      "asset_id": "weapon.ice_orbit",
+      "category": "weapon_icon",
+      "current_source": "res://assets/generated/weapons/ice_orbit.svg",
+      "future_path": "res://assets/v2/weapon_icon/ice_orbit.webp",
+      "future_style": "circular ice crystal orbit icon",
+      "target_resolution": "256x256",
+      "gameplay_role": "area weapon",
+      "notes": "Use circular motion language.",
+      "priority": "P1",
+      "replacement_status": "fallback"
+    },
+    {
+      "asset_id": "weapon.thunder_chain",
+      "category": "weapon_icon",
+      "current_source": "res://assets/generated/weapons/thunder_chain.svg",
+      "future_path": "res://assets/v2/weapon_icon/thunder_chain.webp",
+      "future_style": "lightning chain crystal icon",
+      "target_resolution": "256x256",
+      "gameplay_role": "chain lightning weapon",
+      "notes": "Differentiate from laser and magic bolt.",
+      "priority": "P1",
+      "replacement_status": "fallback"
+    },
+    {
+      "asset_id": "passive.magnet",
+      "category": "passive_icon",
+      "current_source": "res://assets/generated/passives/magnet.svg",
+      "future_path": "res://assets/v2/passive_icon/magnet.webp",
+      "future_style": "crystal magnetic talisman",
+      "target_resolution": "256x256",
+      "gameplay_role": "pickup range passive",
+      "notes": "Passive icon should look like equipment, not projectile.",
+      "priority": "P0",
+      "replacement_status": "fallback"
+    },
+    {
+      "asset_id": "passive.might",
+      "category": "passive_icon",
+      "current_source": "res://assets/generated/passives/might.svg",
+      "future_path": "res://assets/v2/passive_icon/might.webp",
+      "future_style": "power crystal emblem",
+      "target_resolution": "256x256",
+      "gameplay_role": "damage passive",
+      "notes": "Use strong red/gold accent.",
+      "priority": "P1",
+      "replacement_status": "fallback"
+    },
+    {
+      "asset_id": "evolution.starbreaker_bolt",
+      "category": "evolution_icon",
+      "current_source": "res://assets/generated/evolutions/starbreaker_bolt.svg",
+      "future_path": "res://assets/v2/evolution_icon/starbreaker_bolt.webp",
+      "future_style": "ultimate crystal bolt icon",
+      "target_resolution": "256x256",
+      "gameplay_role": "evolved magic bolt",
+      "notes": "Must look clearly upgraded from magic_bolt.",
+      "priority": "P0",
+      "replacement_status": "fallback"
+    },
+    {
+      "asset_id": "field_drop.weapon_core",
+      "category": "field_drop_icon",
+      "current_source": "res://assets/generated/field_drops/weapon_core.svg",
+      "future_path": "res://assets/v2/field_drop_icon/weapon_core.webp",
+      "future_style": "glowing weapon core pickup",
+      "target_resolution": "256x256",
+      "gameplay_role": "field weapon reward",
+      "notes": "Needs high visibility on dark floors.",
+      "priority": "P0",
+      "replacement_status": "fallback"
+    },
+    {
+      "asset_id": "field_drop.magnet_ore",
+      "category": "field_drop_icon",
+      "current_source": "res://assets/generated/field_drops/magnet_ore.svg",
+      "future_path": "res://assets/v2/field_drop_icon/magnet_ore.webp",
+      "future_style": "magnetic crystal ore pickup",
+      "target_resolution": "256x256",
+      "gameplay_role": "global gem collection pickup",
+      "notes": "Should imply pull/collection.",
+      "priority": "P1",
+      "replacement_status": "fallback"
+    },
+    {
+      "asset_id": "ui.panel.crystal_hud",
+      "category": "ui_panel",
+      "current_source": "",
+      "future_path": "res://assets/v2/ui_panel/crystal_hud.webp",
+      "future_style": "dark translucent crystal HUD panel",
+      "target_resolution": "1024x256",
+      "gameplay_role": "HUD frame",
+      "notes": "Do not reduce text contrast.",
+      "priority": "P1",
+      "replacement_status": "planned"
+    },
+    {
+      "asset_id": "biome.star_plain",
+      "category": "biome_background",
+      "current_source": "",
+      "future_path": "res://assets/v2/biome_background/star_plain.webp",
+      "future_style": "dark star crystal field floor",
+      "target_resolution": "1920x1080",
+      "gameplay_role": "default biome background",
+      "notes": "Subtle enough for gameplay readability.",
+      "priority": "P2",
+      "replacement_status": "planned"
+    }
+  ]
+}

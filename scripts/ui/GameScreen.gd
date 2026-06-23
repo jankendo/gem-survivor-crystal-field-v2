@@ -56,6 +56,8 @@ const IosEnergyLogSystemScript = preload("res://scripts/systems/IosEnergyLogSyst
 const IosFramePacingSystemScript = preload("res://scripts/systems/IosFramePacingSystem.gd")
 const IosBackgroundThrottleSystemScript = preload("res://scripts/systems/IosBackgroundThrottleSystem.gd")
 const MapPauseSystemScript = preload("res://scripts/systems/MapPauseSystem.gd")
+const V2MomentumSystemScript = preload("res://scripts/systems/V2MomentumSystem.gd")
+const V2HudPresenterScript = preload("res://scripts/systems/V2HudPresenter.gd")
 const ArenaViewScript = preload("res://scripts/ui/ArenaView.gd")
 const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.gd")
 const ConfirmDialogScript = preload("res://scripts/ui/components/ConfirmDialog.gd")
@@ -119,6 +121,8 @@ var ios_energy_log_system
 var ios_frame_pacing_system
 var ios_background_throttle_system
 var map_pause_system
+var v2_momentum_system
+var v2_hud_presenter
 var arena_view
 var audio_manager: AudioManager
 var reward_popup: RewardPopup
@@ -242,6 +246,8 @@ func _ready() -> void:
 	ios_frame_pacing_system = IosFramePacingSystemScript.new()
 	ios_background_throttle_system = IosBackgroundThrottleSystemScript.new()
 	map_pause_system = MapPauseSystemScript.new()
+	v2_momentum_system = V2MomentumSystemScript.new()
+	v2_hud_presenter = V2HudPresenterScript.new()
 	state.start_new_run(0, initial_seed_text)
 	var save_data = initial_save_data if not initial_save_data.is_empty() else SaveSystem.new().load_data()
 	var settings: Dictionary = save_data.get("settings", {})
@@ -372,6 +378,7 @@ func _process(delta: float) -> void:
 	goal_hint_system.process(state, events)
 	exploration_mastery_system.process(state, events)
 	exploration_chain_system.process(state, sim_delta, events)
+	v2_momentum_system.process(state, sim_delta, events)
 	if state.auto_recall_drone_enabled and state.recall_drone_ready:
 		recall_drone_system.activate(state, events)
 	balance_log_system.process(state, sim_delta)
@@ -877,6 +884,8 @@ func _handle_events(events: Array) -> void:
 			"gimmick_open":
 				_play_sfx("chest")
 				message_label.text = "封印宝箱柱が開いた"
+			"v2_momentum":
+				message_label.text = String(event.get("message", "Momentum"))
 
 func _play_sfx(name: String) -> void:
 	return
@@ -903,6 +912,7 @@ func _refresh() -> void:
 		hud_text += "　共鳴 %.0fs" % state.resonance_magnet_timer
 	if state.character_evolution_available:
 		hud_text += "　キャラ進化可"
+	hud_text += v2_hud_presenter.top_hud_suffix(state)
 	_set_label_text(hud_label, hud_text)
 	var equipment_signature := "%s:%s:%s" % [str(state.weapons), str(state.passives), str(state.evolved_weapons)]
 	if ui_dirty_flag_system.should_update("equipment", equipment_signature):
@@ -952,6 +962,12 @@ func _refresh() -> void:
 		combo_text += "　近接ラッシュLv%d %.0fs" % [state.melee_rush_level, state.melee_rush_timer]
 	if not state.active_synergies.is_empty():
 		combo_text += "　%s" % state.active_synergy_label()
+	var build_focus: String = v2_hud_presenter.build_focus_text(state)
+	if build_focus != "":
+		combo_text += "　%s" % build_focus
+	var momentum_text: String = v2_hud_presenter.momentum_text(state)
+	if momentum_text != "":
+		combo_text += "　%s" % momentum_text
 	_set_label_text(combo_label, combo_text)
 	if exp_bar.value != exp_percent:
 		exp_bar.value = exp_percent
@@ -1337,6 +1353,11 @@ func _summary() -> Dictionary:
 		"shortcut_walls_broken": state.shortcut_walls_broken,
 		"oasis_healing": state.oasis_healing,
 		"cursed_relics": state.cursed_relic_count,
+		"v2_peak_momentum_tier": state.v2_peak_momentum_tier,
+		"v2_momentum_triggers": state.v2_momentum_triggers,
+		"v2_best_kill_streak": state.v2_best_kill_streak,
+		"v2_no_damage_best": state.v2_no_damage_best,
+		"v2_momentum_history": state.v2_momentum_history.duplicate(true),
 		"title_badges": state.title_badges,
 		"reason": state.game_over_reason,
 		"best_updated": state.best_score_updated

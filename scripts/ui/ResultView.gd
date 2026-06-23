@@ -7,6 +7,7 @@ const InputModeSystemScript = preload("res://scripts/systems/InputModeSystem.gd"
 const MobileSafeAreaSystemScript = preload("res://scripts/systems/MobileSafeAreaSystem.gd")
 const MobileScrollSystemScript = preload("res://scripts/systems/MobileScrollSystem.gd")
 const ProgressDisplayFormatterScript = preload("res://scripts/systems/ProgressDisplayFormatter.gd")
+const V2HudPresenterScript = preload("res://scripts/systems/V2HudPresenter.gd")
 
 signal retry_requested
 signal title_requested
@@ -22,6 +23,7 @@ var input_mode = InputModeSystemScript.new()
 var mobile_safe_area = MobileSafeAreaSystemScript.new()
 var mobile_scroll_system
 var progress_formatter = ProgressDisplayFormatterScript.new()
+var v2_hud_presenter = V2HudPresenterScript.new()
 
 func _ready() -> void:
 	var settings: Dictionary = SaveSystem.new().load_data().get("settings", {})
@@ -154,6 +156,7 @@ func show_summary(summary: Dictionary) -> void:
 			progress_count
 		],
 		"次の目標：%s" % _next_goal(summary),
+		"v2ハイライト：\n%s" % "\n".join(v2_hud_presenter.result_highlights(summary)),
 		"キャラクター：%s" % String(summary.get("character_name", "探鉱者ノア")),
 		"祝福：%s" % String(summary.get("blessing_name", summary.get("blessing_id", "攻撃の祝福"))),
 		"祝福効果：%s" % String(summary.get("blessing_effect", "")),

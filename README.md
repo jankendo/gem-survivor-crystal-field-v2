@@ -2,6 +2,22 @@
 
 Godot 4.2 + GDScript製のWindows/iOS向けサバイバーアクションです。内部フォルダ名とexe名は既存配布互換のため`ChronoMergeTactics`のままです。iOSはGitHub Actionsで未署名IPAを生成します。
 
+## v2開発ドキュメント
+
+このリポジトリは「Gem Survivor Crystal Field」を現行サバイバー路線のままv2へ強化します。旧`Chrono Merge Tactics`のターン制・合成仕様へ戻す作業は行いません。現行資産の監査とv2の正本は以下です。
+
+* 現行監査: `docs/current_asset_spec_audit.md`
+* v2ビジョン: `docs/v2_vision.md`
+* v2スコープ: `docs/v2_scope.md`
+* ゲームプレイ柱: `docs/v2_gameplay_pillars.md`
+* UI/UX計画: `docs/v2_uiux_plan.md`
+* アート方向性: `docs/v2_asset_direction.md`
+* アセットパイプライン: `docs/v2_asset_pipeline.md`
+* 画像生成プロンプト雛形: `docs/v2_asset_prompt_templates.md`
+* 移行計画: `docs/v2_migration_plan.md`
+* テスト計画: `docs/test_plan.md`
+* 変更履歴: `docs/changelog.md`
+
 ## 2026-06-20 EXP不変条件・選択再抽選・ドロップ復活・全ジェム回収
 
 今回の更新では、Endless本編、Windows操作、iOSタッチ操作、Safe Play Area、完全無音仕様を維持したまま、EXP計算、レベルアップ再抽選、ドロップ復活、全ジェム回収演出を整理しました。

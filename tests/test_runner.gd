@@ -177,6 +177,9 @@ func _initialize() -> void:
 		,"res://tests/test_desktop_after_asset_ui_audio_update.gd"
 		,"res://tests/test_ios_safe_play_area_letterbox.gd"
 		,"res://tests/test_ios_default_lightweight_settings.gd"
+		,"res://tests/test_v2_momentum_system.gd"
+		,"res://tests/test_v2_hud_presenter.gd"
+		,"res://tests/test_v2_asset_registry.gd"
 	]
 	for suite_path in suites:
 		print("Running ", suite_path)

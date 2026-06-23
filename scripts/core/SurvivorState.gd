@@ -290,6 +290,19 @@ var pending_core_choice: Dictionary = {}
 var pending_field_equipment_choice: Dictionary = {}
 var field_weapon_over_cap_ids: Array = []
 var field_passive_over_cap_ids: Array = []
+var v2_momentum_timer: float = 0.0
+var v2_momentum_label: String = ""
+var v2_momentum_tier: int = 0
+var v2_momentum_score_multiplier: float = 1.0
+var v2_kill_streak: int = 0
+var v2_kill_streak_timer: float = 0.0
+var v2_best_kill_streak: int = 0
+var v2_peak_momentum_tier: int = 0
+var v2_momentum_triggers: int = 0
+var v2_no_damage_timer: float = 0.0
+var v2_no_damage_best: float = 0.0
+var v2_no_damage_next_milestone: int = 0
+var v2_momentum_history: Array = []
 
 var enemies: Array = []
 var gems: Array = []
@@ -336,6 +349,7 @@ var overclock_defs: Dictionary = {}
 var field_event_defs: Dictionary = {}
 var rune_contract_defs: Dictionary = {}
 var weapon_effect_defs: Dictionary = {}
+var v2_momentum_defs: Dictionary = {}
 var effect_density: String = "normal"
 var performance_profile_id: String = "desktop_standard"
 var debug_exp_multiplier: float = 1.0
@@ -568,6 +582,19 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	pending_field_equipment_choice = {}
 	field_weapon_over_cap_ids = []
 	field_passive_over_cap_ids = []
+	v2_momentum_timer = 0.0
+	v2_momentum_label = ""
+	v2_momentum_tier = 0
+	v2_momentum_score_multiplier = 1.0
+	v2_kill_streak = 0
+	v2_kill_streak_timer = 0.0
+	v2_best_kill_streak = 0
+	v2_peak_momentum_tier = 0
+	v2_momentum_triggers = 0
+	v2_no_damage_timer = 0.0
+	v2_no_damage_best = 0.0
+	v2_no_damage_next_milestone = 0
+	v2_momentum_history = []
 	enemies = []
 	gems = []
 	projectiles = []
@@ -621,6 +648,7 @@ func _load_definitions() -> void:
 	field_event_defs = _json_dict("res://data/field_events.json", {"events": []})
 	rune_contract_defs = _json_dict("res://data/rune_contracts.json", {})
 	weapon_effect_defs = _json_dict("res://data/weapon_effects.json", {})
+	v2_momentum_defs = _json_dict("res://data/v2_momentum.json", {"enabled": false})
 	build_synergy_defs = _json_dict("res://data/build_synergies.json", {})
 	field_drop_defs = _json_dict("res://data/field_drops.json", {})
 	field_equipment_defs = _json_dict("res://data/field_equipment_rewards.json", {"config": {}, "reward_rooms": {}, "weapon_pool": [], "passive_pool": []})
@@ -1168,6 +1196,8 @@ func get_score_multiplier(pos: Vector2 = Vector2.INF) -> float:
 	var multiplier = 1.0 + 0.14 * float(passives.get("greed", 0)) + 0.10 * float(infinite_upgrades.get("infinite_greed", 0)) + 0.08 * float(passives.get("curse", 0))
 	multiplier *= rune_contract_score_multiplier()
 	multiplier *= modifier_mult("score_mult", 1.0)
+	if v2_momentum_timer > 0.0:
+		multiplier *= v2_momentum_score_multiplier
 	var check_pos = player_position if pos == Vector2.INF else pos
 	if is_position_in_danger_zone(check_pos):
 		var danger_bonus = rune_contract_multiplier("danger_bonus", 1.0) * modifier_mult("danger_reward_mult", 1.0)
