@@ -22,7 +22,7 @@ def main() -> int:
         "TEMPLATE_VERSION": 'TEMPLATE_VERSION: "4.2.stable"' in text,
         "upload-artifact": "actions/upload-artifact@v4" in text,
         "Windows artifact": "ChronoMergeTactics-Windows" in text,
-        "Windows artifact archive": "zip -qry ../ChronoMergeTactics-Windows.zip" in text,
+        "Windows artifact archive": "ChronoMergeTactics-Windows.zip" in text,
         "iOS artifact": "GemSurvivor-iOS-unsigned-IPA" in text,
         "balance report artifact": "Balance-Report" in text,
         "safe play area artifact": "Safe-Play-Area-QA" in text,

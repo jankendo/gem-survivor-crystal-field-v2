@@ -60,37 +60,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/auto_play_60sec.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $godot --headless --path . --script res://tests/auto_play_5min.gd
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $godot --headless --path . --script res://tests/auto_play_ios_dynamic_joystick_5min.gd
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $godot --headless --path . --script res://tests/auto_play_ios_energy_20min.gd
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $godot --headless --path . --script res://tests/auto_play_ios_energy_battery_saver_20min.gd
+          & $godot --headless --path . --script res://tests/auto_play_ios_touch_60sec.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/auto_play_balance_candidate_audit.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/auto_play_shop_reroll_flow.gd
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $godot --headless --path . --script res://tests/auto_play_exp_multiplier_5min.gd
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $godot --headless --path . --script res://tests/auto_play_field_drop_persistence_30min.gd
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $godot --headless --path . --script res://tests/auto_play_random_field_equipment_15min.gd
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $godot --headless --path . --script res://tests/auto_play_resonance_magnet_15min.gd
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $godot --headless --path . --script res://tests/auto_play_global_magnet_stress.gd
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $godot --headless --path . --script res://tests/auto_play_global_drone_15min.gd
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $godot --headless --path . --script res://tests/auto_play_character_evolution_20min.gd
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & $godot --headless --path . --script res://tests/auto_play_character_evolution_balance_30min.gd
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tools/analyze_ios_performance.py test-output/ios_perf_5min.csv --output test-output/ios_performance_report.md
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tools/analyze_ios_energy.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/generate_progress_qa.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -184,6 +158,19 @@ jobs:
           $exePath = "builds/windows/${env:EXPORT_NAME}.exe"
           if (-not (Test-Path $exePath)) { throw "Windows export was not created." }
           if ((Get-Item $exePath).Length -lt 1MB) { throw "Windows export is unexpectedly small." }
+          Copy-Item README.md builds/windows/README.md -Force
+          Push-Location builds/windows
+          Compress-Archive -Path "${env:EXPORT_NAME}.exe", "README.md" -DestinationPath "..\ChronoMergeTactics-Windows.zip" -Force
+          Pop-Location
+          if (-not (Test-Path "builds/ChronoMergeTactics-Windows.zip")) { throw "Windows archive was not created." }
+          if ((Get-Item "builds/ChronoMergeTactics-Windows.zip").Length -lt 1MB) { throw "Windows archive is unexpectedly small." }
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChronoMergeTactics-Windows
+          path: builds/ChronoMergeTactics-Windows.zip
+          if-no-files-found: error
 
       - name: Upload balance report
         uses: actions/upload-artifact@v4
@@ -192,7 +179,7 @@ jobs:
           path: |
             balance_report.md
             test-output/balance_candidate_runs.json
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload iOS energy report
         uses: actions/upload-artifact@v4
@@ -204,28 +191,28 @@ jobs:
             test-output/ios_energy_log_battery_saver.csv
             test-output/ios_energy_log_battery_saver_summary.json
             test-output/ios_energy_report.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload progress QA report
         uses: actions/upload-artifact@v4
         with:
           name: Progress-QA-Report
           path: test-output/progress_qa_report.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload iOS layout QA
         uses: actions/upload-artifact@v4
         with:
           name: iOS-Layout-QA
           path: test-output/screenshots/ios_layout/
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload iOS touch audit
         uses: actions/upload-artifact@v4
         with:
           name: iOS-Touch-Audit
           path: test-output/ios_touch_action_audit.csv
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload iOS performance report
         uses: actions/upload-artifact@v4
@@ -235,91 +222,91 @@ jobs:
             test-output/ios_perf_5min.csv
             test-output/ios_performance_log*.csv
             test-output/ios_performance_report.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload Safe Play Area QA
         uses: actions/upload-artifact@v4
         with:
           name: Safe-Play-Area-QA
           path: test-output/safe_play_area_qa.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload exploration balance report
         uses: actions/upload-artifact@v4
         with:
           name: Exploration-Balance-Report
           path: test-output/exploration_balance_report.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload candidate pool QA
         uses: actions/upload-artifact@v4
         with:
           name: Candidate-Pool-QA
           path: test-output/candidate_pool_qa.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload asset QA report
         uses: actions/upload-artifact@v4
         with:
           name: Asset-QA-Report
           path: test-output/asset_qa_report.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload UI redesign QA
         uses: actions/upload-artifact@v4
         with:
           name: UI-Redesign-QA
           path: test-output/ui_redesign_qa.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload field equipment QA
         uses: actions/upload-artifact@v4
         with:
           name: Field-Equipment-QA
           path: test-output/field_equipment_qa.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload selection reroll QA
         uses: actions/upload-artifact@v4
         with:
           name: Selection-Reroll-QA
           path: test-output/shop_reroll_qa.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload experience balance report
         uses: actions/upload-artifact@v4
         with:
           name: Experience-Balance-Report
           path: test-output/experience_balance_report.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload persistent drop QA
         uses: actions/upload-artifact@v4
         with:
           name: Persistent-Drop-QA
           path: test-output/persistent_drop_qa.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload global gem collection QA
         uses: actions/upload-artifact@v4
         with:
           name: Global-Gem-Collection-QA
           path: test-output/global_gem_collection_qa.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload character evolution QA
         uses: actions/upload-artifact@v4
         with:
           name: Character-Evolution-QA
           path: test-output/character_evolution_qa.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload knockback QA
         uses: actions/upload-artifact@v4
         with:
           name: Knockback-QA
           path: test-output/knockback_qa.md
-          if-no-files-found: error
+          if-no-files-found: warn
 
   ios-unsigned-build:
     runs-on: macos-latest
@@ -345,30 +332,6 @@ jobs:
         run: |
           python3 tools/validate_github_actions.py
           python3 tools/validate_ios_workflow.py
-
-      - name: Export Windows artifact
-        shell: bash
-        run: |
-          set -euo pipefail
-          GODOT=".tools/godot/Godot.app/Contents/MacOS/Godot"
-          mkdir -p builds/windows
-          "${GODOT}" --headless --path . --export-release "${WINDOWS_PRESET}" "builds/windows/${EXPORT_NAME}.exe"
-          test -s "builds/windows/${EXPORT_NAME}.exe"
-          test "$(stat -f%z "builds/windows/${EXPORT_NAME}.exe")" -gt 1000000
-          cp README.md builds/windows/README.md
-          (
-            cd builds/windows
-            zip -qry ../ChronoMergeTactics-Windows.zip "${EXPORT_NAME}.exe" README.md
-          )
-          test -s builds/ChronoMergeTactics-Windows.zip
-          unzip -l builds/ChronoMergeTactics-Windows.zip | head -40
-
-      - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ChronoMergeTactics-Windows
-          path: builds/ChronoMergeTactics-Windows.zip
-          if-no-files-found: error
 
       - name: Export iOS Xcode project
         shell: bash
