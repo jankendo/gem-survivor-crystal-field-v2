@@ -16,10 +16,9 @@ func test_manifest_loads_known_asset(t) -> void:
 func test_missing_v2_asset_falls_back_to_current_source(t) -> void:
 	var registry = V2AssetRegistryScript.new()
 	var path := registry.resolve_path("weapon.magic_bolt")
-	t.assert_true(path.ends_with("magic_bolt.svg"), "asset registry should return generated SVG fallback when v2 image is missing")
+	t.assert_true(path.ends_with("magic_bolt.png"), "asset registry should prefer integrated v2 PNG when available")
 
 func test_status_counts_are_available(t) -> void:
 	var registry = V2AssetRegistryScript.new()
 	var counts := registry.replacement_status_counts()
-	t.assert_true(int(counts.get("fallback", 0)) > 0, "manifest should report fallback assets")
-
+	t.assert_true(int(counts.get("integrated", 0)) >= 16, "manifest should report integrated P0 assets")

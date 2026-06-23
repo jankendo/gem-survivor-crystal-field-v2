@@ -303,6 +303,17 @@ var v2_no_damage_timer: float = 0.0
 var v2_no_damage_best: float = 0.0
 var v2_no_damage_next_milestone: int = 0
 var v2_momentum_history: Array = []
+var v2_momentum_reason: String = ""
+var v2_momentum_trigger_type: String = ""
+var v2_momentum_trigger_counts: Dictionary = {}
+var v2_momentum_active_time_total: float = 0.0
+var v2_momentum_score_base: int = 0
+var v2_momentum_score_bonus: int = 0
+var v2_momentum_weighted_time: float = 0.0
+var v2_momentum_weighted_multiplier_sum: float = 0.0
+var v2_momentum_suppressed_duplicates: int = 0
+var v2_momentum_ending_warned: bool = false
+var v2_momentum_recent_event_keys: Dictionary = {}
 
 var enemies: Array = []
 var gems: Array = []
@@ -595,6 +606,17 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	v2_no_damage_best = 0.0
 	v2_no_damage_next_milestone = 0
 	v2_momentum_history = []
+	v2_momentum_reason = ""
+	v2_momentum_trigger_type = ""
+	v2_momentum_trigger_counts = {}
+	v2_momentum_active_time_total = 0.0
+	v2_momentum_score_base = 0
+	v2_momentum_score_bonus = 0
+	v2_momentum_weighted_time = 0.0
+	v2_momentum_weighted_multiplier_sum = 0.0
+	v2_momentum_suppressed_duplicates = 0
+	v2_momentum_ending_warned = false
+	v2_momentum_recent_event_keys = {}
 	enemies = []
 	gems = []
 	projectiles = []
@@ -1386,7 +1408,14 @@ func max_weapon_label() -> String:
 	return "%s Lv%d" % [weapon_name(best_id), int(weapons.get(best_id, 1))]
 
 func add_score(base: int, pos: Vector2 = Vector2.INF) -> void:
-	score += int(round(float(base) * get_score_multiplier(pos)))
+	var multiplier := get_score_multiplier(pos)
+	var awarded := int(round(float(base) * multiplier))
+	if v2_momentum_timer > 0.0 and v2_momentum_score_multiplier > 1.0:
+		var without_momentum := multiplier / maxf(1.0, v2_momentum_score_multiplier)
+		var base_award := int(round(float(base) * without_momentum))
+		v2_momentum_score_base += base_award
+		v2_momentum_score_bonus += maxi(0, awarded - base_award)
+	score += awarded
 
 func record_damage(amount: int) -> void:
 	if amount > max_damage:

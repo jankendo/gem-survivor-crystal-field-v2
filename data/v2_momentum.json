@@ -2,6 +2,9 @@
   "enabled": true,
   "kill_streak_window_seconds": 4.0,
   "max_history": 8,
+  "dedupe_window_seconds": 0.35,
+  "ending_warning_seconds": 2.5,
+  "telemetry_enabled": false,
   "kill_streak_tiers": [
     {
       "kills": 20,

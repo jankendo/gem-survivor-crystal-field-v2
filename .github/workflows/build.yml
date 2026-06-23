@@ -46,6 +46,7 @@ jobs:
         run: |
           python tools/validate_github_actions.py
           python tools/validate_ios_workflow.py
+          python tools/validate_v2_asset_manifest.py
 
       - name: Run standard tests
         shell: pwsh
@@ -91,6 +92,10 @@ jobs:
           python tools/generate_character_evolution_qa.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/generate_knockback_qa.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_v2_momentum_10min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/capture_v2_phase2_screenshots.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run full balance tests
@@ -308,6 +313,16 @@ jobs:
           path: test-output/knockback_qa.md
           if-no-files-found: warn
 
+      - name: Upload v2 phase 2 QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: V2-Phase2-QA
+          path: |
+            test-output/v2_momentum_balance_report.md
+            test-output/v2_momentum_balance_summary.json
+            test-output/screenshots/v2_phase2/
+          if-no-files-found: warn
+
   ios-unsigned-build:
     runs-on: macos-latest
     timeout-minutes: 60
@@ -332,6 +347,7 @@ jobs:
         run: |
           python3 tools/validate_github_actions.py
           python3 tools/validate_ios_workflow.py
+          python3 tools/validate_v2_asset_manifest.py
 
       - name: Export iOS Xcode project
         shell: bash

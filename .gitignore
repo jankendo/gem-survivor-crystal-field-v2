@@ -3,6 +3,7 @@
 .codex/
 builds/
 !builds/.gdignore
+artifacts/
 *.log
 test-output/
 !test-output/

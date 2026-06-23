@@ -144,45 +144,50 @@ func show_summary(summary: Dictionary) -> void:
 	var progress_count: int = progress_items.size() if progress_items is Array else 0
 	best_update_label.visible = bool(summary.get("best_updated", false))
 	score_line.text = "スコア：%s" % JaText.format_int(score)
-	lines.text = "\n".join([
-		"今回の成果：%s / %s / Lv%d" % [
-			JaText.format_int(int(summary.get("kills", 0))),
-			JaText.format_time(float(summary.get("survival_time", 0.0))),
-			int(summary.get("level", 1))
+	var priority_lines := [
+		"今回の成果",
+		"生存時間：%s" % JaText.format_time(float(summary.get("survival_time", 0.0))),
+		"スコア：%s" % JaText.format_int(score),
+		"到達Lv：%d" % int(summary.get("level", 1)),
+		"撃破数：%s" % JaText.format_int(int(summary.get("kills", 0))),
+		"ボス撃破：%d" % int(summary.get("boss_defeats", 0)),
+		"最大武器：%s" % String(summary.get("max_weapon", "魔弾 Lv1")),
+		"今回の主力武器：%s" % String(summary.get("max_weapon", "魔弾 Lv1")),
+		"進化武器：%s" % _join_or_none(summary.get("evolved_weapon_ids", [])),
+		"発動シナジー：%s" % _join_or_none(summary.get("synergy_history", summary.get("active_synergies", [])))
+	]
+	var momentum_lines := v2_hud_presenter.momentum_result_lines(summary)
+	var detail_lines := [
+		"新規解放：実績 %s / キャラ %s / 武器 %s / パッシブ %s" % [
+			_join_or_none(summary.get("quests_completed", [])),
+			_name_list(summary.get("characters_unlocked", []), "res://data/characters.json"),
+			_name_list(summary.get("weapons_unlocked", []), "res://data/weapons.json"),
+			_name_list(summary.get("passives_unlocked", []), "res://data/passives.json")
 		],
-		"成長：クリスタル貨+%s / 熟練Lv%d / 解放進捗%d件" % [
+		"獲得通貨：+%s（所持 %s）" % [
 			JaText.format_int(int(summary.get("currency_earned", 0))),
-			int(summary.get("mastery", {}).get("level", 0)),
-			progress_count
+			JaText.format_int(int(summary.get("currency_total", 0)))
 		],
 		"次の目標：%s" % _next_goal(summary),
-		"v2ハイライト：\n%s" % "\n".join(v2_hud_presenter.result_highlights(summary)),
+		"成長：Lv%d / 熟練%sPt / 進捗%d件" % [
+			int(summary.get("level", 1)),
+			JaText.format_int(int(summary.get("mastery", {}).get("points", 0))),
+			progress_count
+		],
+		"v2ハイライト：%s" % " / ".join(v2_hud_presenter.result_highlights(summary)),
 		"キャラクター：%s" % String(summary.get("character_name", "探鉱者ノア")),
 		"祝福：%s" % String(summary.get("blessing_name", summary.get("blessing_id", "攻撃の祝福"))),
 		"祝福効果：%s" % String(summary.get("blessing_effect", "")),
 		"マップシード：%s" % String(summary.get("map_seed_text", summary.get("map_seed", "ランダム"))),
-		"生存時間：%s" % JaText.format_time(float(summary.get("survival_time", 0.0))),
 		"称号：%s" % " / ".join(summary.get("title_badges", ["クリスタル挑戦者"])),
 		"結果スタンプ：%s" % _join_or_none(summary.get("challenge_stamps", [])),
-		"獲得クリスタル貨：+%s（所持 %s）" % [
-			JaText.format_int(int(summary.get("currency_earned", 0))),
-			JaText.format_int(int(summary.get("currency_total", 0)))
-		],
-		"新規実績：%s" % _join_or_none(summary.get("quests_completed", [])),
-		"新キャラ解放：%s" % _name_list(summary.get("characters_unlocked", []), "res://data/characters.json"),
-		"新武器解放：%s" % _name_list(summary.get("weapons_unlocked", []), "res://data/weapons.json"),
-		"新パッシブ解放：%s" % _name_list(summary.get("passives_unlocked", []), "res://data/passives.json"),
 		"今回進んだ解放：\n%s" % _progress_delta_text(summary.get("progress_deltas", [])),
 		"熟練：Lv%d / %sPt" % [
 			int(summary.get("mastery", {}).get("level", 0)),
 			JaText.format_int(int(summary.get("mastery", {}).get("points", 0)))
 		],
-		"撃破数：%s" % JaText.format_int(int(summary.get("kills", 0))),
-		"到達Lv：%d" % int(summary.get("level", 1)),
-		"最大武器：%s" % String(summary.get("max_weapon", "魔弾 Lv1")),
 		"進化武器数：%d" % int(summary.get("evolved_weapon_count", 0)),
 		"過充電数：%d" % int(summary.get("overclock_count", 0)),
-		"発動ビルド相性：%s" % _join_or_none(summary.get("synergy_history", summary.get("active_synergies", []))),
 		"探索ドロップ：%d個 / ギミック発動：%d回" % [int(summary.get("field_drops_collected", 0)), int(summary.get("field_gimmicks_triggered", 0))],
 		"動的ドロップ出現：%d個" % int(summary.get("dynamic_drops_spawned", 0)),
 		"ドロップ復活：%d個" % int(summary.get("field_drop_respawns_spawned", 0)),
@@ -217,7 +222,8 @@ func show_summary(summary: Dictionary) -> void:
 		"最高スコア：%s" % JaText.format_int(best),
 		"自己ベストまであと：%s" % JaText.format_int(delta),
 		"死因：%s" % String(summary.get("reason", "敵に囲まれました"))
-	])
+	]
+	lines.text = "\n".join(priority_lines + ["", "Momentum成果"] + momentum_lines + ["", "詳細"] + detail_lines)
 
 func _contract_label(value) -> String:
 	if value is Array and not value.is_empty():

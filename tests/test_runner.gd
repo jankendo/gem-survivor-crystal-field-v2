@@ -178,8 +178,17 @@ func _initialize() -> void:
 		,"res://tests/test_ios_safe_play_area_letterbox.gd"
 		,"res://tests/test_ios_default_lightweight_settings.gd"
 		,"res://tests/test_v2_momentum_system.gd"
+		,"res://tests/test_v2_momentum_telemetry.gd"
+		,"res://tests/test_v2_momentum_deduplication.gd"
+		,"res://tests/test_v2_feedback_director.gd"
+		,"res://tests/test_v2_feedback_priority.gd"
 		,"res://tests/test_v2_hud_presenter.gd"
 		,"res://tests/test_v2_asset_registry.gd"
+		,"res://tests/test_v2_asset_manifest.gd"
+		,"res://tests/test_v2_asset_registry_fallback.gd"
+		,"res://tests/test_v2_ui_layout_contract.gd"
+		,"res://tests/test_v2_main_navigation.gd"
+		,"res://tests/test_v2_result_summary.gd"
 	]
 	for suite_path in suites:
 		print("Running ", suite_path)

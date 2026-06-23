@@ -26,7 +26,7 @@ func test_momentum_text_uses_active_state(t) -> void:
 	state.v2_momentum_score_multiplier = 1.08
 	var presenter = V2HudPresenterScript.new()
 	var text := presenter.momentum_text(state)
-	t.assert_true(text.find("連続撃破") >= 0, "momentum text should show active label")
+	t.assert_true(text.find("MOMENTUM") >= 0, "momentum text should show compact momentum state")
 	t.assert_true(text.find("1.08") >= 0, "momentum text should show multiplier")
 
 func test_result_highlights_include_build_summary(t) -> void:
@@ -42,4 +42,3 @@ func test_result_highlights_include_build_summary(t) -> void:
 	})
 	t.assert_true(lines.size() >= 3, "result highlights should include momentum, streak, and build lines")
 	t.assert_true(String(lines.back()).find("今回のビルド") >= 0, "last highlight should summarize build")
-

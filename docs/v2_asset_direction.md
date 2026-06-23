@@ -47,3 +47,8 @@
 * 武器、パッシブ、進化、ドロップは形状言語を分ける。
 * UI素材はテキストを邪魔しない。
 
+## Phase 2 Batch 01
+
+Phase 2ではP0垂直スライスとして、ノア、スライム、コウモリ、ゴーレム、5分ボス、魔弾、氷軌道、移動速度、磁力、星砕きの魔弾、星晶の原野、タイトル/パネル/カード/Momentum/ボス警告UIをPNG化した。
+
+素材は外部著作物を使わず、`tools/generate_v2_phase2_assets.py`でプロジェクト内生成した。生成条件と再生成/置換プロンプトは`docs/asset_generation/v2_batch_01.md`と`docs/asset_generation/v2_batch_01.json`に保存する。

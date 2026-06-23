@@ -58,15 +58,22 @@ assets/generated/weapons/magic_bolt.svg
 ## 差し替え手順
 
 1. `data/asset_manifest.json`へ対象IDを登録する。
-2. `future_style`と`target_resolution`を確認する。
+2. `style_profile`、`target_resolution`、`transparent`、`fallback_path`を確認する。
 3. 生成画像を`assets/v2/{category}/`へ配置する。
-4. `replacement_status`を`candidate`へ変更する。
-5. Godot import後、表示確認とスモークを通す。
-6. 視認性OKなら`replacement_status`を`approved`にする。
+4. 画像が存在する場合のみ`replacement_status`を`generated`、ゲーム内統合済みなら`integrated`へ変更する。
+5. `python tools/validate_v2_asset_manifest.py`を通す。
+6. Godot import後、表示確認とスモークを通す。
+7. 視認性OKなら`replacement_status`を`approved`にする。
 
 ## fallback運用
 
 `V2AssetRegistry.gd`は、v2画像が存在する場合はv2画像を優先し、存在しない場合は既存SVGへ戻す。これにより、カテゴリ単位ではなくID単位で安全に差し替えられる。
+
+Phase 2時点の解決順:
+
+1. `preferred_path`のv2 PNG/WebP
+2. `fallback_path`の既存SVG
+3. 呼び出し元の安全なコード描画
 
 ## 量産フロー
 
@@ -77,3 +84,4 @@ assets/generated/weapons/magic_bolt.svg
 5. `data/asset_manifest.json`を更新する。
 6. `tests/test_v2_asset_registry.gd`を通す。
 
+Phase 2のP0対象と生成条件は`docs/asset_generation/v2_batch_01.md`を正とする。

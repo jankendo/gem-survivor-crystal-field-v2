@@ -18,3 +18,27 @@
 
 * 現行サバイバー路線を維持する。旧Chrono Merge Tacticsのターン制合成仕様へは戻さない。
 
+## 2026-06-23 Phase 2
+
+### Added
+
+* `docs/current_gameplay_spec.md`を現行ゲームプレイ正本として追加。
+* `V2MomentumTelemetry.gd`とMomentum重複抑止/集計を追加。
+* `V2FeedbackDirector.gd`と`data/v2_feedback.json`を追加。
+* `data/v2_visual_theme.json`と`V2ThemeProvider.gd`を追加。
+* Main画面用Controller群を追加。
+* P0垂直スライスPNG 16件、Batch 01生成資料、manifest validatorを追加。
+* Phase 2 screenshot/layout QAとMomentum 10分相当QAを追加。
+
+### Changed
+
+* READMEを現行製品入口へ縮小し、旧更新メモを`docs/archive/legacy_update_notes.md`へ退避。
+* タイトル、HUD、リザルトでv2情報階層を適用。
+* `V2AssetRegistry.gd`がpreferred PNGを優先し、未import PNGも安全に読み込めるよう更新。
+
+### Verification
+
+* `python tools/validate_v2_asset_manifest.py`
+* 新規v2 targeted suites
+* `tests/auto_play_v2_momentum_10min.gd`
+* `tests/capture_v2_phase2_screenshots.gd`

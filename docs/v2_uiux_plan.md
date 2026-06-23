@@ -61,3 +61,10 @@ v2では、タイトルから「開始」「キャラクター選択」「解放
 * 既存`NotificationLogSystem.gd`は活かす。
 * 既存のiOS Safe Area/Touch UIは壊さない。
 
+## Phase 2実装済み
+
+* タイトル画面のボタン階層は`TitleScreenController.gd`から生成する。
+* ショップカテゴリと図鑑タブ/フィルタ/ソートは専用Controllerでindexを管理する。
+* ラン中HUDにMomentum専用パネルとFeedback Directorバナーを追加した。
+* Momentum表示は`MOMENTUM II / 残り / 倍率 / 理由`の短い情報に制限する。
+* リザルトは「次のランにつながる画面」として、成果、Momentum、解放、通貨、次の目標の順に整理した。

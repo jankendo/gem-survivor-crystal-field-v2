@@ -15,6 +15,7 @@ func test_windows_export_preset(t) -> void:
 	t.assert_true(exclude_filter.find("tests/*") >= 0, "tests should be excluded from release export")
 	t.assert_true(exclude_filter.find("tools/*") >= 0, "tools should be excluded from release export")
 	t.assert_true(exclude_filter.find("test-output/*") >= 0, "test output should be excluded from release export")
+	t.assert_true(exclude_filter.find("artifacts/*") >= 0, "local CI artifacts should be excluded from release export")
 	t.assert_true(exclude_filter.find(".github/*") >= 0, "workflow metadata should be excluded from release export")
 	t.assert_eq(bool(config.get_value("preset.0.options", "application/modify_resources", true)), false, "modify_resources should be false to avoid rcedit dependency")
 

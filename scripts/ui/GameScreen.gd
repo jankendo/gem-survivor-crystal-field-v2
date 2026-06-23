@@ -57,7 +57,10 @@ const IosFramePacingSystemScript = preload("res://scripts/systems/IosFramePacing
 const IosBackgroundThrottleSystemScript = preload("res://scripts/systems/IosBackgroundThrottleSystem.gd")
 const MapPauseSystemScript = preload("res://scripts/systems/MapPauseSystem.gd")
 const V2MomentumSystemScript = preload("res://scripts/systems/V2MomentumSystem.gd")
+const V2MomentumTelemetryScript = preload("res://scripts/systems/V2MomentumTelemetry.gd")
+const V2FeedbackDirectorScript = preload("res://scripts/systems/V2FeedbackDirector.gd")
 const V2HudPresenterScript = preload("res://scripts/systems/V2HudPresenter.gd")
+const V2ThemeProviderScript = preload("res://scripts/ui/v2/V2ThemeProvider.gd")
 const ArenaViewScript = preload("res://scripts/ui/ArenaView.gd")
 const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.gd")
 const ConfirmDialogScript = preload("res://scripts/ui/components/ConfirmDialog.gd")
@@ -122,7 +125,10 @@ var ios_frame_pacing_system
 var ios_background_throttle_system
 var map_pause_system
 var v2_momentum_system
+var v2_momentum_telemetry
+var v2_feedback_director
 var v2_hud_presenter
+var v2_theme
 var arena_view
 var audio_manager: AudioManager
 var reward_popup: RewardPopup
@@ -146,6 +152,10 @@ var debug_overlay_label: Label
 var boss_alert_label: Label
 var boss_hp_label: Label
 var boss_hp_bar: ProgressBar
+var v2_momentum_panel: PanelContainer
+var v2_momentum_label: Label
+var v2_feedback_panel: PanelContainer
+var v2_feedback_label: Label
 var low_hp_overlay: ColorRect
 var safe_play_left_bar: ColorRect
 var safe_play_right_bar: ColorRect
@@ -247,11 +257,15 @@ func _ready() -> void:
 	ios_background_throttle_system = IosBackgroundThrottleSystemScript.new()
 	map_pause_system = MapPauseSystemScript.new()
 	v2_momentum_system = V2MomentumSystemScript.new()
+	v2_momentum_telemetry = V2MomentumTelemetryScript.new()
+	v2_feedback_director = V2FeedbackDirectorScript.new()
 	v2_hud_presenter = V2HudPresenterScript.new()
+	v2_theme = V2ThemeProviderScript.new()
 	state.start_new_run(0, initial_seed_text)
 	var save_data = initial_save_data if not initial_save_data.is_empty() else SaveSystem.new().load_data()
 	var settings: Dictionary = save_data.get("settings", {})
 	runtime_settings = settings.duplicate(true)
+	v2_momentum_telemetry.configure(bool(settings.get("v2_momentum_telemetry", false)))
 	ios_energy_optimizer.configure(settings)
 	input_mode.configure(settings)
 	add_child(mobile_scroll_system)
@@ -318,6 +332,8 @@ func _process(delta: float) -> void:
 		ios_energy_optimizer.audio_event_count = audio_manager.audio_event_count
 	notification_log_system.tick(delta)
 	boss_alert_system.tick(delta)
+	if v2_feedback_director != null:
+		v2_feedback_director.tick(delta, state != null and state.paused)
 	ios_performance_log_system.tick(delta, state, self)
 	ios_energy_log_system.tick(delta, state, self, ios_energy_optimizer)
 	if state.game_over:
@@ -621,6 +637,44 @@ func _build_ui() -> void:
 	boss_hp_bar.show_percentage = false
 	add_child(boss_hp_bar)
 
+	v2_momentum_panel = PanelContainer.new()
+	v2_momentum_panel.visible = false
+	v2_momentum_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v2_momentum_panel.custom_minimum_size = Vector2(220.0 if input_mode.is_touch_mode() else 260.0, 82.0)
+	v2_momentum_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	v2_momentum_panel.offset_left = safe_left
+	v2_momentum_panel.offset_right = safe_left + (220.0 if input_mode.is_touch_mode() else 260.0)
+	v2_momentum_panel.offset_top = 96.0 * ui_scale
+	v2_momentum_panel.offset_bottom = 178.0 * ui_scale
+	v2_momentum_panel.add_theme_stylebox_override("panel", _hud_panel_style(v2_theme.color("momentum", Color(0.62, 0.50, 1.0))))
+	add_child(v2_momentum_panel)
+	v2_momentum_label = Label.new()
+	v2_momentum_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v2_momentum_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v2_momentum_label.add_theme_font_size_override("font_size", int((15.0 if input_mode.is_touch_mode() else 16.0) * ui_scale))
+	v2_momentum_label.add_theme_color_override("font_color", v2_theme.color("momentum_high", Color(0.86, 0.96, 1.0)))
+	v2_momentum_panel.add_child(v2_momentum_label)
+
+	v2_feedback_panel = PanelContainer.new()
+	v2_feedback_panel.visible = false
+	v2_feedback_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v2_feedback_panel.custom_minimum_size = Vector2(300.0, 76.0)
+	v2_feedback_panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	v2_feedback_panel.offset_left = viewport_size.x * 0.30
+	v2_feedback_panel.offset_right = -viewport_size.x * 0.30
+	v2_feedback_panel.offset_top = 202.0 * ui_scale
+	v2_feedback_panel.offset_bottom = 278.0 * ui_scale
+	v2_feedback_panel.add_theme_stylebox_override("panel", _hud_panel_style(v2_theme.color("crystal", Color(0.42, 0.92, 1.0))))
+	add_child(v2_feedback_panel)
+	v2_feedback_label = Label.new()
+	v2_feedback_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v2_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v2_feedback_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	v2_feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v2_feedback_label.add_theme_font_size_override("font_size", int((16.0 if input_mode.is_touch_mode() else 18.0) * ui_scale))
+	v2_feedback_label.add_theme_color_override("font_color", v2_theme.color("text", Color(0.94, 0.98, 1.0)))
+	v2_feedback_panel.add_child(v2_feedback_label)
+
 	notification_panel = PanelContainer.new()
 	notification_panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
 	notification_panel.offset_left = -390.0
@@ -726,6 +780,9 @@ func _handle_events(events: Array) -> void:
 	for event in events:
 		var notification_revision: int = int(notification_log_system.revision)
 		notification_log_system.ingest(event, state.elapsed_seconds)
+		v2_feedback_director.ingest(event, state.elapsed_seconds)
+		if String(event.get("type", "")) in ["v2_momentum", "v2_momentum_tier_up", "v2_momentum_ending"]:
+			v2_momentum_telemetry.record(state, String(event.get("trigger_type", "")))
 		if notification_log_system.revision != notification_revision:
 			ios_energy_optimizer.mark_notification()
 		boss_alert_system.ingest(event)
@@ -969,6 +1026,7 @@ func _refresh() -> void:
 	if momentum_text != "":
 		combo_text += "　%s" % momentum_text
 	_set_label_text(combo_label, combo_text)
+	_refresh_v2_phase2_hud()
 	if exp_bar.value != exp_percent:
 		exp_bar.value = exp_percent
 	var goal_signature := "%s:%d:%d:%d" % [str(state.current_goals), int(state.player_position.x / 16.0), int(state.player_position.y / 16.0), int(state.elapsed_seconds * 4.0)]
@@ -1042,6 +1100,33 @@ func _refresh_goal_hud() -> void:
 		state.exploration_chain,
 		state.exploration_chain_timer
 	])
+
+func _refresh_v2_phase2_hud() -> void:
+	if v2_momentum_panel != null:
+		var text: String = v2_hud_presenter.momentum_panel_text(state)
+		v2_momentum_panel.visible = text != "" and not map_expanded
+		_set_label_text(v2_momentum_label, text)
+	if v2_feedback_panel != null:
+		var feedback_text: String = v2_feedback_director.active_text()
+		v2_feedback_panel.visible = feedback_text != "" and not map_expanded and not state.level_up_pending and not state.chest_pending
+		_set_label_text(v2_feedback_label, feedback_text)
+		if v2_feedback_panel.visible:
+			v2_feedback_panel.add_theme_stylebox_override("panel", _hud_panel_style(_feedback_color(v2_feedback_director.active_accent())))
+
+func _feedback_color(accent: String) -> Color:
+	match accent:
+		"growth":
+			return v2_theme.color("growth", Color(1.0, 0.82, 0.34))
+		"weapon":
+			return v2_theme.color("weapon", Color(1.0, 0.48, 0.32))
+		"passive":
+			return v2_theme.color("passive", Color(0.38, 1.0, 0.74))
+		"momentum":
+			return v2_theme.color("momentum", Color(0.62, 0.50, 1.0))
+		"danger":
+			return v2_theme.color("danger", Color(1.0, 0.28, 0.44))
+		_:
+			return v2_theme.color("crystal", Color(0.42, 0.92, 1.0))
 
 func _set_label_text(label: Label, value: String) -> void:
 	if ios_energy_optimizer != null:
@@ -1355,6 +1440,13 @@ func _summary() -> Dictionary:
 		"cursed_relics": state.cursed_relic_count,
 		"v2_peak_momentum_tier": state.v2_peak_momentum_tier,
 		"v2_momentum_triggers": state.v2_momentum_triggers,
+		"v2_momentum_active_time_total": state.v2_momentum_active_time_total,
+		"v2_momentum_score_base": state.v2_momentum_score_base,
+		"v2_momentum_score_bonus": state.v2_momentum_score_bonus,
+		"v2_momentum_weighted_multiplier": state.v2_momentum_weighted_multiplier_sum / maxf(0.001, state.v2_momentum_weighted_time),
+		"v2_momentum_trigger_counts": state.v2_momentum_trigger_counts.duplicate(true),
+		"v2_momentum_main_trigger": v2_momentum_system.most_common_trigger(state),
+		"v2_momentum_suppressed_duplicates": state.v2_momentum_suppressed_duplicates,
 		"v2_best_kill_streak": state.v2_best_kill_streak,
 		"v2_no_damage_best": state.v2_no_damage_best,
 		"v2_momentum_history": state.v2_momentum_history.duplicate(true),

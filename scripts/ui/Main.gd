@@ -23,6 +23,12 @@ const LoadoutDisableSystemScript := preload("res://scripts/systems/LoadoutDisabl
 const AchievementProgressSystemScript := preload("res://scripts/systems/AchievementProgressSystem.gd")
 const ConfirmDialogScript := preload("res://scripts/ui/components/ConfirmDialog.gd")
 const UiNavigation := preload("res://scripts/ui/UiNavigation.gd")
+const V2AssetRegistryScript := preload("res://scripts/systems/V2AssetRegistry.gd")
+const V2ThemeProviderScript := preload("res://scripts/ui/v2/V2ThemeProvider.gd")
+const MainScreenStateScript := preload("res://scripts/ui/main/MainScreenState.gd")
+const TitleScreenControllerScript := preload("res://scripts/ui/main/TitleScreenController.gd")
+const ShopScreenControllerScript := preload("res://scripts/ui/main/ShopScreenController.gd")
+const CollectionScreenControllerScript := preload("res://scripts/ui/main/CollectionScreenController.gd")
 
 var current_screen: Node = null
 var screen_mode := "title"
@@ -39,6 +45,12 @@ var shop_category_system = ShopCategorySystemScript.new()
 var collection_filter_system = CollectionFilterSystemScript.new()
 var loadout_disable_system = LoadoutDisableSystemScript.new()
 var achievement_progress_system = AchievementProgressSystemScript.new()
+var v2_asset_registry = V2AssetRegistryScript.new()
+var v2_theme = V2ThemeProviderScript.new()
+var main_screen_state = MainScreenStateScript.new()
+var title_controller = TitleScreenControllerScript.new()
+var shop_controller = ShopScreenControllerScript.new()
+var collection_controller = CollectionScreenControllerScript.new()
 var save_data: Dictionary = {}
 var selected_character_id := "noah"
 var selected_blessing_id := "attack"
@@ -53,8 +65,8 @@ var collection_tab_index := 0
 var collection_filter_index := 0
 var collection_sort_index := 0
 var quest_filter_index := 0
-var collection_tabs := ["characters", "weapons", "passives", "blessings", "evolutions", "enemies", "bosses", "field_drops", "field_gimmicks", "field_events"]
-var collection_tab_names := ["キャラ", "武器", "パッシブ", "祝福", "進化", "敵", "ボス", "ドロップ", "ギミック", "イベント"]
+var collection_tabs := []
+var collection_tab_names := []
 var blessing_expanded := false
 var loadout_kind := "weapon"
 var loadout_filter := "all"
@@ -68,6 +80,8 @@ var settings_scroll: ScrollContainer
 var settings_section_nodes: Dictionary = {}
 
 func _ready() -> void:
+	collection_tabs = collection_controller.tabs.duplicate(true)
+	collection_tab_names = collection_controller.tab_names.duplicate(true)
 	_sync_from_save()
 	_configure_mobile_viewport()
 	mobile_scroll_system = MobileScrollSystemScript.new()
@@ -92,10 +106,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_handle_character_key(event.keycode)
 		"shop":
 			if event.keycode == KEY_LEFT:
-				shop_category_index = posmod(shop_category_index - 1, shop_category_system.category_ids().size())
+				shop_category_index = shop_controller.move(-1, shop_category_system.category_ids())
 				show_shop()
 			elif event.keycode == KEY_RIGHT:
-				shop_category_index = posmod(shop_category_index + 1, shop_category_system.category_ids().size())
+				shop_category_index = shop_controller.move(1, shop_category_system.category_ids())
 				show_shop()
 			elif event.keycode == KEY_ESCAPE or event.keycode == KEY_U:
 				show_title()
@@ -156,10 +170,10 @@ func _handle_character_key(keycode: int) -> void:
 
 func _handle_collection_key(keycode: int) -> void:
 	if keycode == KEY_LEFT:
-		collection_tab_index = posmod(collection_tab_index - 1, collection_tabs.size())
+		collection_tab_index = collection_controller.move_tab(-1)
 		show_collection()
 	elif keycode == KEY_RIGHT:
-		collection_tab_index = posmod(collection_tab_index + 1, collection_tabs.size())
+		collection_tab_index = collection_controller.move_tab(1)
 		show_collection()
 	elif keycode == KEY_ESCAPE or keycode == KEY_L:
 		show_title()
@@ -181,15 +195,16 @@ func show_title() -> void:
 	_sync_from_save()
 	_clear()
 	screen_mode = "title"
+	main_screen_state.set_screen(screen_mode)
 	title_visible = true
 	help_visible = false
-	_add_background(Color(0.020, 0.026, 0.048))
+	_add_background(v2_theme.color("background", Color(0.020, 0.026, 0.048)))
 	_draw_neon_background()
 
 	var root := _page_box(54, 32, 54, 32)
 	root.add_theme_constant_override("separation", 12)
-	_add_label(root, JaText.TITLE, 36 if input_mode.is_touch_mode() else 42, Color(0.94, 0.98, 1.0))
-	_add_label(root, JaText.SUBTITLE, 18 if input_mode.is_touch_mode() else 20, Color(0.68, 0.84, 1.0))
+	_add_label(root, JaText.TITLE, v2_theme.font_size("title", 36 if input_mode.is_touch_mode() else 42), v2_theme.color("text_primary", Color(0.94, 0.98, 1.0)))
+	_add_label(root, JaText.SUBTITLE, v2_theme.font_size("subtitle", 18 if input_mode.is_touch_mode() else 20), v2_theme.color("text_secondary", Color(0.68, 0.84, 1.0)))
 	if input_mode.is_touch_mode():
 		_build_touch_title(root)
 		return
@@ -204,24 +219,17 @@ func show_title() -> void:
 	menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	menu.add_theme_constant_override("separation", 8)
 	body.add_child(menu)
-	_add_menu_button(menu, "開始", request_start, Color(0.52, 1.0, 1.0))
-	_add_menu_button(menu, "キャラクター選択", show_character_select)
-	_add_menu_button(menu, "解放 / 強化", show_shop, Color(1.0, 0.82, 0.28))
-	_add_menu_button(menu, "武器・パッシブ管理", show_loadout, Color(0.58, 1.0, 0.74))
-	_add_menu_button(menu, "図鑑", show_collection, Color(0.70, 0.86, 1.0))
-	_add_menu_button(menu, "実績", show_quests, Color(0.48, 1.0, 0.66))
-	_add_menu_button(menu, "設定", show_settings)
-	_add_menu_button(menu, "セーブ初期化", show_reset, Color(1.0, 0.34, 0.42), true)
-	_add_menu_button(menu, "遊び方", func(): show_help(false), Color(0.70, 0.78, 1.0))
-	_add_menu_button(menu, "終了", func(): get_tree().quit(), Color(0.50, 0.58, 0.70))
+	for action in title_controller.actions():
+		_add_title_action_button(menu, action)
 
 	var info = CrystalCardScript.new()
-	info.setup(Color(0.42, 0.92, 1.0), false)
+	info.setup(v2_theme.color("info", Color(0.42, 0.92, 1.0)), false)
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(info)
 	var info_box := VBoxContainer.new()
 	info_box.add_theme_constant_override("separation", 10)
 	info.add_child(info_box)
+	_add_title_key_visual(info_box)
 	_add_label(info_box, "現在の遠征準備", 28, Color(0.96, 0.98, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
 	_add_label(info_box, _title_status_text(), 19, Color(0.82, 0.92, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
 	_add_label(info_box, _next_goal_text(), 19, Color(1.0, 0.86, 0.38), HORIZONTAL_ALIGNMENT_LEFT)
@@ -238,19 +246,11 @@ func _build_touch_title(root: VBoxContainer) -> void:
 	var status_box := VBoxContainer.new()
 	status_box.add_theme_constant_override("separation", 4)
 	status.add_child(status_box)
+	_add_title_key_visual(status_box)
 	_add_label(status_box, "現在の遠征準備", 24, Color(0.96, 0.98, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
-	var stats: Dictionary = save_data.get("stats", {})
-	_add_label(
-		status_box,
-		"%s　クリスタル貨 %s　最高生存 %s" % [
-			meta_system.display_name(selected_character_id, save_data),
-			JaText.format_int(int(save_data.get("crystal_currency", 0))),
-			JaText.format_time(float(stats.get("best_survival", 0.0)))
-		],
-		17,
-		Color(0.82, 0.92, 1.0),
-		HORIZONTAL_ALIGNMENT_LEFT
-	)
+	var selected_name := meta_system.display_name(selected_character_id, save_data)
+	var blessing_name := _selected_blessing_name()
+	_add_label(status_box, "\n".join(title_controller.status_lines(save_data, selected_name, blessing_name)), 17, Color(0.82, 0.92, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
 	var primary := GridContainer.new()
 	primary.columns = 2
 	primary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -258,20 +258,18 @@ func _build_touch_title(root: VBoxContainer) -> void:
 	primary.add_theme_constant_override("h_separation", 12)
 	primary.add_theme_constant_override("v_separation", 12)
 	root.add_child(primary)
-	_add_menu_button(primary, "開始", request_start, Color(0.52, 1.0, 1.0))
-	_add_menu_button(primary, "キャラクター選択", show_character_select)
-	_add_menu_button(primary, "解放 / 強化", show_shop, Color(1.0, 0.82, 0.28))
-	_add_menu_button(primary, "武器・パッシブ管理", show_loadout, Color(0.58, 1.0, 0.74))
-	_add_menu_button(primary, "図鑑", show_collection, Color(0.70, 0.86, 1.0))
-	_add_menu_button(primary, "実績", show_quests, Color(0.48, 1.0, 0.66))
-	_add_menu_button(primary, "設定", show_settings)
+	for action in title_controller.actions():
+		if int(action.get("tier", 4)) <= 3:
+			_add_title_action_button(primary, action)
 	var footer := HBoxContainer.new()
 	footer.add_theme_constant_override("separation", 12)
 	root.add_child(footer)
-	var help_button := _add_menu_button(footer, "遊び方", func(): show_help(false), Color(0.70, 0.78, 1.0))
-	help_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var reset_button := _add_menu_button(footer, "データ初期化", show_reset, Color(1.0, 0.34, 0.42), true)
-	reset_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for action in title_controller.actions():
+		if int(action.get("tier", 4)) >= 4:
+			if String(action.get("id", "")) == "quit":
+				continue
+			var button := _add_title_action_button(footer, action)
+			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func request_start() -> void:
 	var settings: Dictionary = save_data.get("settings", {})
@@ -337,6 +335,7 @@ func show_character_select() -> void:
 	_sync_from_save()
 	_clear()
 	screen_mode = "characters"
+	main_screen_state.set_screen(screen_mode)
 	title_visible = false
 	help_visible = false
 	_add_background(Color(0.026, 0.034, 0.058))
@@ -606,13 +605,15 @@ func show_shop() -> void:
 	_sync_from_save()
 	_clear()
 	screen_mode = "shop"
+	main_screen_state.set_screen(screen_mode)
 	title_visible = false
 	help_visible = false
 	_add_background(Color(0.026, 0.034, 0.052))
 	var root := _page_box(42, 26, 42, 30)
 	_add_top_bar(root, "クリスタルショップ", "所持クリスタル貨：%s　%s" % [JaText.format_int(int(save_data.get("crystal_currency", 0))), shop_message], show_title)
 	var category_ids := shop_category_system.category_ids()
-	shop_category_index = clampi(shop_category_index, 0, maxi(0, category_ids.size() - 1))
+	shop_controller.category_index = shop_category_index
+	shop_category_index = shop_controller.clamp_category(category_ids)
 	var category_tabs: Container
 	if input_mode.is_touch_mode():
 		category_tabs = _horizontal_chip_container(root, "ShopCategoryChips")
@@ -692,13 +693,14 @@ func show_shop() -> void:
 			body.add_child(button)
 
 func _select_shop_category(index: int) -> void:
-	shop_category_index = clampi(index, 0, shop_category_system.category_ids().size() - 1)
+	shop_category_index = shop_controller.select(index, shop_category_system.category_ids())
 	show_shop()
 
 func show_loadout() -> void:
 	_sync_from_save()
 	_clear()
 	screen_mode = "loadout"
+	main_screen_state.set_screen(screen_mode)
 	title_visible = false
 	help_visible = false
 	_add_background(Color(0.024, 0.036, 0.050))
@@ -841,11 +843,18 @@ func show_collection() -> void:
 	_sync_from_save()
 	_clear()
 	screen_mode = "collection"
+	main_screen_state.set_screen(screen_mode)
 	title_visible = false
 	help_visible = false
 	_add_background(Color(0.028, 0.036, 0.054))
 	var root := _page_box(42, 26, 42, 30)
 	_add_top_bar(root, "図鑑", "カテゴリをクリックまたは←/→で切替", show_title)
+	collection_controller.tab_index = collection_tab_index
+	collection_controller.filter_index = collection_filter_index
+	collection_controller.sort_index = collection_sort_index
+	collection_tab_index = collection_controller.select_tab(collection_tab_index)
+	collection_filter_index = collection_controller.select_filter(collection_filter_index, collection_filter_system.FILTER_IDS.size())
+	collection_sort_index = collection_controller.select_sort(collection_sort_index, collection_filter_system.SORT_IDS.size())
 	var tabs: Container
 	if input_mode.is_touch_mode():
 		tabs = _horizontal_chip_container(root, "CollectionCategoryChips")
@@ -909,21 +918,22 @@ func show_collection() -> void:
 		grid.add_child(card)
 
 func _select_collection_tab(index: int) -> void:
-	collection_tab_index = clampi(index, 0, collection_tabs.size() - 1)
+	collection_tab_index = collection_controller.select_tab(index)
 	show_collection()
 
 func _select_collection_filter(index: int) -> void:
-	collection_filter_index = clampi(index, 0, collection_filter_system.FILTER_IDS.size() - 1)
+	collection_filter_index = collection_controller.select_filter(index, collection_filter_system.FILTER_IDS.size())
 	show_collection()
 
 func _select_collection_sort(index: int) -> void:
-	collection_sort_index = clampi(index, 0, collection_filter_system.SORT_IDS.size() - 1)
+	collection_sort_index = collection_controller.select_sort(index, collection_filter_system.SORT_IDS.size())
 	show_collection()
 
 func show_quests() -> void:
 	_sync_from_save()
 	_clear()
 	screen_mode = "quests"
+	main_screen_state.set_screen(screen_mode)
 	title_visible = false
 	help_visible = false
 	_add_background(Color(0.026, 0.034, 0.052))
@@ -979,6 +989,7 @@ func show_settings() -> void:
 	_sync_from_save()
 	_clear()
 	screen_mode = "settings"
+	main_screen_state.set_screen(screen_mode)
 	title_visible = false
 	help_visible = false
 	_add_background(Color(0.028, 0.038, 0.060))
@@ -1280,6 +1291,10 @@ func _character_asset_path(character_id: String, data: Dictionary, unlocked: boo
 				return "res://assets/survivor/characters/secret_collector_locked.svg"
 			"nameless_reaper":
 				return "res://assets/survivor/characters/secret_nameless_reaper_locked.svg"
+	if unlocked:
+		var v2_path := v2_asset_registry.resolve_path("character.%s" % character_id)
+		if v2_path != "":
+			return v2_path
 	return "res://assets/survivor/characters/%s.svg" % character_id
 
 func _reward_text(reward: Dictionary) -> String:
@@ -1327,6 +1342,46 @@ func _add_menu_button(parent: Control, label: String, action: Callable, accent: 
 	button.pressed.connect(action)
 	parent.add_child(button)
 	return button
+
+func _add_title_action_button(parent: Control, action: Dictionary) -> Button:
+	var accent: Color = action.get("accent", v2_theme.color("info", Color(0.40, 0.92, 1.0)))
+	return _add_menu_button(parent, String(action.get("label", "")), _title_action_callable(String(action.get("id", ""))), accent, bool(action.get("danger", false)))
+
+func _title_action_callable(action_id: String) -> Callable:
+	match action_id:
+		"start":
+			return request_start
+		"characters":
+			return show_character_select
+		"shop":
+			return show_shop
+		"loadout":
+			return show_loadout
+		"collection":
+			return show_collection
+		"quests":
+			return show_quests
+		"settings":
+			return show_settings
+		"help":
+			return func(): show_help(false)
+		"reset":
+			return show_reset
+		"quit":
+			return func(): get_tree().quit()
+	return func(): pass
+
+func _add_title_key_visual(parent: Control) -> void:
+	var texture = v2_asset_registry.resolve_texture("ui.title_key_visual")
+	if texture == null:
+		return
+	var image := TextureRect.new()
+	image.name = "V2TitleKeyVisual"
+	image.texture = texture
+	image.custom_minimum_size = Vector2(360, 150)
+	image.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	parent.add_child(image)
 
 func _add_toggle(parent: Control, title: String, key: String, value: bool) -> void:
 	var toggle = ToggleOptionScript.new()
