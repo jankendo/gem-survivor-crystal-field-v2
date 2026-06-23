@@ -92,7 +92,7 @@ func _event_text(event: Dictionary) -> String:
 		"crystal_overdrive":
 			return "クリスタルオーバードライブ"
 		"recall_drone_ready":
-			return "回収ドローン READY"
+			return "回収ドローン 使用可能"
 		"player_damage":
 			return "被ダメージ %d" % int(event.get("damage", 0)) if int(event.get("damage", 0)) >= 20 else ""
 	return ""

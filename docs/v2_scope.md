@@ -33,4 +33,7 @@ HUDにスコア、結晶破壊、主力ビルド、v2 Momentum状態を出す。
 3. v2方針に沿うこと。
 4. 将来の差し替えと拡張に耐えること。
 5. 見た目と手触りを段階的に改善すること。
+# Phase 3 Scope Note
+
+Phase 3 keeps Endless as the only game mode and focuses on product integrity: reachable pickup placement, shop-only permanent unlocks, Japanese-first player text, first-run clarity, and asset provenance.
 

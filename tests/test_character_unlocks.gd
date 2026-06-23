@@ -40,8 +40,11 @@ func test_condition_unlocks(t) -> void:
 	data["stats"]["total_crystals"] = 300
 	save.save_data(data)
 	var unlocked := meta.check_character_unlocks(save)
-	t.assert_true(unlocked.has("rai"), "Rai should unlock after Thunder Chain reaches Lv8")
-	t.assert_true(unlocked.has("gantz"), "Gantz should unlock after 300 crystal walls")
+	t.assert_true(unlocked.has("rai"), "Rai should become shop available after Thunder Chain reaches Lv8")
+	t.assert_true(unlocked.has("gantz"), "Gantz should become shop available after 300 crystal walls")
+	data = save.load_data()
+	t.assert_true(bool(data.get("shop_available", {}).get("character", {}).get("rai", false)), "Rai should be listed in shop availability")
+	t.assert_true(not save.is_character_unlocked("rai"), "Rai should require shop purchase before use")
 
 func test_secret_character_masking(t) -> void:
 	var save := _fresh_save()
@@ -51,5 +54,5 @@ func test_secret_character_masking(t) -> void:
 	data["secret_flags"]["ghost"] = true
 	save.save_data(data)
 	var unlocked := meta.check_character_unlocks(save)
-	t.assert_true(unlocked.has("ghost"), "secret flag should unlock Ghost")
-	t.assert_true(meta.display_name("ghost", save.load_data()).find("亡霊") >= 0, "unlocked secret character should reveal its name")
+	t.assert_true(unlocked.has("ghost"), "secret flag should publish Ghost to shop")
+	t.assert_eq(meta.display_name("ghost", save.load_data()), "？？？", "unpurchased secret character should keep its name hidden")

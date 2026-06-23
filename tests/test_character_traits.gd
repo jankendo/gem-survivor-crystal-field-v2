@@ -24,7 +24,11 @@ func test_initial_weapon_and_start_stats(t) -> void:
 func test_weapon_tag_damage_trait(t) -> void:
 	var state = _state()
 	var meta = MetaProgressionSystemScript.new()
-	meta.apply_to_state(state, "kaede", "attack", SaveSystem.new("user://test_character_traits_b.save").load_data())
+	var save_data := SaveSystem.new("user://test_character_traits_b.save").load_data()
+	save_data["shop_purchases"]["character"]["kaede"] = true
+	if not (save_data["unlocked_characters"] as Array).has("kaede"):
+		(save_data["unlocked_characters"] as Array).append("kaede")
+	meta.apply_to_state(state, "kaede", "attack", save_data)
 	t.assert_true(state.weapons.has("soul_scythe"), "Kaede should start with Soul Scythe")
 	t.assert_true(state.get_damage_multiplier_for_weapon("soul_scythe") > state.get_damage_multiplier_for_weapon("magic_bolt"), "melee tag damage should boost Soul Scythe only")
 

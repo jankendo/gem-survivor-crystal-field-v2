@@ -14,8 +14,9 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="Gem Survivor Crystal Field"
-config/description="Gem Survivor: Crystal Field bullet-heaven action for Windows."
+config/name="ジェムサバイバー：クリスタルフィールド"
+config/description="結晶迷宮を探索し、危険な報酬でビルドを完成させる探索型サバイバー。"
+config/version="0.3.0"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.2", "Forward Plus")
 config/icon="res://assets/sprites/title_logo.svg"

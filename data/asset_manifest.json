@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "description": "Gem Survivor Crystal Field v2 Phase 2 asset replacement manifest. P0 integrated PNG assets are preferred; existing SVG assets remain fallback.",
+  "description": "Gem Survivor Crystal Field v2 asset manifest. Phase 2 PNG assets are integrated but not automatically approved; Phase 3 tracks generation history, review state, and replacement readiness.",
   "resolution_order": [
     "preferred_path",
     "fallback_path",
@@ -10,10 +10,22 @@
     "fallback",
     "prompt_ready",
     "generated",
+    "generated_unreviewed",
+    "generated_reviewed",
     "integrated",
     "approved",
     "rejected"
   ],
+  "phase3_generation_record_defaults": {
+    "generation_method": "procedural_local_placeholder_or_prompt_ready",
+    "generation_date": "2026-06-23",
+    "prompt_document": "res://docs/asset_generation/v2_batch_02.md",
+    "source_model_or_tool": "project_local_generation_pipeline",
+    "human_review_status": "needs_review",
+    "legal_review_status": "project_original_no_external_download",
+    "approved_by": "",
+    "public_release_note": "Integrated assets are project-generated placeholders until human art approval is recorded."
+  },
   "assets": [
     {
       "asset_id": "character.noah",

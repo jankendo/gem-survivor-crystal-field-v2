@@ -67,6 +67,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/auto_play_shop_reroll_flow.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_item_placement_100_seed.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_shop_entitlement_qa.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/audit_japanese_ui.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_first_run_15min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_progression_economy.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/capture_v2_phase3_screenshots.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/generate_asset_batch_02_qa.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/generate_progress_qa.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/generate_safe_play_area_qa.py
@@ -175,6 +189,67 @@ jobs:
         with:
           name: ChronoMergeTactics-Windows
           path: builds/ChronoMergeTactics-Windows.zip
+          if-no-files-found: error
+
+      - name: Upload Phase 3 item placement QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Item-Placement-QA
+          path: |
+            test-output/item_placement_qa.md
+            test-output/item_placement_summary.json
+          if-no-files-found: error
+
+      - name: Upload Phase 3 shop entitlement QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shop-Entitlement-QA
+          path: |
+            test-output/shop_entitlement_qa.md
+            test-output/shop_entitlement_summary.json
+          if-no-files-found: error
+
+      - name: Upload Phase 3 Japanese localization QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Japanese-Localization-QA
+          path: |
+            test-output/japanese_localization_qa.md
+            test-output/japanese_localization_summary.json
+          if-no-files-found: error
+
+      - name: Upload Phase 3 first-run QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: First-Run-Experience-QA
+          path: |
+            test-output/first_run_experience_qa.md
+            test-output/first_run_experience_summary.json
+          if-no-files-found: error
+
+      - name: Upload Phase 3 progression economy QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Progression-Economy-QA
+          path: |
+            test-output/progression_economy_qa.md
+            test-output/progression_economy_summary.json
+          if-no-files-found: error
+
+      - name: Upload Phase 3 screenshots QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: V2-Phase3-Screenshots
+          path: |
+            test-output/v2_phase3_ui_qa.md
+            test-output/screenshots/v2_phase3/
+          if-no-files-found: warn
+
+      - name: Upload Phase 3 asset batch 02 QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: V2-Asset-Batch-02-QA
+          path: test-output/asset_batch_02_qa.md
           if-no-files-found: error
 
       - name: Upload balance report

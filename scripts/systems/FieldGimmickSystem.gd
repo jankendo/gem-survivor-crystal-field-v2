@@ -124,8 +124,15 @@ func _open_pillar_reward(state, gimmick: Dictionary, events: Array) -> void:
 	gimmick["opened"] = true
 	var pos: Vector2 = gimmick.get("position", Vector2.ZERO)
 	var rarity = "evolution" if state.has_available_evolution() else "normal"
-	if state.add_chest(ChestScript.new(pos, rarity, "sealed_pillar")):
-		events.append({"type": "chest_drop", "pos": pos, "source": "sealed_pillar", "rarity": rarity})
+	var resolved: Dictionary = state.resolve_pickup_position({
+		"pickup_type": "chest",
+		"position": pos,
+		"radius": 28.0,
+		"origin": state.player_position,
+		"rng": state.rng.stream_rng("sealed_pillar_chest", state.field_gimmicks_triggered)
+	})
+	if bool(resolved.get("ok", false)) and state.add_chest(ChestScript.new(resolved.get("position", pos), rarity, "sealed_pillar")):
+		events.append({"type": "chest_drop", "pos": resolved.get("position", pos), "source": "sealed_pillar", "rarity": rarity})
 	state.field_gimmicks_triggered += 1
 	state.add_floating_text("封印解除！", pos, Color(1.0, 0.86, 0.28))
 	events.append({"type": "gimmick_open", "id": "sealed_chest_pillar", "pos": pos})

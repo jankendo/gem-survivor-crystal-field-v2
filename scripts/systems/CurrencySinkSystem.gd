@@ -2,14 +2,19 @@ extends RefCounted
 class_name CurrencySinkSystem
 
 const COST_GROWTH := 1.35
+const ShopEntitlementSystemScript = preload("res://scripts/systems/ShopEntitlementSystem.gd")
 
 var categories: Dictionary = {}
 var sinks: Dictionary = {}
 var progress_tracker = preload("res://scripts/systems/ProgressTrackerSystem.gd").new()
+var entitlement_system = ShopEntitlementSystemScript.new()
 
 func _init() -> void:
 	categories = _json_dict("res://data/shop_categories.json")
 	sinks = _json_dict("res://data/currency_sinks.json")
+	var generated := entitlement_system.generated_currency_sinks(sinks)
+	for id in generated.keys():
+		sinks[String(id)] = generated[id]
 
 func category_ids() -> Array:
 	var ids = categories.keys()
@@ -35,6 +40,10 @@ func cost_for(sink_id: String, current: int) -> int:
 
 func condition_met(save_data: Dictionary, sink_id: String) -> bool:
 	var data: Dictionary = sinks.get(sink_id, {})
+	var kind := _kind_for_category(String(data.get("category", "")))
+	var target := String(data.get("target", ""))
+	if kind != "" and target != "" and not entitlement_system.is_available_for_purchase(save_data, kind, target):
+		return false
 	var key = String(data.get("required_stat", ""))
 	if key == "":
 		return true
@@ -48,6 +57,10 @@ func purchase(save: SaveSystem, sink_id: String) -> bool:
 	var levels: Dictionary = save_data.get("currency_sink_levels", {})
 	var current = int(levels.get(sink_id, 0))
 	if current >= int(data.get("max_level", 1)) or not condition_met(save_data, sink_id):
+		return false
+	var kind := _kind_for_category(String(data.get("category", "")))
+	var target := String(data.get("target", ""))
+	if kind != "" and target != "" and entitlement_system.is_usable(save_data, kind, target):
 		return false
 	var cost = cost_for(sink_id, current)
 	if int(save_data.get("crystal_currency", 0)) < cost:
@@ -102,10 +115,17 @@ func _apply_unlock(save_data: Dictionary, data: Dictionary) -> void:
 	elif category == "blessings":
 		key = "unlocked_blessings"
 	if key != "":
-		var values: Array = save_data.get(key, [])
-		if not values.has(target):
-			values.append(target)
-		save_data[key] = values
+		entitlement_system.mark_purchased(save_data, _kind_for_category(category), target)
+
+func _kind_for_category(category: String) -> String:
+	match category:
+		"weapon_license":
+			return "weapon"
+		"passive_license":
+			return "passive"
+		"blessings":
+			return "blessing"
+	return ""
 
 func _json_dict(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):

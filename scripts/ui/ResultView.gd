@@ -164,6 +164,12 @@ func show_summary(summary: Dictionary) -> void:
 			_name_list(summary.get("weapons_unlocked", []), "res://data/weapons.json"),
 			_name_list(summary.get("passives_unlocked", []), "res://data/passives.json")
 		],
+		"ショップ入荷：キャラ %s / 武器 %s / パッシブ %s / 祝福 %s" % [
+			_name_list(summary.get("shop_available_characters", []), "res://data/characters.json"),
+			_name_list(summary.get("shop_available_weapons", []), "res://data/weapons.json"),
+			_name_list(summary.get("shop_available_passives", []), "res://data/passives.json"),
+			_name_list(summary.get("shop_available_blessings", []), "res://data/blessings.json")
+		],
 		"獲得通貨：+%s（所持 %s）" % [
 			JaText.format_int(int(summary.get("currency_earned", 0))),
 			JaText.format_int(int(summary.get("currency_total", 0)))
@@ -223,7 +229,7 @@ func show_summary(summary: Dictionary) -> void:
 		"自己ベストまであと：%s" % JaText.format_int(delta),
 		"死因：%s" % String(summary.get("reason", "敵に囲まれました"))
 	]
-	lines.text = "\n".join(priority_lines + ["", "Momentum成果"] + momentum_lines + ["", "詳細"] + detail_lines)
+	lines.text = "\n".join(priority_lines + ["", "ラッシュ成果"] + momentum_lines + ["", "詳細"] + detail_lines)
 
 func _contract_label(value) -> String:
 	if value is Array and not value.is_empty():

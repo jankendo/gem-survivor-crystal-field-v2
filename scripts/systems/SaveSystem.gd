@@ -3,6 +3,7 @@ class_name SaveSystem
 
 const SAVE_PATH := "user://chrono_merge_tactics.save"
 const IosDefaultSettingsSystemScript = preload("res://scripts/systems/IosDefaultSettingsSystem.gd")
+const ShopEntitlementSystemScript = preload("res://scripts/systems/ShopEntitlementSystem.gd")
 
 static var write_count := 0
 
@@ -57,14 +58,15 @@ func spend_currency(amount: int) -> bool:
 	return true
 
 func is_character_unlocked(character_id: String) -> bool:
-	return (load_data().get("unlocked_characters", []) as Array).has(character_id)
+	return ShopEntitlementSystemScript.new().is_usable(load_data(), "character", character_id)
 
 func unlock_character(character_id: String) -> void:
 	var data := load_data()
-	var unlocked: Array = data.get("unlocked_characters", [])
-	if not unlocked.has(character_id):
-		unlocked.append(character_id)
-	data["unlocked_characters"] = unlocked
+	var available: Dictionary = data.get("shop_available", {})
+	var characters: Dictionary = available.get("character", {})
+	characters[character_id] = true
+	available["character"] = characters
+	data["shop_available"] = available
 	save_data(data)
 
 func select_character(character_id: String) -> bool:
@@ -83,6 +85,8 @@ func selected_blessing() -> String:
 
 func select_blessing(blessing_id: String) -> void:
 	var data := load_data()
+	if not ShopEntitlementSystemScript.new().is_usable(data, "blessing", blessing_id):
+		return
 	data["selected_blessing"] = blessing_id
 	save_data(data)
 
@@ -438,6 +442,7 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 			settings[key] = setting_defaults[key]
 	settings = IosDefaultSettingsSystemScript.new().apply_defaults(settings, OS.get_name())
 	data["settings"] = settings
+	data = ShopEntitlementSystemScript.new().migrate_save(data)
 	return data
 
 func _initial_unlock_ids(path_value: String) -> Array:

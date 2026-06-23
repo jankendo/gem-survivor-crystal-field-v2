@@ -121,7 +121,7 @@ func _activate(state, entry: Dictionary, events: Array, defs: Dictionary, trigge
 	if key != "":
 		state.v2_momentum_recent_event_keys[key] = now
 	var tier := int(entry.get("tier", 1))
-	var label := String(entry.get("label", "Momentum"))
+	var label := String(entry.get("label", "ラッシュ"))
 	var duration := float(entry.get("duration", 8.0))
 	var multiplier := float(entry.get("score_multiplier", 1.0))
 	if tier < int(state.v2_momentum_tier) and state.v2_momentum_timer > duration * 0.5:

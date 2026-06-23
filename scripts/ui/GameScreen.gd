@@ -860,7 +860,7 @@ func _handle_events(events: Array) -> void:
 			"field_event_reward":
 				message_label.text = "イベント報酬：%s" % String(event.get("message", "報酬獲得"))
 			"recall_drone_ready":
-				message_label.text = "回収ドローン READY [R]"
+				message_label.text = "回収ドローン 使用可能 [R]"
 			"recall_drone":
 				_play_sfx("gem")
 				message_label.text = "回収ドローン発動！ 全ジェム %d / EXP %d" % [int(event.get("count", 0)), int(event.get("exp", 0))]
@@ -942,7 +942,7 @@ func _handle_events(events: Array) -> void:
 				_play_sfx("chest")
 				message_label.text = "封印宝箱柱が開いた"
 			"v2_momentum":
-				message_label.text = String(event.get("message", "Momentum"))
+				message_label.text = String(event.get("message", "ラッシュ"))
 
 func _play_sfx(name: String) -> void:
 	return
@@ -1011,7 +1011,7 @@ func _refresh() -> void:
 	if state.crystal_overdrive_timer > 0.0:
 		combo_text += "　OD %.1fs" % state.crystal_overdrive_timer
 	if state.recall_drone_ready:
-		combo_text += "　回収ドローン READY" if input_mode.is_touch_mode() else "　回収ドローン READY [R]"
+		combo_text += "　回収ドローン 使用可能" if input_mode.is_touch_mode() else "　回収ドローン 使用可能 [R]"
 	else:
 		var charge = int(round(100.0 * state.recall_drone_meter / float(state.balance_data.get("recall_drone_charge_seconds", 180.0))))
 		combo_text += "　ドローン %d%%" % clampi(charge, 0, 100)

@@ -19,7 +19,17 @@ func drop_for_enemy(state, enemy, events: Array) -> void:
 		value += maxi(1, int(round(4.0 * scale)))
 	elif enemy.type == "elite" or enemy.elite:
 		value += maxi(2, int(round(12.0 * scale)))
-	var gem = state.acquire_gem([enemy.position, value])
+	var resolved: Dictionary = state.resolve_pickup_position({
+		"pickup_type": "exp_gem",
+		"position": enemy.position,
+		"radius": 8.0,
+		"origin": state.player_position,
+		"rng": state.rng.stream_rng("enemy_exp_drop", "%s:%d:%d" % [enemy.type, state.kills, state.gems.size()])
+	})
+	if not bool(resolved.get("ok", false)):
+		events.append({"type": "gem_skip", "enemy": enemy.type, "reason": "no_safe_pickup_position"})
+		return
+	var gem = state.acquire_gem([resolved.get("position", enemy.position), value])
 	state.gems.append(gem)
 	events.append({"type": "gem_drop", "pos": gem.position, "value": gem.value, "enemy": enemy.type})
 

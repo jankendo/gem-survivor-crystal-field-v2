@@ -8,6 +8,8 @@ const MapGeneratorScript = preload("res://scripts/systems/MapGenerator.gd")
 const TerrainRoomSystemScript = preload("res://scripts/systems/TerrainRoomSystem.gd")
 const TerrainAchievementSystemScript = preload("res://scripts/systems/TerrainAchievementSystem.gd")
 const TileCollisionSystemScript = preload("res://scripts/systems/TileCollisionSystem.gd")
+const ItemPlacementSystemScript = preload("res://scripts/systems/ItemPlacementSystem.gd")
+const ItemPlacementTelemetryScript = preload("res://scripts/systems/ItemPlacementTelemetry.gd")
 const PoolManagerScript = preload("res://scripts/systems/PoolManager.gd")
 const UnlockSystemScript = preload("res://scripts/systems/UnlockSystem.gd")
 const SurvivorEnemyScript = preload("res://scripts/core/SurvivorEnemy.gd")
@@ -128,6 +130,8 @@ var map_generator = MapGeneratorScript.new()
 var terrain_room_system = TerrainRoomSystemScript.new()
 var terrain_achievement_system = TerrainAchievementSystemScript.new()
 var tile_collision_system = TileCollisionSystemScript.new()
+var item_placement_system = ItemPlacementSystemScript.new()
+var item_placement_telemetry = ItemPlacementTelemetryScript.new()
 var map_seed: int = 0
 var map_seed_text: String = ""
 var map_data: Dictionary = {}
@@ -218,6 +222,7 @@ var exploration_chain_defs: Dictionary = {}
 var terrain_type_defs: Dictionary = {}
 var map_generation_defs: Dictionary = {}
 var terrain_room_defs: Dictionary = {}
+var item_placement_rules: Dictionary = {}
 var field_drop_spawn_config: Dictionary = {}
 var active_synergies: Dictionary = {}
 var active_synergy_history: Array = []
@@ -373,6 +378,7 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	seed_value = map_generator.seed_value_from_text(seed_text, seed_value)
 	rng.set_seed_value(seed_value)
 	_load_definitions()
+	item_placement_telemetry.reset()
 	map_seed = seed_value
 	map_seed_text = seed_text.strip_edges()
 	field_size = Vector2(float(balance_data.get("field_width", DEFAULT_FIELD_SIZE.x)), float(balance_data.get("field_height", DEFAULT_FIELD_SIZE.y)))
@@ -689,6 +695,7 @@ func _load_definitions() -> void:
 	terrain_type_defs = _json_dict("res://data/terrain_types.json", {})
 	map_generation_defs = _json_dict("res://data/map_generation.json", {})
 	terrain_room_defs = _json_dict("res://data/terrain_rooms.json", {})
+	item_placement_rules = _json_dict("res://data/item_placement_rules.json", {"default": {}})
 
 func _json_dict(path: String, fallback: Dictionary) -> Dictionary:
 	if not FileAccess.file_exists(path):
@@ -716,6 +723,11 @@ func _build_crystal_field() -> void:
 	if not rooms.is_empty():
 		player_position = rooms[0].get("position", field_size * 0.5)
 		camera_position = player_position
+	var placement_summary := validate_active_pickups()
+	map_data["field_drops"] = field_drops
+	map_data["field_gimmicks"] = field_gimmicks
+	map_data["field_equipment"] = field_equipment
+	map_data["item_placement_summary"] = placement_summary
 
 func _rebuild_field_drop_spawn_counts() -> void:
 	field_drop_spawn_counts = {}
@@ -733,6 +745,25 @@ func resolve_walkable_position(requested: Vector2, radius: float, fallback: Vect
 
 func random_walkable_position(origin: Vector2, min_distance: float, max_distance: float) -> Vector2:
 	return tile_collision_system.random_walkable_position(map_data, rng, origin, min_distance, max_distance)
+
+func resolve_pickup_position(request: Dictionary) -> Dictionary:
+	var full_request := request.duplicate(true)
+	if not full_request.has("rng"):
+		full_request["rng"] = rng
+	if not full_request.has("origin"):
+		full_request["origin"] = player_position
+	return item_placement_system.resolve_valid_pickup_position(self, map_data, full_request)
+
+func is_valid_pickup_position(position: Vector2, pickup_type: String, radius: float = -1.0) -> bool:
+	return item_placement_system.is_valid_pickup_position(self, position, pickup_type, radius)
+
+func pickup_validation_result(position: Vector2, pickup_type: String, radius: float = -1.0) -> Dictionary:
+	return item_placement_system.validation_result(self, position, pickup_type, radius)
+
+func validate_active_pickups() -> Dictionary:
+	if map_data.is_empty():
+		return {}
+	return item_placement_system.validate_active_pickups(self)
 
 func boss_room_position() -> Vector2:
 	return navigation_targets.get("boss_arena", player_position)

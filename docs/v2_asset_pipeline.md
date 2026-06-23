@@ -85,3 +85,6 @@ Phase 2時点の解決順:
 6. `tests/test_v2_asset_registry.gd`を通す。
 
 Phase 2のP0対象と生成条件は`docs/asset_generation/v2_batch_01.md`を正とする。
+# Phase 3 Asset Pipeline
+
+Use `docs/asset_generation/v2_batch_02.md` and `.json` for prompt history. `data/asset_manifest.json` records generation method, source tool, legal review state, human review state, and approval status.

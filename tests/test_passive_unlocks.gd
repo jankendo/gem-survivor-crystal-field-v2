@@ -13,7 +13,8 @@ func run(t) -> void:
 		"stats": {"best_survival": 300.0}
 	}
 	var result = system.update_after_run(save_data)
-	t.assert_true((result.get("passives", []) as Array).has("regen"), "five minute survival should unlock regeneration")
+	t.assert_true((result.get("passives_shop_available", []) as Array).has("regen"), "five minute survival should publish regeneration to shop")
+	t.assert_true(not (save_data.get("unlocked_passives", []) as Array).has("regen"), "condition should not directly unlock regeneration")
 	var state = SurvivorState.new()
 	state.start_new_run(82, "passive-unlocks")
 	state.unlocked_passive_ids = initial.duplicate()

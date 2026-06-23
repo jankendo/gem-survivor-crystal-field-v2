@@ -92,3 +92,6 @@
 - 完全無音を維持する。
 - BGM、SE、音声、`AudioStreamPlayer`を追加しない。
 - 視覚フィードバックは色、形、短い文言、HUD階層で伝える。
+# Phase 3 Current Gameplay Addendum
+
+All pickup generation paths must use the shared placement contract. Non-starter permanent unlocks are not granted by achievements or run results; those paths only publish shop products or satisfy purchase conditions.

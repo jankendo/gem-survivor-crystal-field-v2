@@ -24,6 +24,7 @@ const AchievementProgressSystemScript := preload("res://scripts/systems/Achievem
 const ConfirmDialogScript := preload("res://scripts/ui/components/ConfirmDialog.gd")
 const UiNavigation := preload("res://scripts/ui/UiNavigation.gd")
 const V2AssetRegistryScript := preload("res://scripts/systems/V2AssetRegistry.gd")
+const AppVersionSystemScript := preload("res://scripts/systems/AppVersionSystem.gd")
 const V2ThemeProviderScript := preload("res://scripts/ui/v2/V2ThemeProvider.gd")
 const MainScreenStateScript := preload("res://scripts/ui/main/MainScreenState.gd")
 const TitleScreenControllerScript := preload("res://scripts/ui/main/TitleScreenController.gd")
@@ -46,6 +47,7 @@ var collection_filter_system = CollectionFilterSystemScript.new()
 var loadout_disable_system = LoadoutDisableSystemScript.new()
 var achievement_progress_system = AchievementProgressSystemScript.new()
 var v2_asset_registry = V2AssetRegistryScript.new()
+var app_version = AppVersionSystemScript.new()
 var v2_theme = V2ThemeProviderScript.new()
 var main_screen_state = MainScreenStateScript.new()
 var title_controller = TitleScreenControllerScript.new()
@@ -205,6 +207,7 @@ func show_title() -> void:
 	root.add_theme_constant_override("separation", 12)
 	_add_label(root, JaText.TITLE, v2_theme.font_size("title", 36 if input_mode.is_touch_mode() else 42), v2_theme.color("text_primary", Color(0.94, 0.98, 1.0)))
 	_add_label(root, JaText.SUBTITLE, v2_theme.font_size("subtitle", 18 if input_mode.is_touch_mode() else 20), v2_theme.color("text_secondary", Color(0.68, 0.84, 1.0)))
+	_add_label(root, app_version.title_version_line(), 14, Color(0.58, 0.68, 0.78))
 	if input_mode.is_touch_mode():
 		_build_touch_title(root)
 		return
@@ -644,14 +647,15 @@ func show_shop() -> void:
 		for id in meta_system.character_ids():
 			var char_id := String(id)
 			var data := meta_system.character_data(char_id)
-			if bool(data.get("initial", false)) or int(data.get("unlock_cost", 0)) <= 0:
+			if meta_system.entitlement_system.is_starter("character", char_id):
 				continue
 			var unlocked := meta_system.is_character_unlocked(save_data, char_id)
-			var cost := int(data.get("unlock_cost", 0))
+			var cost: int = meta_system.entitlement_system.cost_for("character", char_id)
+			var state_label: String = meta_system.entitlement_system.purchase_state_label(save_data, "character", char_id)
 			var button = CrystalButtonScript.new()
-			var unlock_progress := "" if unlocked else "\n%s" % meta_system.unlock_text(char_id, save_data)
-			button.setup("%s　%s　費用：%s%s" % [meta_system.display_name(char_id, save_data), "解放済み" if unlocked else String(data.get("role_ja", "")), JaText.format_int(cost), unlock_progress], Color(1.0, 0.82, 0.36), Vector2(0, 82 if unlocked else 118))
-			button.disabled = unlocked or int(save_data.get("crystal_currency", 0)) < cost
+			var unlock_progress: String = "" if unlocked else "\n%s" % meta_system.entitlement_system.purchase_condition_text(save_data, "character", char_id)
+			button.setup("%s　%s　費用：%s%s" % [meta_system.display_name(char_id, save_data), state_label, JaText.format_int(cost), unlock_progress], Color(1.0, 0.82, 0.36), Vector2(0, 82 if unlocked else 126))
+			button.disabled = unlocked or not meta_system.can_purchase_character(save_data, char_id)
 			button.pressed.connect(_purchase_character.bind(char_id))
 			body.add_child(button)
 	elif current_category == "meta":
@@ -1150,6 +1154,10 @@ func _on_game_finished(summary: Dictionary) -> void:
 			"characters_unlocked": [],
 			"weapons_unlocked": [],
 			"passives_unlocked": [],
+			"shop_available_characters": [],
+			"shop_available_weapons": [],
+			"shop_available_passives": [],
+			"shop_available_blessings": [],
 			"mastery": {},
 			"progress_deltas": [],
 			"debug_progress_blocked": true
@@ -1234,10 +1242,7 @@ func _confirm_reset(text: String) -> void:
 
 func _sync_from_save() -> void:
 	save_data = save_system.load_data()
-	var unlocked_blessings := meta_system.unlocked_blessings(save_data)
-	var current_unlocked: Array = save_data.get("unlocked_blessings", [])
-	if unlocked_blessings.size() != current_unlocked.size():
-		save_data["unlocked_blessings"] = unlocked_blessings
+	if int(save_data.get("shop_entitlement_migration_version", 0)) > 0:
 		save_system.save_data(save_data)
 		save_data = save_system.load_data()
 	selected_character_id = String(save_data.get("selected_character", "noah"))
@@ -1245,8 +1250,7 @@ func _sync_from_save() -> void:
 	if not meta_system.is_character_unlocked(save_data, selected_character_id):
 		selected_character_id = "noah"
 		save_system.select_character(selected_character_id)
-	var blessings := save_data.get("unlocked_blessings", ["attack"]) as Array
-	if not blessings.has(selected_blessing_id):
+	if not meta_system.entitlement_system.is_usable(save_data, "blessing", selected_blessing_id):
 		selected_blessing_id = "attack"
 		save_system.select_blessing(selected_blessing_id)
 	auto_infinite_enabled = bool(save_data.get("settings", {}).get("auto_infinite", true))
@@ -1260,7 +1264,7 @@ func _title_status_text() -> String:
 	var blessing: Dictionary = meta_system.blessings.get(selected_blessing_id, {})
 	var best_score := save_system.load_best_score()
 	var stats: Dictionary = save_data.get("stats", {})
-	return "キャラ：%s\n祝福：%s\nクリスタル貨：%s\n最高スコア：%s\n最高生存：%s" % [
+	return "コンセプト：危険な報酬を選び、壊れたビルドを完成させる\nキャラ：%s\n祝福：%s\nクリスタル貨：%s\n最高スコア：%s\n最高生存：%s" % [
 		character_name,
 		String(blessing.get("name_ja", "攻撃の祝福")),
 		JaText.format_int(int(save_data.get("crystal_currency", 0))),
@@ -1321,6 +1325,12 @@ func _result_stamps(summary: Dictionary, meta_result: Dictionary) -> Array:
 		stamps.append("吸収名人")
 	if not (meta_result.get("characters_unlocked", []) as Array).is_empty():
 		stamps.append("新キャラ解放")
+	if not (meta_result.get("shop_available_characters", []) as Array).is_empty():
+		stamps.append("新キャラ入荷")
+	if not (meta_result.get("shop_available_weapons", []) as Array).is_empty():
+		stamps.append("新武器入荷")
+	if not (meta_result.get("shop_available_passives", []) as Array).is_empty():
+		stamps.append("新パッシブ入荷")
 	if stamps.is_empty():
 		stamps.append("次の遠征へ")
 	return stamps

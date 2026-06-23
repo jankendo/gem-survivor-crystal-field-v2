@@ -2,6 +2,16 @@
 
 Godot 4.2 + GDScriptで作る、2D探索型サバイバー / bullet-heavenアクションゲームです。
 
+## Phase 3 Product Polish
+
+v2 Phase 3では、到達可能な安全床だけにpickupを置く共通配置契約、スターター以外をショップ購入だけで永久解放する権限管理、自然な日本語表示、初回体験と経済QAを追加しています。
+
+```powershell
+& .tools/godot-download/Godot_v4.2-stable_win64_console.exe --headless --path . --check-only
+& .tools/godot-download/Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/smoke_main_scene.gd
+& .tools/godot-download/Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/test_runner.gd
+```
+
 旧`Chrono Merge Tactics`由来のリポジトリ名が残っていますが、現行の正本は`Gem Survivor Crystal Field v2`です。ターン制、ブロック合成、オンラインランキング、課金、ガチャ、ストーリー複数モードは対象外です。
 
 ## 対応プラットフォーム

@@ -25,7 +25,7 @@ func momentum_text(state) -> String:
 		if int(state.v2_kill_streak) >= 10:
 			return "連続撃破 %d" % int(state.v2_kill_streak)
 		return ""
-	return "MOMENTUM %s  残り %.1f秒  x%.2f" % [
+	return "ラッシュ %s  残り %.1f秒  x%.2f" % [
 		_roman_tier(int(state.v2_momentum_tier)),
 		float(state.v2_momentum_timer),
 		float(state.v2_momentum_score_multiplier)
@@ -37,7 +37,7 @@ func momentum_panel_text(state) -> String:
 	var reason := String(state.v2_momentum_reason)
 	if reason == "":
 		reason = String(state.v2_momentum_label)
-	return "MOMENTUM %s\n残り %.1f秒\nx%.2f  %s" % [
+	return "ラッシュ %s\n残り %.1f秒\nx%.2f  %s" % [
 		_roman_tier(int(state.v2_momentum_tier)),
 		float(state.v2_momentum_timer),
 		float(state.v2_momentum_score_multiplier),
@@ -49,7 +49,7 @@ func result_highlights(summary: Dictionary) -> Array:
 	var peak_tier := int(summary.get("v2_peak_momentum_tier", 0))
 	var triggers := int(summary.get("v2_momentum_triggers", 0))
 	if peak_tier > 0 or triggers > 0:
-		highlights.append("Momentum：最高%s / 発動%d回 / 合計%s / +%s" % [
+		highlights.append("ラッシュ：最高%s / 発動%d回 / 合計%s / +%s" % [
 			_roman_tier(peak_tier),
 			triggers,
 			JaText.format_time(float(summary.get("v2_momentum_active_time_total", 0.0))),
@@ -74,12 +74,12 @@ func result_highlights(summary: Dictionary) -> Array:
 func momentum_result_lines(summary: Dictionary) -> Array:
 	var lines: Array = []
 	var counts: Dictionary = summary.get("v2_momentum_trigger_counts", {})
-	lines.append("Momentum最高段階：%s" % _roman_tier(int(summary.get("v2_peak_momentum_tier", 0))))
-	lines.append("Momentum発動：%d回 / 合計%s" % [
+	lines.append("ラッシュ最高段階：%s" % _roman_tier(int(summary.get("v2_peak_momentum_tier", 0))))
+	lines.append("ラッシュ発動：%d回 / 合計%s" % [
 		int(summary.get("v2_momentum_triggers", 0)),
 		JaText.format_time(float(summary.get("v2_momentum_active_time_total", 0.0)))
 	])
-	lines.append("Momentumスコア：+%s" % JaText.format_int(int(summary.get("v2_momentum_score_bonus", 0))))
+	lines.append("ラッシュスコア：+%s" % JaText.format_int(int(summary.get("v2_momentum_score_bonus", 0))))
 	lines.append("最多発動要因：%s" % _trigger_label(String(summary.get("v2_momentum_main_trigger", ""))))
 	lines.append("重複通知抑止：%d" % int(summary.get("v2_momentum_suppressed_duplicates", 0)))
 	if not counts.is_empty():

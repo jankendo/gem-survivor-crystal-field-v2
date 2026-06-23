@@ -10,10 +10,12 @@ func _dirty_save() -> SaveSystem:
 	save.reset_play_data("RESET")
 	save.save_help_seen(true)
 	save.add_currency(999)
-	save.unlock_character("mio")
-	save.select_character("mio")
 	save.update_settings({"auto_infinite": false, "auto_recall_drone": true})
 	var data := save.load_data()
+	data["shop_purchases"]["character"]["mio"] = true
+	if not (data["unlocked_characters"] as Array).has("mio"):
+		(data["unlocked_characters"] as Array).append("mio")
+	data["selected_character"] = "mio"
 	data["collection_discovered"]["weapons"]["magic_bolt"] = true
 	data["quests_completed"]["survive_10"] = true
 	save.save_data(data)

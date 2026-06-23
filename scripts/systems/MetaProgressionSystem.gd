@@ -7,6 +7,7 @@ const UnlockSystemScript = preload("res://scripts/systems/UnlockSystem.gd")
 const CurrencySinkSystemScript = preload("res://scripts/systems/CurrencySinkSystem.gd")
 const ProgressTrackerSystemScript = preload("res://scripts/systems/ProgressTrackerSystem.gd")
 const CharacterEvolutionSystemScript = preload("res://scripts/systems/CharacterEvolutionSystem.gd")
+const ShopEntitlementSystemScript = preload("res://scripts/systems/ShopEntitlementSystem.gd")
 
 var characters: Dictionary = {}
 var unlocks: Dictionary = {}
@@ -22,6 +23,7 @@ var unlock_system = UnlockSystemScript.new()
 var currency_sink_system = CurrencySinkSystemScript.new()
 var progress_tracker = ProgressTrackerSystemScript.new()
 var character_evolution_system = CharacterEvolutionSystemScript.new()
+var entitlement_system = ShopEntitlementSystemScript.new()
 
 func _init() -> void:
 	reload()
@@ -64,26 +66,13 @@ func unlock_text(character_id: String, save_data: Dictionary) -> String:
 	]
 
 func is_character_unlocked(save_data: Dictionary, character_id: String) -> bool:
-	return (save_data.get("unlocked_characters", []) as Array).has(character_id)
+	return entitlement_system.is_usable(save_data, "character", character_id)
 
 func can_purchase_character(save_data: Dictionary, character_id: String) -> bool:
-	if is_character_unlocked(save_data, character_id):
-		return false
-	var cost = int(character_data(character_id).get("unlock_cost", 0))
-	return cost > 0 and int(save_data.get("crystal_currency", 0)) >= cost
+	return entitlement_system.can_purchase(save_data, "character", character_id)
 
 func purchase_character(save: SaveSystem, character_id: String) -> bool:
-	var save_data = save.load_data()
-	var cost = int(character_data(character_id).get("unlock_cost", 0))
-	if cost <= 0 or is_character_unlocked(save_data, character_id) or int(save_data.get("crystal_currency", 0)) < cost:
-		return false
-	save_data["crystal_currency"] = int(save_data.get("crystal_currency", 0)) - cost
-	var unlocked: Array = save_data.get("unlocked_characters", [])
-	unlocked.append(character_id)
-	save_data["unlocked_characters"] = unlocked
-	_mark_collection(save_data, "characters", character_id)
-	save.save_data(save_data)
-	return true
+	return entitlement_system.purchase_character(save, character_id)
 
 func purchase_upgrade(save: SaveSystem, upgrade_id: String) -> bool:
 	var save_data = save.load_data()
@@ -110,20 +99,7 @@ func upgrade_cost(upgrade_id: String, current_level: int) -> int:
 
 func check_character_unlocks(save: SaveSystem) -> Array:
 	var save_data = save.load_data()
-	var newly: Array = []
-	for character_id in characters.keys():
-		var id = String(character_id)
-		if is_character_unlocked(save_data, id):
-			continue
-		var data: Dictionary = characters[id]
-		if int(data.get("unlock_cost", 0)) > 0:
-			continue
-		if _condition_met(save_data, unlocks.get(id, {})):
-			var unlocked: Array = save_data.get("unlocked_characters", [])
-			unlocked.append(id)
-			save_data["unlocked_characters"] = unlocked
-			_mark_collection(save_data, "characters", id)
-			newly.append(id)
+	var newly: Array = entitlement_system.publish_available_from_conditions(save_data).get("character", [])
 	save.save_data(save_data)
 	return newly
 
@@ -144,6 +120,7 @@ func update_after_run(save: SaveSystem, summary: Dictionary) -> Dictionary:
 	var completed = _update_quests(save_data)
 	var unlocked_items = unlock_system.update_after_run(save_data)
 	var unlocked = _unlock_condition_characters(save_data)
+	var shop_available := entitlement_system.publish_available_from_conditions(save_data)
 	var mastery_result = _update_mastery(save_data, character_id, summary)
 	character_evolution_system.update_after_run(save_data, summary)
 	_discover_from_summary(save_data, summary)
@@ -154,14 +131,22 @@ func update_after_run(save: SaveSystem, summary: Dictionary) -> Dictionary:
 		"currency_earned": earned,
 		"currency_total": int(save_data.get("crystal_currency", 0)),
 		"quests_completed": completed,
-		"characters_unlocked": unlocked,
+		"characters_unlocked": [],
 		"weapons_unlocked": unlocked_items.get("weapons", []),
 		"passives_unlocked": unlocked_items.get("passives", []),
+		"shop_available_characters": unlocked + shop_available.get("character", []),
+		"shop_available_weapons": unlocked_items.get("weapons_shop_available", []) + shop_available.get("weapon", []),
+		"shop_available_passives": unlocked_items.get("passives_shop_available", []) + shop_available.get("passive", []),
+		"shop_available_blessings": shop_available.get("blessing", []),
 		"mastery": mastery_result,
 		"progress_deltas": progress_deltas
 	}
 
 func apply_to_state(state, character_id: String, blessing_id: String, save_data: Dictionary) -> void:
+	if not entitlement_system.is_usable(save_data, "character", character_id):
+		character_id = "noah"
+	if not entitlement_system.is_usable(save_data, "blessing", blessing_id):
+		blessing_id = "attack"
 	var character = character_data(character_id)
 	if character.is_empty():
 		character_id = "noah"
@@ -186,14 +171,7 @@ func apply_to_state(state, character_id: String, blessing_id: String, save_data:
 	_apply_character_starting_stats(state)
 
 func unlocked_blessings(save_data: Dictionary) -> Array:
-	var unlocked: Array = save_data.get("unlocked_blessings", ["attack"])
-	for id in blessings.keys():
-		if unlocked.has(String(id)):
-			continue
-		var unlock: Dictionary = blessings[id].get("unlock", {})
-		if _condition_met(save_data, unlock):
-			unlocked.append(String(id))
-	return unlocked
+	return entitlement_system.usable_ids(save_data, "blessing")
 
 func collection_rows(tab: String, save_data: Dictionary) -> Array:
 	var discovered: Dictionary = save_data.get("collection_discovered", {}).get(tab, {})
@@ -237,7 +215,7 @@ func collection_rows(tab: String, save_data: Dictionary) -> Array:
 			is_unlocked = unlock_system.is_passive_unlocked(save_data, key)
 			unlock_text = unlock_system.unlock_text("passives", key)
 		elif tab == "blessings":
-			is_unlocked = (save_data.get("unlocked_blessings", ["attack"]) as Array).has(key)
+			is_unlocked = entitlement_system.is_usable(save_data, "blessing", key)
 			unlock_text = String(source_data.get("unlock_condition_ja", ""))
 		var is_known = bool(discovered.get(key, false)) or tab == "characters" and is_character_unlocked(save_data, key)
 		if tab in ["weapons", "passives"]:
@@ -303,8 +281,8 @@ func blessing_detail_text(blessing_id: String, save_data: Dictionary = {}) -> St
 		"推奨：%s" % String(data.get("recommended_for_ja", "すべて")),
 		"注意：%s" % String(data.get("tradeoff_description_ja", "なし"))
 	]
-	if not save_data.is_empty() and not (save_data.get("unlocked_blessings", ["attack"]) as Array).has(blessing_id):
-		lines.append(progress_tracker.progress_text(save_data, data.get("unlock", {})))
+	if not save_data.is_empty() and not entitlement_system.is_usable(save_data, "blessing", blessing_id):
+		lines.append(entitlement_system.purchase_condition_text(save_data, "blessing", blessing_id))
 	return "\n".join(lines)
 
 func _update_stats(save_data: Dictionary, summary: Dictionary) -> void:
@@ -408,31 +386,20 @@ func _apply_quest_reward(save_data: Dictionary, reward: Dictionary) -> void:
 		save_data["crystal_currency"] = int(save_data.get("crystal_currency", 0)) + int(reward.get("currency", 0))
 	if reward.has("unlock_character"):
 		var id = String(reward.get("unlock_character", ""))
-		var unlocked: Array = save_data.get("unlocked_characters", [])
-		if id != "" and not unlocked.has(id):
-			unlocked.append(id)
-			save_data["unlocked_characters"] = unlocked
-			_mark_collection(save_data, "characters", id)
+		if id != "":
+			entitlement_system.publish_available_from_conditions(save_data)
+			var available: Dictionary = save_data.get("shop_available", {})
+			var characters_available: Dictionary = available.get("character", {})
+			characters_available[id] = true
+			available["character"] = characters_available
+			save_data["shop_available"] = available
 	if reward.has("secret_flag"):
 		save_data["secret_flags"][String(reward.get("secret_flag", ""))] = true
 	if reward.has("discover_weapon"):
 		_mark_collection(save_data, "weapons", String(reward.get("discover_weapon", "")))
 
 func _unlock_condition_characters(save_data: Dictionary) -> Array:
-	var newly: Array = []
-	for id in characters.keys():
-		var character_id = String(id)
-		if is_character_unlocked(save_data, character_id):
-			continue
-		if int(characters[character_id].get("unlock_cost", 0)) > 0:
-			continue
-		if _condition_met(save_data, unlocks.get(character_id, {})):
-			var unlocked: Array = save_data.get("unlocked_characters", [])
-			unlocked.append(character_id)
-			save_data["unlocked_characters"] = unlocked
-			_mark_collection(save_data, "characters", character_id)
-			newly.append(character_id)
-	return newly
+	return entitlement_system.publish_available_from_conditions(save_data).get("character", [])
 
 func _update_mastery(save_data: Dictionary, character_id: String, summary: Dictionary) -> Dictionary:
 	var all_mastery: Dictionary = save_data.get("character_mastery", {})

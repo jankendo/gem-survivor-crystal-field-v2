@@ -27,9 +27,9 @@ func test_result_summary_prioritizes_momentum_and_next_actions(t) -> void:
 		"currency_total": 400
 	})
 	var text: String = result.lines.text
-	t.assert_true(text.find("生存時間") < text.find("Momentum成果"), "result should show core summary before momentum details")
-	t.assert_true(text.find("Momentum最高段階：III") >= 0, "result should show peak momentum tier")
-	t.assert_true(text.find("Momentumスコア：+420") >= 0, "result should show momentum score bonus")
+	t.assert_true(text.find("生存時間") < text.find("ラッシュ成果"), "result should show core summary before rush details")
+	t.assert_true(text.find("ラッシュ最高段階：III") >= 0, "result should show peak rush tier")
+	t.assert_true(text.find("ラッシュスコア：+420") >= 0, "result should show rush score bonus")
 	t.assert_true(text.find("最多発動要因：ボス撃破") >= 0, "result should show main momentum trigger")
 	t.assert_true(_find_button(result, "もう一度") != null, "result should keep retry as primary next action")
 	result.free()

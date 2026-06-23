@@ -19,6 +19,9 @@ func run(t) -> void:
 	save.add_currency(100000)
 	t.assert_true(system.purchase(save, "scanner_range"), "scanner upgrade should be purchasable")
 	t.assert_eq(system.current_level(save.load_data(), "scanner_range"), 1, "purchase must persist sink level")
+	var data := save.load_data()
+	data["shop_available"]["weapon"]["corridor_blade"] = true
+	save.save_data(data)
 	t.assert_true(system.purchase(save, "license_corridor_blade"), "weapon license should be purchasable")
 	t.assert_true((save.load_data().get("unlocked_weapons", []) as Array).has("corridor_blade"), "weapon license must unlock target")
 	var state = StateScript.new()

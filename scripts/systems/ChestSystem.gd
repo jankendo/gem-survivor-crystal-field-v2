@@ -9,12 +9,23 @@ var overclock_system = preload("res://scripts/systems/OverclockSystem.gd").new()
 
 func drop_chest(state, pos: Vector2, events: Array, rarity: String = "normal", source: String = "") -> bool:
 	var chosen_rarity = _resolve_rarity(state, rarity, source)
-	var chest = ChestScript.new(pos, chosen_rarity, source)
+	var resolved: Dictionary = state.resolve_pickup_position({
+		"pickup_type": "chest",
+		"position": pos,
+		"radius": 28.0,
+		"origin": state.player_position,
+		"rng": state.rng.stream_rng("chest_drop", "%s:%d" % [source, state.chests.size()])
+	})
+	if not bool(resolved.get("ok", false)):
+		events.append({"type": "chest_skip", "pos": pos, "reason": "no_safe_pickup_position", "rarity": chosen_rarity, "source": source})
+		return false
+	var safe_pos: Vector2 = resolved.get("position", pos)
+	var chest = ChestScript.new(safe_pos, chosen_rarity, source)
 	chest.ttl = float(state.balance_data.get("chest_ttl_seconds", 300.0))
 	if not state.add_chest(chest):
-		events.append({"type": "chest_skip", "pos": pos, "reason": "cap", "rarity": chosen_rarity, "source": source})
+		events.append({"type": "chest_skip", "pos": safe_pos, "reason": "cap", "rarity": chosen_rarity, "source": source})
 		return false
-	events.append({"type": "chest_drop", "pos": pos, "rarity": chosen_rarity, "source": source})
+	events.append({"type": "chest_drop", "pos": safe_pos, "rarity": chosen_rarity, "source": source})
 	return true
 
 func process_pickups(state, events: Array, delta: float = 0.0) -> void:
@@ -117,7 +128,17 @@ func _apply_random_overclock(state, events: Array) -> bool:
 func _drop_expired_big_gem(state, pos: Vector2, events: Array) -> void:
 	if state.gems.size() >= state.max_gems():
 		state.gems.pop_front()
-	var gem = ExpGemScript.new(pos, 35 + int(state.elapsed_minutes() * 2.0))
+	var resolved: Dictionary = state.resolve_pickup_position({
+		"pickup_type": "exp_gem",
+		"position": pos,
+		"radius": 8.0,
+		"origin": state.player_position,
+		"rng": state.rng.stream_rng("expired_chest_gem", state.chests_opened)
+	})
+	if not bool(resolved.get("ok", false)):
+		events.append({"type": "chest_expired", "pos": pos, "gem_value": 0, "reason": "no_safe_pickup_position"})
+		return
+	var gem = ExpGemScript.new(resolved.get("position", pos), 35 + int(state.elapsed_minutes() * 2.0))
 	state.gems.append(gem)
 	events.append({"type": "chest_expired", "pos": pos, "gem_value": gem.value})
 

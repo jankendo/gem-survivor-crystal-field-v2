@@ -13,7 +13,8 @@ func run(t) -> void:
 		"stats": {"total_crystals": 20}
 	}
 	var result = system.update_after_run(save_data)
-	t.assert_true((result.get("weapons", []) as Array).has("laser_lance"), "20 destroyed crystals should unlock laser lance")
+	t.assert_true((result.get("weapons_shop_available", []) as Array).has("laser_lance"), "20 destroyed crystals should publish laser lance to shop")
+	t.assert_true(not (save_data.get("unlocked_weapons", []) as Array).has("laser_lance"), "condition should not directly unlock laser lance")
 	var state = SurvivorState.new()
 	state.start_new_run(81, "weapon-unlocks")
 	state.unlocked_weapon_ids = initial.duplicate()

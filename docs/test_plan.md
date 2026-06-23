@@ -44,3 +44,9 @@ Phase 2追加:
 * HUDにv2情報が重なりすぎない。
 * Momentumがラン内だけで完結する。
 * v2アセットが存在しない場合、既存SVG fallbackが返る。
+# Phase 3 QA Additions
+
+- `tests/auto_play_item_placement_100_seed.gd`: 100 seedでpickup配置、壁内、到達不能、再現性を検査する。
+- `tests/auto_play_shop_entitlement_qa.gd`: ショップ限定解放、二重購入防止、購入後使用可能を検査する。
+- `tools/audit_japanese_ui.py`: プレイヤー向け英語用語の残存を監査する。
+- `tests/auto_play_first_run_15min.gd` / `tests/auto_play_progression_economy.gd`: 初回体験と経済導線の決定的QAレポートを生成する。

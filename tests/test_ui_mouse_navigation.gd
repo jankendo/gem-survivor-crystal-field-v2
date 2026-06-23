@@ -26,8 +26,12 @@ func test_title_menu_buttons_click(t) -> void:
 
 func test_character_card_click_selects(t) -> void:
 	var save = SaveSystem.new()
-	save.unlock_character("mio")
-	save.select_character("noah")
+	var data := save.load_data()
+	data["shop_purchases"]["character"]["mio"] = true
+	if not (data["unlocked_characters"] as Array).has("mio"):
+		(data["unlocked_characters"] as Array).append("mio")
+	data["selected_character"] = "noah"
+	save.save_data(data)
 	var main = load("res://scenes/Main.tscn").instantiate()
 	main._ready()
 	main.show_character_select()

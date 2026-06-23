@@ -59,9 +59,18 @@ func _start_event(state, events: Array, forced_id: String = "") -> void:
 		"danger_bloom":
 			state.danger_zones.append({"id": "event_danger_%d" % state.field_event_count, "position": state.random_walkable_position(state.player_position, 120.0, 360.0), "radius": 420.0, "biome": state.current_biome_id})
 		"cursed_treasure":
-			var chest = ChestScript.new(state.random_walkable_position(state.player_position, 120.0, 320.0), "cursed", "field_event")
-			state.add_chest(chest)
-			events.append({"type": "chest_drop", "pos": chest.position, "rarity": chest.rarity, "source": "field_event"})
+			var resolved: Dictionary = state.resolve_pickup_position({
+				"pickup_type": "chest",
+				"radius": 28.0,
+				"origin": state.player_position,
+				"min_distance": 120.0,
+				"max_distance": 320.0,
+				"rng": state.rng.stream_rng("field_event_chest", state.field_event_count)
+			})
+			if bool(resolved.get("ok", false)):
+				var chest = ChestScript.new(resolved.get("position", state.player_position), "cursed", "field_event")
+				state.add_chest(chest)
+				events.append({"type": "chest_drop", "pos": chest.position, "rarity": chest.rarity, "source": "field_event"})
 	state.next_field_event_time = 0.0
 
 func _tick_active_event(state, delta: float, events: Array) -> void:

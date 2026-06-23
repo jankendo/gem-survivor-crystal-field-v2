@@ -5,9 +5,11 @@ const CrystalWallScript = preload("res://scripts/core/CrystalWall.gd")
 const RunRngScript = preload("res://scripts/core/RunRng.gd")
 const ProceduralMapSystemScript = preload("res://scripts/systems/ProceduralMapSystem.gd")
 const FieldEquipmentRewardSystemScript = preload("res://scripts/systems/FieldEquipmentRewardSystem.gd")
+const ItemPlacementSystemScript = preload("res://scripts/systems/ItemPlacementSystem.gd")
 
 var procedural_map_system = ProceduralMapSystemScript.new()
 var field_equipment_reward_system = FieldEquipmentRewardSystemScript.new()
+var item_placement_system = ItemPlacementSystemScript.new()
 var tile_collision = preload("res://scripts/systems/TileCollisionSystem.gd").new()
 
 func seed_value_from_text(seed_text: String, fallback: int = 0) -> int:
@@ -261,7 +263,9 @@ func _generate_field_drops(state, map_data: Dictionary, rng) -> Array:
 		for i in range(max_count):
 			if _drop_skip_for_rarity(id, i, rng):
 				continue
-			var pos = _reward_position(state.field_size, center, float(def.get("min_distance", 900.0)), map_data, rng)
+			var pos = _reward_position(state, map_data, rng, "field_drop", float(def.get("min_distance", 900.0)), 24.0)
+			if pos == Vector2.INF:
+				continue
 			drops.append({
 				"id": id,
 				"name_ja": String(def.get("name_ja", id)),
@@ -283,7 +287,9 @@ func _generate_field_gimmicks(state, map_data: Dictionary, rng) -> Array:
 		var def: Dictionary = state.field_gimmick_defs[id]
 		var max_count = int(def.get("max_per_run", 1))
 		for i in range(max_count):
-			var pos = _reward_position(state.field_size, center, float(def.get("min_distance", 900.0)), map_data, rng)
+			var pos = _reward_position(state, map_data, rng, "field_gimmick", float(def.get("min_distance", 900.0)), 38.0)
+			if pos == Vector2.INF:
+				continue
 			gimmicks.append({
 				"id": id,
 				"name_ja": String(def.get("name_ja", id)),
@@ -310,10 +316,21 @@ func _drop_skip_for_rarity(id: String, index: int, rng) -> bool:
 		return rng.chance(0.20)
 	return false
 
-func _reward_position(field_size: Vector2, center: Vector2, min_distance: float, map_data: Dictionary, rng) -> Vector2:
+func _reward_position(state, map_data: Dictionary, rng, pickup_type: String, min_distance: float, radius: float) -> Vector2:
+	var field_size: Vector2 = state.field_size
+	var center := field_size * 0.5
 	var walkable = tile_collision.random_walkable_position(map_data, rng, center, min_distance, field_size.length())
-	if tile_collision.is_walkable(map_data, walkable, 22.0):
-		return walkable
+	var resolved = item_placement_system.resolve_valid_pickup_position(state, map_data, {
+		"pickup_type": pickup_type,
+		"position": walkable,
+		"radius": radius,
+		"origin": center,
+		"min_distance": min_distance,
+		"max_distance": field_size.length(),
+		"rng": rng
+	})
+	if bool(resolved.get("ok", false)):
+		return resolved.get("position", walkable)
 	var anchors: Array = []
 	for room in map_data.get("rooms", []):
 		if String(room.get("terrain_id", "")) in ["mine_chamber", "danger_den", "healing_oasis", "relic_vault", "event_room", "sealed_room", "boss_arena"]:
@@ -333,9 +350,26 @@ func _reward_position(field_size: Vector2, center: Vector2, min_distance: float,
 			pos = center + Vector2.RIGHT.rotated(rng.range_float(0.0, TAU)) * distance
 		pos.x = clampf(pos.x, 160.0, field_size.x - 160.0)
 		pos.y = clampf(pos.y, 160.0, field_size.y - 160.0)
-		if pos.distance_to(center) >= min_distance:
-			return pos
-	return center + Vector2(min_distance, 0.0)
+		resolved = item_placement_system.resolve_valid_pickup_position(state, map_data, {
+			"pickup_type": pickup_type,
+			"position": pos,
+			"radius": radius,
+			"origin": center,
+			"min_distance": min_distance,
+			"max_distance": min(field_size.x, field_size.y) * 0.55,
+			"rng": rng
+		})
+		if bool(resolved.get("ok", false)):
+			return resolved.get("position", pos)
+	resolved = item_placement_system.resolve_valid_pickup_position(state, map_data, {
+		"pickup_type": pickup_type,
+		"radius": radius,
+		"origin": center,
+		"min_distance": min_distance,
+		"max_distance": field_size.length(),
+		"rng": rng
+	})
+	return resolved.get("position", Vector2.INF) if bool(resolved.get("ok", false)) else Vector2.INF
 
 func _near_corridor(angle: float, corridors: Array) -> bool:
 	for corridor in corridors:

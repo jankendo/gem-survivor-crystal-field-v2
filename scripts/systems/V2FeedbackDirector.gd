@@ -122,9 +122,9 @@ func _item_from_event(event: Dictionary, now: float) -> Dictionary:
 func _body_for_event(type: String, event: Dictionary) -> String:
 	match type:
 		"v2_momentum":
-			return "%s  Tier %d  x%.2f" % [String(event.get("label", "Momentum")), int(event.get("tier", 1)), float(event.get("score_multiplier", 1.0))]
+			return "%s  段階 %d  x%.2f" % [String(event.get("label", "ラッシュ")), int(event.get("tier", 1)), float(event.get("score_multiplier", 1.0))]
 		"v2_momentum_tier_up":
-			return "%s  Tier %d" % [String(event.get("label", "Momentum")), int(event.get("tier", 1))]
+			return "%s  段階 %d" % [String(event.get("label", "ラッシュ")), int(event.get("tier", 1))]
 		"v2_momentum_ending":
 			return "残り %.1f 秒" % float(event.get("remaining", 0.0))
 		"evolution":

@@ -26,7 +26,7 @@ func test_momentum_text_uses_active_state(t) -> void:
 	state.v2_momentum_score_multiplier = 1.08
 	var presenter = V2HudPresenterScript.new()
 	var text := presenter.momentum_text(state)
-	t.assert_true(text.find("MOMENTUM") >= 0, "momentum text should show compact momentum state")
+	t.assert_true(text.find("ラッシュ") >= 0, "momentum text should show compact rush state")
 	t.assert_true(text.find("1.08") >= 0, "momentum text should show multiplier")
 
 func test_result_highlights_include_build_summary(t) -> void:

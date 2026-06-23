@@ -122,7 +122,17 @@ func _apply_crystal_cache(state, pos: Vector2, events: Array) -> String:
 		if state.gems.size() >= state.max_gems():
 			break
 		var angle = TAU * float(i) / 8.0
-		var gem_position = state.resolve_walkable_position(pos + Vector2(cos(angle), sin(angle)) * 38.0, 8.0, pos)
+		var candidate := pos + Vector2(cos(angle), sin(angle)) * 38.0
+		var resolved: Dictionary = state.resolve_pickup_position({
+			"pickup_type": "exp_gem",
+			"position": candidate,
+			"radius": 8.0,
+			"origin": pos,
+			"rng": state.rng.stream_rng("crystal_cache_gem", "%d:%d" % [state.field_drops_collected, i])
+		})
+		if not bool(resolved.get("ok", false)):
+			continue
+		var gem_position: Vector2 = resolved.get("position", candidate)
 		var gem = ExpGemScript.new(gem_position, 16 + int(state.elapsed_minutes()))
 		state.gems.append(gem)
 		events.append({"type": "gem_drop", "pos": gem.position, "value": gem.value, "enemy": "crystal_cache"})

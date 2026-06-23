@@ -15,6 +15,8 @@ func run(t) -> void:
 	state.start_new_run(33, "slots")
 	data["unlocked_weapons"] = state.weapon_defs.keys()
 	data["unlocked_passives"] = state.passive_defs.keys()
+	_mark_all_purchased(data, "weapon", state.weapon_defs.keys())
+	_mark_all_purchased(data, "passive", state.passive_defs.keys())
 	data["crystal_currency"] = 100000
 	save.save_data(data)
 	var loadout = LoadoutScript.new()
@@ -31,3 +33,11 @@ func run(t) -> void:
 		SinkScript.new().purchase(save, "weapon_disable_slots")
 	t.assert_true(loadout.slots_for(save.load_data(), "weapon") <= LoadoutScript.MAX_SLOTS, "OFF slots must never exceed the maximum")
 	DirAccess.remove_absolute(absolute)
+
+func _mark_all_purchased(data: Dictionary, kind: String, ids: Array) -> void:
+	var purchases: Dictionary = data.get("shop_purchases", {})
+	var table: Dictionary = purchases.get(kind, {})
+	for raw_id in ids:
+		table[String(raw_id)] = true
+	purchases[kind] = table
+	data["shop_purchases"] = purchases

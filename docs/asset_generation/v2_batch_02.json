@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "batch": "v2_batch_02",
+  "status": "prompt_ready",
+  "assets": [
+    {
+      "asset_id": "ui.title_key_visual",
+      "usage": "タイトルキービジュアル",
+      "resolution": "1024x384",
+      "aspect_ratio": "8:3",
+      "transparent": true,
+      "composition": "結晶迷宮を見下ろす横長構図。中央に発光結晶、左右に探索ルート。",
+      "color": "深い青緑、控えめな紫、金の報酬光",
+      "lighting": "低い環境光と結晶の内側発光",
+      "silhouette": "文字なしで迷宮と結晶が判別できる",
+      "prompt": "Original dark crystal labyrinth key visual for a 2D bullet heaven exploration game, glowing crystal field, readable silhouettes, no text, no logo, no watermark, balanced cyan purple gold lighting, game UI friendly, transparent background",
+      "avoid": "existing game styles, artist names, text, watermark, blurred shapes, excessive glow",
+      "save_path": "res://assets/v2/ui/title_key_visual.png",
+      "fallback": "res://assets/sprites/title_logo.svg",
+      "godot_display_size": "360x150",
+      "approval_criteria": "小サイズで結晶迷宮が読め、文字が混入していない"
+    },
+    {
+      "asset_id": "character.noah",
+      "usage": "初期キャラクター",
+      "resolution": "512x512",
+      "aspect_ratio": "1:1",
+      "transparent": true,
+      "composition": "探鉱者の胸上ポートレート。道具と青い結晶灯を持つ。",
+      "color": "青、白、少量の金",
+      "lighting": "結晶灯の柔らかいリムライト",
+      "silhouette": "帽子、外套、結晶灯で判別",
+      "prompt": "Original crystal field prospector hero portrait, compact readable silhouette, blue crystal lantern, no text, transparent background, game icon quality",
+      "avoid": "known characters, logos, realistic celebrity face, unreadable tiny detail",
+      "save_path": "res://assets/v2/characters/noah.png",
+      "fallback": "res://assets/generated/characters/noah.svg",
+      "godot_display_size": "96x96",
+      "approval_criteria": "顔と職能が小サイズで分かる"
+    },
+    {
+      "asset_id": "ui.momentum_badge",
+      "usage": "ラッシュ表示",
+      "resolution": "256x256",
+      "aspect_ratio": "1:1",
+      "transparent": true,
+      "composition": "結晶の輪と速度感のある光跡",
+      "color": "紫、シアン、白",
+      "lighting": "過度でない発光",
+      "silhouette": "丸いバッジ形状",
+      "prompt": "Original crystal rush badge icon, circular energy ring, cyan purple glow, transparent background, no text, readable HUD icon",
+      "avoid": "English text, watermark, excessive bloom",
+      "save_path": "res://assets/v2/ui/momentum_badge.png",
+      "fallback": "res://assets/survivor/ui/melee_rush_gauge.svg",
+      "godot_display_size": "40x40",
+      "approval_criteria": "HUDでラッシュ状態が分かる"
+    }
+  ]
+}

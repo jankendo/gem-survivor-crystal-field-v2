@@ -114,7 +114,25 @@ func _initialize() -> void:
 		,"res://tests/test_no_trash_enemy_projectiles.gd",
 		"res://tests/test_procedural_map_generation.gd",
 		"res://tests/test_map_connectivity.gd"
+		,"res://tests/test_world_placement_validator.gd"
+		,"res://tests/test_item_placement_system.gd"
+		,"res://tests/test_item_wall_clearance.gd"
+		,"res://tests/test_item_reachability.gd"
+		,"res://tests/test_item_spawn_determinism.gd"
+		,"res://tests/test_item_spawn_all_sources.gd"
+		,"res://tests/test_item_runtime_repair.gd"
+		,"res://tests/test_item_placement_no_invalid_fallback.gd"
 		,"res://tests/test_currency_sinks.gd",
+		"res://tests/test_shop_entitlement_system.gd",
+		"res://tests/test_shop_only_weapon_unlocks.gd",
+		"res://tests/test_shop_only_passive_unlocks.gd",
+		"res://tests/test_shop_only_character_unlocks.gd",
+		"res://tests/test_non_shop_unlock_paths_blocked.gd",
+		"res://tests/test_shop_purchase_atomicity.gd",
+		"res://tests/test_shop_double_purchase_guard.gd",
+		"res://tests/test_shop_candidate_pool_filtering.gd",
+		"res://tests/test_shop_unlock_save_migration.gd",
+		"res://tests/test_shop_unlock_legacy_save.gd",
 		"res://tests/test_shop_reroll_system.gd",
 		"res://tests/test_debug_experience_multiplier.gd",
 		"res://tests/test_field_equipment_randomized_per_run.gd",
@@ -189,6 +207,18 @@ func _initialize() -> void:
 		,"res://tests/test_v2_ui_layout_contract.gd"
 		,"res://tests/test_v2_main_navigation.gd"
 		,"res://tests/test_v2_result_summary.gd"
+		,"res://tests/test_japanese_localization.gd"
+		,"res://tests/test_japanese_text_formatting.gd"
+		,"res://tests/test_japanese_font_coverage.gd"
+		,"res://tests/test_no_internal_id_in_ui.gd"
+		,"res://tests/test_no_english_user_visible_text.gd"
+		,"res://tests/test_first_run_guidance.gd"
+		,"res://tests/test_build_card_information.gd"
+		,"res://tests/test_progression_recommendation.gd"
+		,"res://tests/test_shop_first_purchase_balance.gd"
+		,"res://tests/test_objective_risk_reward_display.gd"
+		,"res://tests/test_boss_telegraph_contract.gd"
+		,"res://tests/test_accessibility_visual_contract.gd"
 	]
 	for suite_path in suites:
 		print("Running ", suite_path)

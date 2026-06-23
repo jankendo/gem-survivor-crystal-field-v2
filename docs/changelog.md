@@ -42,3 +42,10 @@
 * 新規v2 targeted suites
 * `tests/auto_play_v2_momentum_10min.gd`
 * `tests/capture_v2_phase2_screenshots.gd`
+# v2 Phase 3
+
+- Added reachable pickup placement contract with `WorldPlacementValidator`, `ItemPlacementSystem`, and placement telemetry.
+- Changed permanent unlock policy so non-starter weapons, passives, characters, and blessings become usable only after shop purchase.
+- Added save migration for legacy condition-only unlocks.
+- Added Japanese localization source data, terminology guide, and Phase 3 QA scripts.
+- Unified product version to `0.3.0` build `3`.

@@ -37,3 +37,6 @@ Momentumの効果をスコア以外にも広げる場合は、データ駆動、
 * v2画像が壊れた場合はmanifestの`replacement_status`を`fallback`へ戻す。
 * Momentumが不安定なら`data/v2_momentum.json`の`enabled`をfalseにする。
 * HUD文言が読みにくい場合は`V2HudPresenter.gd`だけを戻す。
+# Phase 3 Save Migration
+
+`ShopEntitlementSystem` introduces `save_schema_version` and `shop_entitlement_migration_version`. Starters and purchase-proven entries are kept; condition-only non-starters are moved to `shop_available` and selected locked character/blessing values are repaired to `noah` / `attack`.

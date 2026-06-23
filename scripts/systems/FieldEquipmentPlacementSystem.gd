@@ -1,6 +1,10 @@
 extends RefCounted
 class_name FieldEquipmentPlacementSystem
 
+const ItemPlacementSystemScript = preload("res://scripts/systems/ItemPlacementSystem.gd")
+
+var item_placement_system = ItemPlacementSystemScript.new()
+
 func generate(state, map_data: Dictionary, rng) -> Array:
 	var defs: Dictionary = state.field_equipment_defs
 	var config: Dictionary = defs.get("config", {})
@@ -39,7 +43,10 @@ func generate(state, map_data: Dictionary, rng) -> Array:
 		var anchor: Dictionary = room_rng.weighted_choice(anchors)
 		var room: Dictionary = anchor.get("room", {})
 		var item_id := String(entry.get("id", ""))
-		var pos = _position_in_room(room, state, position_rng)
+		var pos = _position_in_room(room, state, map_data, position_rng)
+		if pos == Vector2.INF:
+			anchors.erase(anchor)
+			continue
 		var id := "field_%s_%s_%d" % [kind, item_id, results.size()]
 		results.append({
 			"runtime_id": id,
@@ -126,8 +133,16 @@ func replacement_for(state, kind: String, used_items: Array, rng) -> Dictionary:
 	var pool_key := "weapon_pool" if kind == "weapon" else "passive_pool"
 	return _choose_pool_entry(state, state.field_equipment_defs.get(pool_key, []), kind, used_items, rng)
 
-func _position_in_room(room: Dictionary, state, rng) -> Vector2:
+func _position_in_room(room: Dictionary, state, map_data: Dictionary, rng) -> Vector2:
 	var base: Vector2 = room.get("position", state.field_size * 0.5)
 	var size: Vector2 = room.get("size", Vector2(420, 320))
 	var offset = Vector2(rng.range_float(-size.x * 0.28, size.x * 0.28), rng.range_float(-size.y * 0.28, size.y * 0.28))
-	return state.resolve_walkable_position(base + offset, 18.0, base)
+	var resolved: Dictionary = item_placement_system.resolve_valid_pickup_position(state, map_data, {
+		"pickup_type": "field_equipment",
+		"position": base + offset,
+		"radius": 22.0,
+		"origin": state.field_size * 0.5,
+		"room_id": String(room.get("id", "")),
+		"rng": rng
+	})
+	return resolved.get("position", Vector2.INF) if bool(resolved.get("ok", false)) else Vector2.INF

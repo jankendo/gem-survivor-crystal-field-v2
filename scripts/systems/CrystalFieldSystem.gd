@@ -104,7 +104,16 @@ func _drop_crystal_rewards(state, wall, pos: Vector2, events: Array) -> void:
 		var angle = state.rng.range_float(0.0, TAU)
 		var offset = Vector2(cos(angle), sin(angle)) * state.rng.range_float(16.0, 54.0)
 		var gem_value = maxi(1, int(round(float(4 + int(state.passives.get("crystal_breaker", 0))) * reward_multiplier * state.get_exp_drop_multiplier())))
-		var gem_position = state.resolve_walkable_position(pos + offset, 8.0, pos)
+		var resolved: Dictionary = state.resolve_pickup_position({
+			"pickup_type": "exp_gem",
+			"position": pos + offset,
+			"radius": 8.0,
+			"origin": pos,
+			"rng": state.rng.stream_rng("crystal_gem_drop", "%s:%d" % [wall.id, i])
+		})
+		if not bool(resolved.get("ok", false)):
+			continue
+		var gem_position: Vector2 = resolved.get("position", pos + offset)
 		var gem = ExpGemScript.new(gem_position, gem_value)
 		state.gems.append(gem)
 		events.append({"type": "gem_drop", "pos": gem.position, "value": gem.value, "enemy": "crystal"})
@@ -117,9 +126,17 @@ func _drop_crystal_rewards(state, wall, pos: Vector2, events: Array) -> void:
 		events.append({"type": "player_heal", "amount": heal, "source": "crystal", "hp": state.hp, "pos": pos})
 	var chest_chance = float(state.balance_data.get("crystal_chest_chance", 0.12)) + 0.035 * float(state.passives.get("luck", 0))
 	if state.rng.chance(chest_chance):
-		var chest = ChestScript.new(pos, "normal", "crystal")
-		if state.add_chest(chest):
-			events.append({"type": "chest_drop", "pos": pos, "source": "crystal", "rarity": chest.rarity})
+		var resolved_chest: Dictionary = state.resolve_pickup_position({
+			"pickup_type": "chest",
+			"position": pos,
+			"radius": 28.0,
+			"origin": state.player_position,
+			"rng": state.rng.stream_rng("crystal_chest_drop", wall.id)
+		})
+		if bool(resolved_chest.get("ok", false)):
+			var chest = ChestScript.new(resolved_chest.get("position", pos), "normal", "crystal")
+			if state.add_chest(chest):
+				events.append({"type": "chest_drop", "pos": chest.position, "source": "crystal", "rarity": chest.rarity})
 	if wall.wall_type == "cursed_crystal":
 		_spawn_cursed_enemies(state, pos, events)
 

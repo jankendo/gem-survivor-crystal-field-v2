@@ -19,4 +19,7 @@
 ## 5. 低リスクで積み上げる
 
 v2の新機能はラン内状態を基本にする。保存データを変える必要がある機能は後回しにし、既存テストとスモークを壊さない範囲で拡張する。
+# Phase 3 Pillar Clarification
+
+The core value is exploration, crystal mining, risky rewards, and build completion. New content count is secondary to readability, meaningful choices, and a reliable first-run loop.
 

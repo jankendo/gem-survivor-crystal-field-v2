@@ -10,7 +10,7 @@ func run(t) -> void:
 func test_director_shows_single_active_banner(t) -> void:
 	var director = V2FeedbackDirectorScript.new()
 	director.ingest({"type": "v2_momentum", "label": "連続撃破", "tier": 1, "score_multiplier": 1.04}, 10.0)
-	t.assert_true(director.active_text().find("Momentum") >= 0, "director should show momentum banner")
+	t.assert_true(director.active_text().find("連続撃破") >= 0, "director should show rush banner")
 	director.ingest({"type": "evolution", "name": "星砕き"}, 10.1)
 	t.assert_true(director.active_text().find("武器進化") >= 0, "critical evolution should replace normal momentum banner")
 	t.assert_eq(director.queue_size(), 0, "higher priority replacement should not create a second active banner")

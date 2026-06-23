@@ -1,0 +1,9 @@
+{
+	"display_version": "0.3.0",
+	"build_number": 3,
+	"phase": "v2 Phase 3",
+	"phase_ja": "Phase 3：製品品質・市場適合ブラッシュアップ",
+	"product_name_ja": "ジェムサバイバー：クリスタルフィールド",
+	"windows_exe_name": "ChronoMergeTactics.exe",
+	"ios_bundle_id": "com.jankendo14.gemsurvivor"
+}

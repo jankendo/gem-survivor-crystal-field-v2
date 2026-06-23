@@ -68,3 +68,6 @@ v2では、タイトルから「開始」「キャラクター選択」「解放
 * ラン中HUDにMomentum専用パネルとFeedback Directorバナーを追加した。
 * Momentum表示は`MOMENTUM II / 残り / 倍率 / 理由`の短い情報に制限する。
 * リザルトは「次のランにつながる画面」として、成果、Momentum、解放、通貨、次の目標の順に整理した。
+# Phase 3 UI/UX Note
+
+Player-facing text is Japanese-first. Momentum is shown as `ラッシュ`, shop states are `購入条件未達成` / `購入可能` / `購入済み`, and title/help/result copy points players toward exploration, risky rewards, and shop purchases.

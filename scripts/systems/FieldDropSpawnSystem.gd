@@ -56,6 +56,9 @@ func _spawn_drop(state, id: String, candidate: Dictionary, events: Array) -> Dic
 	var def: Dictionary = candidate.get("def", state.field_drop_defs.get(id, {}))
 	var spawn_rng = candidate.get("rng", state.rng)
 	var pos = _spawn_position(state, def, spawn_rng)
+	if pos == Vector2.INF:
+		events.append({"type": "dynamic_drop_skip", "id": id, "reason": "no_safe_pickup_position"})
+		return {}
 	var distance = pos.distance_to(state.player_position)
 	var drop = {
 		"id": id,
@@ -147,8 +150,17 @@ func _spawn_position(state, def: Dictionary, rng = null) -> Vector2:
 		min_distance = maxf(min_distance, 1600.0)
 	var max_distance = minf(state.field_size.x, state.field_size.y) * 0.44
 	var walkable = state.tile_collision_system.random_walkable_position(state.map_data, local_rng, state.player_position, min_distance, max_distance)
-	if state.is_walkable_position(walkable, 22.0):
-		return walkable
+	var resolved: Dictionary = state.resolve_pickup_position({
+		"pickup_type": "field_drop",
+		"position": walkable,
+		"radius": 24.0,
+		"origin": state.player_position,
+		"min_distance": min_distance,
+		"max_distance": max_distance,
+		"rng": local_rng
+	})
+	if bool(resolved.get("ok", false)):
+		return resolved.get("position", walkable)
 	for attempt in range(32):
 		var pos: Vector2
 		var danger_chance = 0.58 if bool(def.get("rare", false)) else 0.34
@@ -159,12 +171,26 @@ func _spawn_position(state, def: Dictionary, rng = null) -> Vector2:
 			pos = state.player_position + Vector2.RIGHT.rotated(local_rng.range_float(0.0, TAU)) * local_rng.range_float(min_distance, max_distance)
 		pos.x = clampf(pos.x, 160.0, state.field_size.x - 160.0)
 		pos.y = clampf(pos.y, 160.0, state.field_size.y - 160.0)
-		if pos.distance_to(state.player_position) >= min_distance and pos.distance_to(state.field_size * 0.5) >= min_distance * 0.72:
-			return state.resolve_walkable_position(pos, 22.0, state.player_position)
-	return state.resolve_walkable_position(Vector2(
-		clampf(state.player_position.x + min_distance, 160.0, state.field_size.x - 160.0),
-		state.player_position.y
-	), 22.0, state.player_position)
+		resolved = state.resolve_pickup_position({
+			"pickup_type": "field_drop",
+			"position": pos,
+			"radius": 24.0,
+			"origin": state.player_position,
+			"min_distance": min_distance,
+			"max_distance": max_distance,
+			"rng": local_rng
+		})
+		if bool(resolved.get("ok", false)):
+			return resolved.get("position", pos)
+	resolved = state.resolve_pickup_position({
+		"pickup_type": "field_drop",
+		"radius": 24.0,
+		"origin": state.player_position,
+		"min_distance": min_distance,
+		"max_distance": max_distance,
+		"rng": local_rng
+	})
+	return resolved.get("position", Vector2.INF) if bool(resolved.get("ok", false)) else Vector2.INF
 
 func _expire_old_drops(state, events: Array) -> void:
 	if not bool(state.field_drop_spawn_config.get("time_despawn_enabled", false)):
