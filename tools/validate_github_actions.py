@@ -21,6 +21,7 @@ def main() -> int:
         "GODOT_VERSION": 'GODOT_VERSION: "4.2-stable"' in text,
         "TEMPLATE_VERSION": 'TEMPLATE_VERSION: "4.2.stable"' in text,
         "upload-artifact": "actions/upload-artifact@v4" in text,
+        "Pillow dependency": "python -m pip install --upgrade pillow" in text,
         "Windows artifact": "ChronoMergeTactics-Windows" in text,
         "Windows artifact archive": "ChronoMergeTactics-Windows.zip" in text,
         "iOS artifact": "GemSurvivor-iOS-unsigned-IPA" in text,
