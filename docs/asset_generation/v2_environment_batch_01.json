@@ -1,0 +1,360 @@
+{
+  "batch": "v2_phase4_environment_batch_01",
+  "source_concept_path": "res://assets/v2/environment/generated/source/phase4_environment_master_concept.png",
+  "source_generation_path": "C:/Users/janke/.codex/generated_images/019ef2b2-15a4-7b60-bc36-67a441e2a33c/ig_08bca61624134a22016a3c791958748191b21227f9823053da.png",
+  "approval_state": "generated_unreviewed",
+  "assets": [
+    {
+      "asset_id": "environment.star_plain.floor",
+      "display_name": "星屑平原 floor",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/star_plain/floor_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/star_plain/floor_normal.png",
+        "res://assets/v2/environment/star_plain/floor_specular.png",
+        "res://assets/v2/environment/star_plain/floor_emission.png"
+      ],
+      "seamless": true,
+      "walkable": true,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 星屑平原 floor texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.star_plain.wall",
+      "display_name": "星屑平原 wall",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/star_plain/wall_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/star_plain/wall_normal.png",
+        "res://assets/v2/environment/star_plain/wall_specular.png",
+        "res://assets/v2/environment/star_plain/wall_emission.png"
+      ],
+      "seamless": true,
+      "walkable": false,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 星屑平原 wall texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.star_plain.void",
+      "display_name": "星屑平原 void",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/star_plain/void_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/star_plain/void_normal.png",
+        "res://assets/v2/environment/star_plain/void_specular.png",
+        "res://assets/v2/environment/star_plain/void_emission.png"
+      ],
+      "seamless": true,
+      "walkable": false,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 星屑平原 void texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.star_plain.decal",
+      "display_name": "星屑平原 decal",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/star_plain/decal_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/star_plain/decal_normal.png",
+        "res://assets/v2/environment/star_plain/decal_specular.png",
+        "res://assets/v2/environment/star_plain/decal_emission.png"
+      ],
+      "seamless": false,
+      "walkable": true,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 星屑平原 decal texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.amethyst_forest.floor",
+      "display_name": "紫晶の森 floor",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/amethyst_forest/floor_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/amethyst_forest/floor_normal.png",
+        "res://assets/v2/environment/amethyst_forest/floor_specular.png",
+        "res://assets/v2/environment/amethyst_forest/floor_emission.png"
+      ],
+      "seamless": true,
+      "walkable": true,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 紫晶の森 floor texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.amethyst_forest.wall",
+      "display_name": "紫晶の森 wall",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/amethyst_forest/wall_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/amethyst_forest/wall_normal.png",
+        "res://assets/v2/environment/amethyst_forest/wall_specular.png",
+        "res://assets/v2/environment/amethyst_forest/wall_emission.png"
+      ],
+      "seamless": true,
+      "walkable": false,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 紫晶の森 wall texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.amethyst_forest.void",
+      "display_name": "紫晶の森 void",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/amethyst_forest/void_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/amethyst_forest/void_normal.png",
+        "res://assets/v2/environment/amethyst_forest/void_specular.png",
+        "res://assets/v2/environment/amethyst_forest/void_emission.png"
+      ],
+      "seamless": true,
+      "walkable": false,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 紫晶の森 void texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.amethyst_forest.decal",
+      "display_name": "紫晶の森 decal",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/amethyst_forest/decal_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/amethyst_forest/decal_normal.png",
+        "res://assets/v2/environment/amethyst_forest/decal_specular.png",
+        "res://assets/v2/environment/amethyst_forest/decal_emission.png"
+      ],
+      "seamless": false,
+      "walkable": true,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 紫晶の森 decal texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.red_mine.floor",
+      "display_name": "赤熱鉱床 floor",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/red_mine/floor_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/red_mine/floor_normal.png",
+        "res://assets/v2/environment/red_mine/floor_specular.png",
+        "res://assets/v2/environment/red_mine/floor_emission.png"
+      ],
+      "seamless": true,
+      "walkable": true,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 赤熱鉱床 floor texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.red_mine.wall",
+      "display_name": "赤熱鉱床 wall",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/red_mine/wall_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/red_mine/wall_normal.png",
+        "res://assets/v2/environment/red_mine/wall_specular.png",
+        "res://assets/v2/environment/red_mine/wall_emission.png"
+      ],
+      "seamless": true,
+      "walkable": false,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 赤熱鉱床 wall texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.red_mine.void",
+      "display_name": "赤熱鉱床 void",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/red_mine/void_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/red_mine/void_normal.png",
+        "res://assets/v2/environment/red_mine/void_specular.png",
+        "res://assets/v2/environment/red_mine/void_emission.png"
+      ],
+      "seamless": true,
+      "walkable": false,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 赤熱鉱床 void texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.red_mine.decal",
+      "display_name": "赤熱鉱床 decal",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/red_mine/decal_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/red_mine/decal_normal.png",
+        "res://assets/v2/environment/red_mine/decal_specular.png",
+        "res://assets/v2/environment/red_mine/decal_emission.png"
+      ],
+      "seamless": false,
+      "walkable": true,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 赤熱鉱床 decal texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.void_zone.floor",
+      "display_name": "虚無領域 floor",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/void_zone/floor_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/void_zone/floor_normal.png",
+        "res://assets/v2/environment/void_zone/floor_specular.png",
+        "res://assets/v2/environment/void_zone/floor_emission.png"
+      ],
+      "seamless": true,
+      "walkable": true,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 虚無領域 floor texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.void_zone.wall",
+      "display_name": "虚無領域 wall",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/void_zone/wall_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/void_zone/wall_normal.png",
+        "res://assets/v2/environment/void_zone/wall_specular.png",
+        "res://assets/v2/environment/void_zone/wall_emission.png"
+      ],
+      "seamless": true,
+      "walkable": false,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 虚無領域 wall texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.void_zone.void",
+      "display_name": "虚無領域 void",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/void_zone/void_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/void_zone/void_normal.png",
+        "res://assets/v2/environment/void_zone/void_specular.png",
+        "res://assets/v2/environment/void_zone/void_emission.png"
+      ],
+      "seamless": true,
+      "walkable": false,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 虚無領域 void texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    },
+    {
+      "asset_id": "environment.void_zone.decal",
+      "display_name": "虚無領域 decal",
+      "target_resolution": "512x512",
+      "placement": "res://assets/v2/environment/void_zone/decal_albedo.png",
+      "material_maps": [
+        "res://assets/v2/environment/void_zone/decal_normal.png",
+        "res://assets/v2/environment/void_zone/decal_specular.png",
+        "res://assets/v2/environment/void_zone/decal_emission.png"
+      ],
+      "seamless": false,
+      "walkable": true,
+      "replacement_status": "integrated",
+      "human_review_status": "needs_review",
+      "prompt": "Original top-down 虚無領域 decal texture for a dark fantasy crystal labyrinth survivor game; readable at 64px tiles, high contrast, no text, no logos, no copyrighted references.",
+      "avoid": [
+        "external copyrighted assets",
+        "direct imitation of a named game",
+        "text or UI labels in texture",
+        "low-contrast busy detail under pickups"
+      ]
+    }
+  ]
+}

@@ -24,6 +24,26 @@
 .\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_main_navigation.gd
 .\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_result_summary.gd
 python tools/validate_v2_asset_manifest.py
+python tools/audit_ios_title_layout.py
+python tools/environment/validate_environment_assets.py
+python tools/environment/validate_tile_seams.py
+python tools/environment/audit_texture_imports.py
+python tools/environment/generate_environment_report.py
+```
+
+## Phase 4 targeted tests
+
+```powershell
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_ios_title_screen_fit.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_ios_title_safe_area.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_ios_title_button_visibility.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_environment_asset_manifest.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_environment_quality_profiles.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_environment_10min.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_environment_ios_low_10min.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_environment_windows_high_10min.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_item_placement_environment_30min.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_ios_title_navigation.gd
 ```
 
 ## 長時間検証
@@ -44,6 +64,8 @@ Phase 2追加:
 * HUDにv2情報が重なりすぎない。
 * Momentumがラン内だけで完結する。
 * v2アセットが存在しない場合、既存SVG fallbackが返る。
+* iOSタイトルのボタンがSafe Area内に収まり、縦スクロールfallbackで到達できる。
+* 環境アートがpickup、敵、ボス警告、HUDの視認性を妨げない。
 # Phase 3 QA Additions
 
 - `tests/auto_play_item_placement_100_seed.gd`: 100 seedでpickup配置、壁内、到達不能、再現性を検査する。

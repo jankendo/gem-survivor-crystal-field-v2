@@ -15,7 +15,7 @@ def main() -> int:
     text = WORKFLOW.read_text(encoding="utf-8")
     checks = {
         "windows-latest runner": "runs-on: windows-latest" in text,
-        "macos-latest runner": "runs-on: macos-latest" in text,
+        "macos-15 runner": "runs-on: macos-15" in text,
         "workflow_dispatch": re.search(r"(?m)^\s*workflow_dispatch:\s*$", text) is not None,
         "full_test input": "full_test:" in text,
         "GODOT_VERSION": 'GODOT_VERSION: "4.2-stable"' in text,
@@ -37,6 +37,12 @@ def main() -> int:
         "global gem collection artifact": "Global-Gem-Collection-QA" in text,
         "character evolution artifact": "Character-Evolution-QA" in text,
         "knockback artifact": "Knockback-QA" in text,
+        "phase4 artifact": "Phase4-iOS-Environment-QA" in text,
+        "phase4 title audit": "tools/audit_ios_title_layout.py" in text,
+        "phase4 environment asset validation": "tools/environment/validate_environment_assets.py" in text,
+        "phase4 environment report": "tools/environment/generate_environment_report.py" in text,
+        "phase4 environment autoplay": "auto_play_environment_10min.gd" in text,
+        "phase4 item placement environment autoplay": "auto_play_item_placement_environment_30min.gd" in text,
     }
     failures = [name for name, passed in checks.items() if not passed]
     if failures:

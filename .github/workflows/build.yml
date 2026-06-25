@@ -69,6 +69,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/auto_play_item_placement_100_seed.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_ios_title_navigation.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_environment_10min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_environment_ios_low_10min.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/auto_play_shop_entitlement_qa.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/audit_japanese_ui.py
@@ -90,6 +96,16 @@ jobs:
           python tools/generate_candidate_pool_qa.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/validate_generated_assets.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/audit_ios_title_layout.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/environment/validate_environment_assets.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/environment/validate_tile_seams.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/environment/audit_texture_imports.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/environment/generate_environment_report.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/generate_ui_redesign_qa.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -155,7 +171,9 @@ jobs:
             "res://tests/auto_play_exp_balance_10min.gd",
             "res://tests/auto_play_resonance_magnet_balance_15min.gd",
             "res://tests/auto_play_global_gem_collection_balance_20min.gd",
-            "res://tests/auto_play_random_field_equipment_balance_20min.gd"
+            "res://tests/auto_play_random_field_equipment_balance_20min.gd",
+            "res://tests/auto_play_environment_windows_high_10min.gd",
+            "res://tests/auto_play_item_placement_environment_30min.gd"
           )
           foreach ($script in $scripts) {
             & $godot --headless --path . --script $script
@@ -398,8 +416,30 @@ jobs:
             test-output/screenshots/v2_phase2/
           if-no-files-found: warn
 
+      - name: Upload Phase 4 title and environment QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Phase4-iOS-Environment-QA
+          path: |
+            test-output/ios_title_layout_qa.md
+            test-output/ios_title_layout_qa.json
+            test-output/environment_asset_qa.md
+            test-output/environment_asset_qa.json
+            test-output/environment_performance_qa.md
+            test-output/environment_performance_qa.json
+            test-output/environment_visual_contract_qa.md
+            test-output/environment_visual_contract_qa.json
+            test-output/phase4_remaining_issues.md
+            test-output/environment_10min.md
+            test-output/environment_10min.json
+            test-output/environment_ios_low_10min.md
+            test-output/environment_ios_low_10min.json
+            test-output/ios_title_navigation.md
+            test-output/ios_title_navigation.json
+          if-no-files-found: warn
+
   ios-unsigned-build:
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4

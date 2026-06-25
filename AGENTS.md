@@ -18,7 +18,7 @@ v2では以下の3本柱を同時に満たす。
 ## 開発ルール
 
 * Godot 4.2 + GDScriptで実装する。
-* Windows 10/11向け安定動作を最優先する。iOS資産と設定は壊さないが、今回の主対象はWindowsである。
+* Windows 10/11向け安定動作を最優先する。iOS資産と設定は壊さず、Phase 4以降はiOSタイトルとSafe Areaの回帰も必ず確認する。
 * ゲーム本編はEndlessランを中心に維持する。周辺のキャラ選択、ショップ、図鑑、実績、設定はメタ進行UIとして扱う。
 * 完全無音方針を維持する。BGM、SE、音声素材、AudioStreamPlayerの新規導入はしない。
 * オンライン通信、サーバー機能、オンラインランキング、課金、ガチャは導入しない。
@@ -38,6 +38,11 @@ v2では以下の3本柱を同時に満たす。
 * 本作の独自価値は探索、結晶、危険報酬、ビルド完成に置く。
 * 新コンテンツ数より、視認性、選択の意味、手触りを優先する。
 * 画像生成アセットは生成履歴と人間の承認状態を記録する。
+* iOS/touchタイトル画面はSafe Area内のスクロール可能なレスポンシブUIとして扱い、固定フッターや見切れるボタン配置へ戻さない。
+* iOSタイトルの主要ボタンは`IosTitleLayoutSystem.gd`の契約とテストを更新してから実装する。
+* 環境アートは`data/environment_asset_manifest.json`と`data/environment_visual_quality.json`を正本にし、描画は`EnvironmentVisualSystem.gd`経由にする。
+* 環境デカールやテクスチャは衝突・pickup配置・到達可能性を変更しない。見た目とゲームロジックを分離する。
+* 画像生成した環境アートは`human_review_status`を残し、承認前にapproved扱いしない。
 
 ## 禁止事項
 
@@ -45,6 +50,8 @@ v2では以下の3本柱を同時に満たす。
 * 旧`TurnSystem.gd`、`MergeSystem.gd`、`ActivationSystem.gd`前提の設計へ戻さない。
 * 大規模破壊的リファクタを一度に行わない。
 * 視認性を落とす過剰演出を入れない。
+* Safe Area外へiOS/touchタイトルの操作ボタンを置かない。
+* 環境アートを理由にpickupや敵の視認性を下げない。
 * 複雑すぎる属性相性や説明困難な新システムを追加しない。
 * 既存のWindows操作、既存セーブ、既存テスト資産を軽視しない。
 
@@ -57,6 +64,12 @@ v2では以下の3本柱を同時に満たす。
 * UI/UX計画: `docs/v2_uiux_plan.md`
 * アート方向性: `docs/v2_asset_direction.md`
 * アセットパイプライン: `docs/v2_asset_pipeline.md`
+* Phase 4 iOS/環境: `docs/v2_phase4_ios_environment_upgrade.md`
+* iOSタイトル仕様: `docs/ios_responsive_title_spec.md`
+* 環境アート方向性: `docs/environment_art_direction.md`
+* 環境描画パイプライン: `docs/environment_rendering_pipeline.md`
+* 環境性能予算: `docs/environment_performance_budget.md`
+* 環境アセットマニフェスト: `docs/environment_asset_manifest_spec.md`
 * 画像生成プロンプト雛形: `docs/v2_asset_prompt_templates.md`
 * 移行計画: `docs/v2_migration_plan.md`
 * テスト計画: `docs/test_plan.md`

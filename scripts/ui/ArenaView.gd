@@ -2,11 +2,13 @@ extends Control
 class_name ArenaView
 
 const ObjectiveIndicatorSystemScript = preload("res://scripts/systems/ObjectiveIndicatorSystem.gd")
+const EnvironmentVisualSystemScript = preload("res://scripts/systems/EnvironmentVisualSystem.gd")
 
 signal minimap_tapped
 
 var state = null
 var objective_indicator_system = ObjectiveIndicatorSystemScript.new()
+var environment_visual_system = EnvironmentVisualSystemScript.new()
 var camera_zoom := 1.0
 var minimap_rect := Rect2()
 var expanded_map_rect := Rect2()
@@ -108,9 +110,10 @@ func _draw() -> void:
 
 func _draw_background() -> void:
 	var biome = state.biome_system.current_biome(state)
-	var bg = Color(0.012, 0.014, 0.024)
-	var grid = state.biome_system.grid_color(biome)
-	var accent = state.biome_system.accent_color(biome)
+	var biome_id = String(biome.get("id", "star_plain"))
+	var bg = environment_visual_system.background_color(biome_id, Color(0.012, 0.014, 0.024))
+	var grid = environment_visual_system.grid_color(biome_id, state.biome_system.grid_color(biome))
+	var accent = environment_visual_system.accent_color(biome_id, state.biome_system.accent_color(biome))
 	draw_rect(Rect2(Vector2.ZERO, size), bg, true)
 	var camera = _camera_origin()
 	var spacing = 48.0
@@ -127,7 +130,6 @@ func _draw_background() -> void:
 		var p = world_to_screen(world_pos)
 		var pulse = 0.45 + 0.35 * sin(state.elapsed_seconds + float(particle.get("phase", 0.0)))
 		draw_circle(p, float(particle.get("radius", 1.5)) * (1.0 + pulse * 0.18), Color(accent.r, accent.g, accent.b, 0.16 + pulse * 0.12))
-	var biome_id = String(biome.get("id", "star_plain"))
 	if biome_id == "amethyst_forest":
 		_draw_biome_spikes(camera, accent)
 	elif biome_id == "red_mine":
@@ -144,8 +146,8 @@ func _draw_terrain_layout() -> void:
 			if viewport_world.intersects(world_rect):
 				map_tile_draw_count += 1
 				var screen_rect = Rect2(world_to_screen(world_rect.position), world_rect.size)
-				draw_rect(screen_rect, Color(0.09, 0.15, 0.20, 0.96), true)
-				draw_rect(screen_rect, Color(0.24, 0.48, 0.58, 0.18), false, 1.0)
+				var corridor_biome_id: String = state.biome_system.biome_id_for_position(state, world_rect.get_center())
+				_draw_environment_tile(screen_rect, corridor_biome_id, "floor", Color(0.09, 0.15, 0.20, 0.96), Color(0.24, 0.48, 0.58, 0.18))
 	for room in state.map_data.get("rooms", []):
 		var terrain_id = String(room.get("terrain_id", "safe_room"))
 		var terrain_data: Dictionary = state.terrain_type_defs.get(terrain_id, {})
@@ -155,15 +157,31 @@ func _draw_terrain_layout() -> void:
 			if viewport_world.intersects(world_rect):
 				map_tile_draw_count += 1
 				var screen_rect = Rect2(world_to_screen(world_rect.position), world_rect.size)
-				draw_rect(screen_rect, Color(color.r, color.g, color.b, 0.92), true)
-				draw_rect(screen_rect, Color(color.r + 0.12, color.g + 0.12, color.b + 0.12, 0.16), false, 1.0)
+				var room_biome_id: String = state.biome_system.biome_id_for_position(state, world_rect.get_center())
+				var floor_color := environment_visual_system.terrain_color(room_biome_id, color, terrain_id)
+				floor_color.a = 0.92
+				_draw_environment_tile(screen_rect, room_biome_id, "floor", floor_color, Color(color.r + 0.12, color.g + 0.12, color.b + 0.12, 0.16))
 	for raw_key in state.map_data.get("boundary_cells", []):
 		var world_rect = _cell_world_rect(String(raw_key), tile_size)
 		if viewport_world.intersects(world_rect):
 			map_tile_draw_count += 1
 			var screen_rect = Rect2(world_to_screen(world_rect.position), world_rect.size)
-			draw_rect(screen_rect, Color(0.015, 0.012, 0.026, 1.0), true)
-			draw_line(screen_rect.position, screen_rect.position + Vector2(screen_rect.size.x, 0), Color(0.30, 0.20, 0.42, 0.34), 2.0)
+			var boundary_biome_id: String = state.biome_system.biome_id_for_position(state, world_rect.get_center())
+			_draw_environment_tile(screen_rect, boundary_biome_id, "void", Color(0.015, 0.012, 0.026, 1.0), Color(0.30, 0.20, 0.42, 0.34))
+
+func _draw_environment_tile(screen_rect: Rect2, biome_id: String, surface: String, fallback_color: Color, border_color: Color) -> void:
+	var surface_color := environment_visual_system.surface_color(biome_id, surface, fallback_color)
+	surface_color.a = fallback_color.a
+	if environment_visual_system.texture_enabled():
+		var texture = environment_visual_system.surface_texture(biome_id, surface, "albedo")
+		if texture != null:
+			draw_texture_rect(texture, screen_rect, false, Color(1.0, 1.0, 1.0, environment_visual_system.tile_texture_alpha()))
+			draw_rect(screen_rect, Color(surface_color.r, surface_color.g, surface_color.b, 0.18), true)
+		else:
+			draw_rect(screen_rect, surface_color, true)
+	else:
+		draw_rect(screen_rect, surface_color, true)
+	draw_rect(screen_rect, border_color, false, 1.0)
 
 func _draw_danger_zones() -> void:
 	for zone in state.danger_zones:

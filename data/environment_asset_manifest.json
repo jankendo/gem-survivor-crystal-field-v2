@@ -1,0 +1,411 @@
+{
+  "schema_version": 1,
+  "source_concept_path": "res://assets/v2/environment/generated/source/phase4_environment_master_concept.png",
+  "source_generation_path": "C:/Users/janke/.codex/generated_images/019ef2b2-15a4-7b60-bc36-67a441e2a33c/ig_08bca61624134a22016a3c791958748191b21227f9823053da.png",
+  "generation_record": {
+    "generation_date": "2026-06-25",
+    "source_model_or_tool": "built_in_image_generation_plus_project_local_generation_pipeline",
+    "human_review_status": "needs_review",
+    "legal_review_status": "project_original_no_external_download",
+    "approval_state": "generated_unreviewed",
+    "prompt_document": "res://docs/asset_generation/v2_environment_batch_01.md"
+  },
+  "visibility_contract": {
+    "pickup_contrast_min": 0.42,
+    "enemy_contrast_min": 0.38,
+    "ui_overlay_dimming_allowed": true,
+    "max_albedo_average_luma": 150
+  },
+  "collision_visual_contract": {
+    "floor": {
+      "walkable": true,
+      "collision_source": "map_data floor/corridor cells"
+    },
+    "wall": {
+      "walkable": false,
+      "collision_source": "crystal_walls/map boundary only"
+    },
+    "void": {
+      "walkable": false,
+      "collision_source": "boundary_cells and unreachable space"
+    },
+    "decal": {
+      "walkable": true,
+      "collision_source": "none"
+    }
+  },
+  "biomes": {
+    "star_plain": {
+      "name_ja": "星屑平原",
+      "palette": {
+        "name_ja": "星屑平原",
+        "base": "#10253a",
+        "dark": "#06111f",
+        "glow": "#55dfff",
+        "accent": "#d5fbff",
+        "ore": "#2a83b5"
+      },
+      "surfaces": {
+        "floor": {
+          "asset_id": "environment.star_plain.floor",
+          "display_name": "星屑平原 floor",
+          "albedo_path": "res://assets/v2/environment/star_plain/floor_albedo.png",
+          "normal_path": "res://assets/v2/environment/star_plain/floor_normal.png",
+          "specular_path": "res://assets/v2/environment/star_plain/floor_specular.png",
+          "emission_path": "res://assets/v2/environment/star_plain/floor_emission.png",
+          "resolution": "512x512",
+          "usage": "walkable_floor",
+          "walkable": true,
+          "seamless": true,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "a5b35cd74a80c304056523bab5fb64953b3cdb7e95d582aefcf3bcccfd792170",
+          "fallback_color": [
+            16,
+            37,
+            58
+          ]
+        },
+        "wall": {
+          "asset_id": "environment.star_plain.wall",
+          "display_name": "星屑平原 wall",
+          "albedo_path": "res://assets/v2/environment/star_plain/wall_albedo.png",
+          "normal_path": "res://assets/v2/environment/star_plain/wall_normal.png",
+          "specular_path": "res://assets/v2/environment/star_plain/wall_specular.png",
+          "emission_path": "res://assets/v2/environment/star_plain/wall_emission.png",
+          "resolution": "512x512",
+          "usage": "collision_wall_visual",
+          "walkable": false,
+          "seamless": true,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "d022d01dc63fa38d40c6afb1c64da4b3f5760e901f2db8340c175f6920ab3e0f",
+          "fallback_color": [
+            6,
+            17,
+            31
+          ]
+        },
+        "void": {
+          "asset_id": "environment.star_plain.void",
+          "display_name": "星屑平原 void",
+          "albedo_path": "res://assets/v2/environment/star_plain/void_albedo.png",
+          "normal_path": "res://assets/v2/environment/star_plain/void_normal.png",
+          "specular_path": "res://assets/v2/environment/star_plain/void_specular.png",
+          "emission_path": "res://assets/v2/environment/star_plain/void_emission.png",
+          "resolution": "512x512",
+          "usage": "non_walkable_boundary_visual",
+          "walkable": false,
+          "seamless": true,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "923a3b1cdff159403fc2b0ff5e37753d3718ecb58a99af2a55bce9c9b4981a3e",
+          "fallback_color": [
+            6,
+            17,
+            31
+          ]
+        },
+        "decal": {
+          "asset_id": "environment.star_plain.decal",
+          "display_name": "星屑平原 decal",
+          "albedo_path": "res://assets/v2/environment/star_plain/decal_albedo.png",
+          "normal_path": "res://assets/v2/environment/star_plain/decal_normal.png",
+          "specular_path": "res://assets/v2/environment/star_plain/decal_specular.png",
+          "emission_path": "res://assets/v2/environment/star_plain/decal_emission.png",
+          "resolution": "512x512",
+          "usage": "non_collision_small_decals",
+          "walkable": true,
+          "seamless": false,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "dfb0d7055cea7a95d7768c1bdc78acfd18d3b6dbe4f7964d3433ce992d05f76e",
+          "fallback_color": [
+            6,
+            17,
+            31
+          ]
+        }
+      }
+    },
+    "amethyst_forest": {
+      "name_ja": "紫晶の森",
+      "palette": {
+        "name_ja": "紫晶の森",
+        "base": "#211839",
+        "dark": "#0b0718",
+        "glow": "#a66cff",
+        "accent": "#f0dcff",
+        "ore": "#6f37c4"
+      },
+      "surfaces": {
+        "floor": {
+          "asset_id": "environment.amethyst_forest.floor",
+          "display_name": "紫晶の森 floor",
+          "albedo_path": "res://assets/v2/environment/amethyst_forest/floor_albedo.png",
+          "normal_path": "res://assets/v2/environment/amethyst_forest/floor_normal.png",
+          "specular_path": "res://assets/v2/environment/amethyst_forest/floor_specular.png",
+          "emission_path": "res://assets/v2/environment/amethyst_forest/floor_emission.png",
+          "resolution": "512x512",
+          "usage": "walkable_floor",
+          "walkable": true,
+          "seamless": true,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "3787f032638dc4592562142a340243770c4ec51a9b071e02edcdd43fac36871b",
+          "fallback_color": [
+            33,
+            24,
+            57
+          ]
+        },
+        "wall": {
+          "asset_id": "environment.amethyst_forest.wall",
+          "display_name": "紫晶の森 wall",
+          "albedo_path": "res://assets/v2/environment/amethyst_forest/wall_albedo.png",
+          "normal_path": "res://assets/v2/environment/amethyst_forest/wall_normal.png",
+          "specular_path": "res://assets/v2/environment/amethyst_forest/wall_specular.png",
+          "emission_path": "res://assets/v2/environment/amethyst_forest/wall_emission.png",
+          "resolution": "512x512",
+          "usage": "collision_wall_visual",
+          "walkable": false,
+          "seamless": true,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "7689e8a04ac6a8a7e829715297d895f315bf1e257f23bf95ee44ed30f47935a8",
+          "fallback_color": [
+            11,
+            7,
+            24
+          ]
+        },
+        "void": {
+          "asset_id": "environment.amethyst_forest.void",
+          "display_name": "紫晶の森 void",
+          "albedo_path": "res://assets/v2/environment/amethyst_forest/void_albedo.png",
+          "normal_path": "res://assets/v2/environment/amethyst_forest/void_normal.png",
+          "specular_path": "res://assets/v2/environment/amethyst_forest/void_specular.png",
+          "emission_path": "res://assets/v2/environment/amethyst_forest/void_emission.png",
+          "resolution": "512x512",
+          "usage": "non_walkable_boundary_visual",
+          "walkable": false,
+          "seamless": true,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "736350f8663c3413cb5e668b71727d3c0938662715434fcded57c78e2a4f8c8a",
+          "fallback_color": [
+            11,
+            7,
+            24
+          ]
+        },
+        "decal": {
+          "asset_id": "environment.amethyst_forest.decal",
+          "display_name": "紫晶の森 decal",
+          "albedo_path": "res://assets/v2/environment/amethyst_forest/decal_albedo.png",
+          "normal_path": "res://assets/v2/environment/amethyst_forest/decal_normal.png",
+          "specular_path": "res://assets/v2/environment/amethyst_forest/decal_specular.png",
+          "emission_path": "res://assets/v2/environment/amethyst_forest/decal_emission.png",
+          "resolution": "512x512",
+          "usage": "non_collision_small_decals",
+          "walkable": true,
+          "seamless": false,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "435738d841b5e0eb82882c07a6301b93445502653585bea38159f4c200be9678",
+          "fallback_color": [
+            11,
+            7,
+            24
+          ]
+        }
+      }
+    },
+    "red_mine": {
+      "name_ja": "赤熱鉱床",
+      "palette": {
+        "name_ja": "赤熱鉱床",
+        "base": "#2a1716",
+        "dark": "#100809",
+        "glow": "#ff584e",
+        "accent": "#ffd0a0",
+        "ore": "#9b2a26"
+      },
+      "surfaces": {
+        "floor": {
+          "asset_id": "environment.red_mine.floor",
+          "display_name": "赤熱鉱床 floor",
+          "albedo_path": "res://assets/v2/environment/red_mine/floor_albedo.png",
+          "normal_path": "res://assets/v2/environment/red_mine/floor_normal.png",
+          "specular_path": "res://assets/v2/environment/red_mine/floor_specular.png",
+          "emission_path": "res://assets/v2/environment/red_mine/floor_emission.png",
+          "resolution": "512x512",
+          "usage": "walkable_floor",
+          "walkable": true,
+          "seamless": true,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "91a50e1f02fb05b0510a71317222447625a8269b20198b79da9b500bb54b8e19",
+          "fallback_color": [
+            42,
+            23,
+            22
+          ]
+        },
+        "wall": {
+          "asset_id": "environment.red_mine.wall",
+          "display_name": "赤熱鉱床 wall",
+          "albedo_path": "res://assets/v2/environment/red_mine/wall_albedo.png",
+          "normal_path": "res://assets/v2/environment/red_mine/wall_normal.png",
+          "specular_path": "res://assets/v2/environment/red_mine/wall_specular.png",
+          "emission_path": "res://assets/v2/environment/red_mine/wall_emission.png",
+          "resolution": "512x512",
+          "usage": "collision_wall_visual",
+          "walkable": false,
+          "seamless": true,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "2724e9d7147e17344cc56d07ae48170ed5dca65eb333e8303e02cb854b43d834",
+          "fallback_color": [
+            16,
+            8,
+            9
+          ]
+        },
+        "void": {
+          "asset_id": "environment.red_mine.void",
+          "display_name": "赤熱鉱床 void",
+          "albedo_path": "res://assets/v2/environment/red_mine/void_albedo.png",
+          "normal_path": "res://assets/v2/environment/red_mine/void_normal.png",
+          "specular_path": "res://assets/v2/environment/red_mine/void_specular.png",
+          "emission_path": "res://assets/v2/environment/red_mine/void_emission.png",
+          "resolution": "512x512",
+          "usage": "non_walkable_boundary_visual",
+          "walkable": false,
+          "seamless": true,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "a2b29b9d799c5b17b0a226d713769ebce537e309bd5bd65ff821fa2164db2440",
+          "fallback_color": [
+            16,
+            8,
+            9
+          ]
+        },
+        "decal": {
+          "asset_id": "environment.red_mine.decal",
+          "display_name": "赤熱鉱床 decal",
+          "albedo_path": "res://assets/v2/environment/red_mine/decal_albedo.png",
+          "normal_path": "res://assets/v2/environment/red_mine/decal_normal.png",
+          "specular_path": "res://assets/v2/environment/red_mine/decal_specular.png",
+          "emission_path": "res://assets/v2/environment/red_mine/decal_emission.png",
+          "resolution": "512x512",
+          "usage": "non_collision_small_decals",
+          "walkable": true,
+          "seamless": false,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "5bb1288537f617f2eba1a3362663d8c286f09a501a8ea02971dec970f630cda6",
+          "fallback_color": [
+            16,
+            8,
+            9
+          ]
+        }
+      }
+    },
+    "void_zone": {
+      "name_ja": "虚無領域",
+      "palette": {
+        "name_ja": "虚無領域",
+        "base": "#121226",
+        "dark": "#05030c",
+        "glow": "#a42cff",
+        "accent": "#f0d7ff",
+        "ore": "#4e2475"
+      },
+      "surfaces": {
+        "floor": {
+          "asset_id": "environment.void_zone.floor",
+          "display_name": "虚無領域 floor",
+          "albedo_path": "res://assets/v2/environment/void_zone/floor_albedo.png",
+          "normal_path": "res://assets/v2/environment/void_zone/floor_normal.png",
+          "specular_path": "res://assets/v2/environment/void_zone/floor_specular.png",
+          "emission_path": "res://assets/v2/environment/void_zone/floor_emission.png",
+          "resolution": "512x512",
+          "usage": "walkable_floor",
+          "walkable": true,
+          "seamless": true,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "bb3c78616621b6a31e702ba9b262026759beef99c57e551965233f8b96f6f837",
+          "fallback_color": [
+            18,
+            18,
+            38
+          ]
+        },
+        "wall": {
+          "asset_id": "environment.void_zone.wall",
+          "display_name": "虚無領域 wall",
+          "albedo_path": "res://assets/v2/environment/void_zone/wall_albedo.png",
+          "normal_path": "res://assets/v2/environment/void_zone/wall_normal.png",
+          "specular_path": "res://assets/v2/environment/void_zone/wall_specular.png",
+          "emission_path": "res://assets/v2/environment/void_zone/wall_emission.png",
+          "resolution": "512x512",
+          "usage": "collision_wall_visual",
+          "walkable": false,
+          "seamless": true,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "5b4d11410f7fa424dadfa81fa3a3b8c4a63b7adb196cc0e1c690c999308fc4a4",
+          "fallback_color": [
+            5,
+            3,
+            12
+          ]
+        },
+        "void": {
+          "asset_id": "environment.void_zone.void",
+          "display_name": "虚無領域 void",
+          "albedo_path": "res://assets/v2/environment/void_zone/void_albedo.png",
+          "normal_path": "res://assets/v2/environment/void_zone/void_normal.png",
+          "specular_path": "res://assets/v2/environment/void_zone/void_specular.png",
+          "emission_path": "res://assets/v2/environment/void_zone/void_emission.png",
+          "resolution": "512x512",
+          "usage": "non_walkable_boundary_visual",
+          "walkable": false,
+          "seamless": true,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "fb09f7960d394f07b566e76935cafac4e38369fa1246f54ad97ff78f155b2c3a",
+          "fallback_color": [
+            5,
+            3,
+            12
+          ]
+        },
+        "decal": {
+          "asset_id": "environment.void_zone.decal",
+          "display_name": "虚無領域 decal",
+          "albedo_path": "res://assets/v2/environment/void_zone/decal_albedo.png",
+          "normal_path": "res://assets/v2/environment/void_zone/decal_normal.png",
+          "specular_path": "res://assets/v2/environment/void_zone/decal_specular.png",
+          "emission_path": "res://assets/v2/environment/void_zone/decal_emission.png",
+          "resolution": "512x512",
+          "usage": "non_collision_small_decals",
+          "walkable": true,
+          "seamless": false,
+          "replacement_status": "integrated",
+          "human_review_status": "needs_review",
+          "checksum": "9d6f8fb7df5a1dcca935d54ac55a37a8586f3390cf4838c62570f404d70837be",
+          "fallback_color": [
+            5,
+            3,
+            12
+          ]
+        }
+      }
+    }
+  }
+}

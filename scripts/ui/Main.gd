@@ -19,6 +19,7 @@ const InputModeSystemScript := preload("res://scripts/systems/InputModeSystem.gd
 const MobileSafeAreaSystemScript := preload("res://scripts/systems/MobileSafeAreaSystem.gd")
 const MobileUiScaleSystemScript := preload("res://scripts/systems/MobileUiScaleSystem.gd")
 const MobileScrollSystemScript := preload("res://scripts/systems/MobileScrollSystem.gd")
+const IosTitleLayoutSystemScript := preload("res://scripts/systems/IosTitleLayoutSystem.gd")
 const LoadoutDisableSystemScript := preload("res://scripts/systems/LoadoutDisableSystem.gd")
 const AchievementProgressSystemScript := preload("res://scripts/systems/AchievementProgressSystem.gd")
 const ConfirmDialogScript := preload("res://scripts/ui/components/ConfirmDialog.gd")
@@ -77,6 +78,7 @@ var touch_tutorial_page := 0
 var input_mode = InputModeSystemScript.new()
 var mobile_safe_area = MobileSafeAreaSystemScript.new()
 var mobile_ui_scale = MobileUiScaleSystemScript.new()
+var ios_title_layout = IosTitleLayoutSystemScript.new()
 var mobile_scroll_system
 var settings_scroll: ScrollContainer
 var settings_section_nodes: Dictionary = {}
@@ -203,14 +205,16 @@ func show_title() -> void:
 	_add_background(v2_theme.color("background", Color(0.020, 0.026, 0.048)))
 	_draw_neon_background()
 
+	if input_mode.is_touch_mode():
+		var touch_root := _title_page_box()
+		_build_touch_title(touch_root)
+		return
+
 	var root := _page_box(54, 32, 54, 32)
 	root.add_theme_constant_override("separation", 12)
 	_add_label(root, JaText.TITLE, v2_theme.font_size("title", 36 if input_mode.is_touch_mode() else 42), v2_theme.color("text_primary", Color(0.94, 0.98, 1.0)))
 	_add_label(root, JaText.SUBTITLE, v2_theme.font_size("subtitle", 18 if input_mode.is_touch_mode() else 20), v2_theme.color("text_secondary", Color(0.68, 0.84, 1.0)))
 	_add_label(root, app_version.title_version_line(), 14, Color(0.58, 0.68, 0.78))
-	if input_mode.is_touch_mode():
-		_build_touch_title(root)
-		return
 
 	var body := HBoxContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -242,36 +246,67 @@ func show_title() -> void:
 	_add_label(info_box, input_help, 17, Color(0.66, 0.76, 0.88), HORIZONTAL_ALIGNMENT_LEFT)
 
 func _build_touch_title(root: VBoxContainer) -> void:
+	var viewport_size := get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
+	var extra := float(save_data.get("settings", {}).get("safe_area_margin", 0.0))
+	var safe := mobile_safe_area.safe_rect(viewport_size, extra)
+	var action_ids: Array = []
+	for action in title_controller.actions():
+		action_ids.append(String(action.get("id", "")))
+	var metrics := ios_title_layout.metrics(viewport_size, safe, action_ids)
+	root.add_theme_constant_override("separation", 0)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "TitleSafeScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.follow_focus = true
+	root.add_child(scroll)
+	_register_mobile_scroll(scroll, MobileScrollSystemScript.AXIS_VERTICAL)
+
+	var content := VBoxContainer.new()
+	content.name = "TitleSafeContent"
+	content.custom_minimum_size.x = float(metrics.get("content_width", safe.size.x))
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", int(metrics.get("gap", 10.0)))
+	scroll.add_child(content)
+
+	_add_label(content, JaText.TITLE, int(metrics.get("title_font", 30)), v2_theme.color("text_primary", Color(0.94, 0.98, 1.0)))
+	_add_label(content, JaText.SUBTITLE, int(metrics.get("subtitle_font", 16)), v2_theme.color("text_secondary", Color(0.68, 0.84, 1.0)))
+	_add_label(content, app_version.title_version_line(), int(metrics.get("version_font", 13)), Color(0.58, 0.68, 0.78))
+
 	var status = CrystalCardScript.new()
-	status.setup(Color(0.42, 0.92, 1.0), false, Vector2(0, 92))
+	status.setup(Color(0.42, 0.92, 1.0), false, Vector2(0, float(metrics.get("status_min_height", 120.0))))
 	status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root.add_child(status)
+	content.add_child(status)
 	var status_box := VBoxContainer.new()
 	status_box.add_theme_constant_override("separation", 4)
 	status.add_child(status_box)
-	_add_title_key_visual(status_box)
-	_add_label(status_box, "現在の遠征準備", 24, Color(0.96, 0.98, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
+	_add_title_key_visual(status_box, Vector2(minf(360.0, safe.size.x * 0.42), float(metrics.get("key_visual_height", 100.0))))
+	_add_label(status_box, "現在の遠征準備", int(metrics.get("body_font", 18)) + 4, Color(0.96, 0.98, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
 	var selected_name := meta_system.display_name(selected_character_id, save_data)
 	var blessing_name := _selected_blessing_name()
-	_add_label(status_box, "\n".join(title_controller.status_lines(save_data, selected_name, blessing_name)), 17, Color(0.82, 0.92, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
-	var primary := GridContainer.new()
-	primary.columns = 2
-	primary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	primary.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	primary.add_theme_constant_override("h_separation", 12)
-	primary.add_theme_constant_override("v_separation", 12)
-	root.add_child(primary)
+	_add_label(status_box, "\n".join(title_controller.status_lines(save_data, selected_name, blessing_name)), int(metrics.get("body_font", 17)), Color(0.82, 0.92, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
+
 	for action in title_controller.actions():
-		if int(action.get("tier", 4)) <= 3:
-			_add_title_action_button(primary, action)
-	var footer := HBoxContainer.new()
-	footer.add_theme_constant_override("separation", 12)
-	root.add_child(footer)
+		if String(action.get("id", "")) == "start":
+			var start_button := _add_title_action_button(content, action)
+			start_button.custom_minimum_size.y = float(metrics.get("button_height", 64.0))
+
+	var grid := GridContainer.new()
+	grid.columns = int(metrics.get("columns", 2))
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", int(metrics.get("gap", 10.0)))
+	grid.add_theme_constant_override("v_separation", int(metrics.get("gap", 10.0)))
+	content.add_child(grid)
 	for action in title_controller.actions():
-		if int(action.get("tier", 4)) >= 4:
-			if String(action.get("id", "")) == "quit":
-				continue
-			var button := _add_title_action_button(footer, action)
+		var action_id := String(action.get("id", ""))
+		if action_id == "start" or action_id == "quit":
+			continue
+		var button := _add_title_action_button(grid, action)
+		button.custom_minimum_size.y = float(metrics.get("secondary_button_height", 60.0))
+		if grid.columns > 1:
 			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func request_start() -> void:
@@ -1381,14 +1416,14 @@ func _title_action_callable(action_id: String) -> Callable:
 			return func(): get_tree().quit()
 	return func(): pass
 
-func _add_title_key_visual(parent: Control) -> void:
+func _add_title_key_visual(parent: Control, min_size: Vector2 = Vector2(360, 150)) -> void:
 	var texture = v2_asset_registry.resolve_texture("ui.title_key_visual")
 	if texture == null:
 		return
 	var image := TextureRect.new()
 	image.name = "V2TitleKeyVisual"
 	image.texture = texture
-	image.custom_minimum_size = Vector2(360, 150)
+	image.custom_minimum_size = min_size
 	image.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	parent.add_child(image)
@@ -1452,6 +1487,20 @@ func _page_box(left: int, top: int, right: int, bottom: int) -> VBoxContainer:
 		box.offset_right = -right
 		box.offset_bottom = -bottom
 	box.add_theme_constant_override("separation", 10)
+	add_child(box)
+	return box
+
+func _title_page_box() -> VBoxContainer:
+	var viewport_size := get_viewport_rect().size if is_inside_tree() else Vector2(1280, 720)
+	var extra := float(save_data.get("settings", {}).get("safe_area_margin", 0.0))
+	var safe := mobile_safe_area.safe_rect(viewport_size, extra)
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.offset_left = safe.position.x
+	box.offset_top = safe.position.y
+	box.offset_right = -(viewport_size.x - safe.end.x)
+	box.offset_bottom = -(viewport_size.y - safe.end.y)
+	box.add_theme_constant_override("separation", 0)
 	add_child(box)
 	return box
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-06-25 Phase 4
+
+### Added
+
+* iOS/touchタイトル画面のSafe Area内レスポンシブレイアウト契約を追加。
+* `IosTitleLayoutSystem.gd`とタイトル専用QAを追加。
+* 結晶迷宮環境アートの生成元、ランタイムPNG、マニフェスト、品質プロファイルを追加。
+* `EnvironmentVisualSystem.gd`で環境色/テクスチャ/決定的variantを解決。
+* Phase 4調査資料、環境仕様、iOS実機チェックリストを追加。
+
+### Changed
+
+* タッチタイトルから固定フッターをなくし、縦スクロール可能なSafe Area内メニューへ変更。
+* `ArenaView.gd`の床/境界描画に環境ビジュアル解決層を挿入。
+* 製品バージョンを`0.4.0` build `4`へ更新。
+
+### Notes
+
+* 生成環境アートは`human_review_status=needs_review`であり、人間レビュー前にapproved扱いしない。
+* iOS実機確認は物理端末待ちとしてQAチェックリストに残す。
+
 ## 2026-06-23
 
 ### Added
