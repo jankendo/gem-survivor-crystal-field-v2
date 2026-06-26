@@ -21,6 +21,10 @@ var map_tile_draw_count := 0
 var minimap_update_count := 0
 var minimap_update_interval := 0.125
 var last_minimap_update_time := -999.0
+var phase6_metrics = null
+var terrain_cache_key := ""
+var terrain_draw_cache: Array = []
+var terrain_cache_rebuild_count := 0
 
 const ENEMY_COLORS = {
 	"slime": Color(0.36, 0.92, 0.55),
@@ -46,6 +50,7 @@ const ENEMY_COLORS = {
 
 func bind_state(value) -> void:
 	state = value
+	invalidate_static_cache("bind_state")
 	queue_redraw()
 
 func configure_mobile(layout: Dictionary) -> void:
@@ -56,11 +61,20 @@ func configure_mobile(layout: Dictionary) -> void:
 	minimap_icon_size = float(layout.get("minimap_icon", 8.0))
 	minimap_tap_enabled = bool(layout.get("map_tap_expand", true))
 	minimap_update_interval = 1.0 / maxf(1.0, float(layout.get("minimap_update_hz", 8)))
+	invalidate_static_cache("configure_mobile")
 	queue_redraw()
 
 func set_map_expanded(value: bool) -> void:
 	map_expanded = value
 	queue_redraw()
+
+func set_phase6_metrics(metrics) -> void:
+	phase6_metrics = metrics
+
+func invalidate_static_cache(reason: String = "") -> void:
+	terrain_cache_key = ""
+	terrain_draw_cache.clear()
+	_phase6_metric("static_cache_invalidations")
 
 func _gui_input(event: InputEvent) -> void:
 	var point := Vector2(-1, -1)
@@ -77,6 +91,7 @@ func _gui_input(event: InputEvent) -> void:
 func _draw() -> void:
 	if state == null:
 		return
+	_phase6_metric("arena_draw_calls")
 	map_tile_draw_count = 0
 	_draw_background()
 	world_transform_active = true
@@ -139,15 +154,28 @@ func _draw_background() -> void:
 
 func _draw_terrain_layout() -> void:
 	var tile_size = float(state.map_data.get("tile_size", 64.0))
+	var cache_key := _terrain_key(tile_size)
+	if cache_key != terrain_cache_key:
+		_rebuild_terrain_cache(tile_size, cache_key)
+	for command in terrain_draw_cache:
+		var world_rect: Rect2 = command.get("rect", Rect2())
+		var screen_rect = Rect2(world_to_screen(world_rect.position), world_rect.size)
+		_draw_environment_tile(screen_rect, String(command.get("biome", "star_plain")), String(command.get("surface", "floor")), command.get("fallback", Color.WHITE), command.get("border", Color.WHITE))
+		map_tile_draw_count += 1
+		_phase6_metric("static_tile_draw_submissions", 2)
+
+func _rebuild_terrain_cache(tile_size: float, cache_key: String) -> void:
+	terrain_cache_key = cache_key
+	terrain_draw_cache.clear()
+	terrain_cache_rebuild_count += 1
+	_phase6_metric("static_terrain_rebuilds")
 	var viewport_world = Rect2(_camera_origin() - Vector2(tile_size, tile_size), size / camera_zoom + Vector2(tile_size * 2.0, tile_size * 2.0))
 	for corridor in state.map_data.get("corridors", []):
 		for raw_key in corridor.get("cells", []):
 			var world_rect = _cell_world_rect(String(raw_key), tile_size)
 			if viewport_world.intersects(world_rect):
-				map_tile_draw_count += 1
-				var screen_rect = Rect2(world_to_screen(world_rect.position), world_rect.size)
 				var corridor_biome_id: String = state.biome_system.biome_id_for_position(state, world_rect.get_center())
-				_draw_environment_tile(screen_rect, corridor_biome_id, "floor", Color(0.09, 0.15, 0.20, 0.96), Color(0.24, 0.48, 0.58, 0.18))
+				terrain_draw_cache.append({"rect": world_rect, "biome": corridor_biome_id, "surface": "floor", "fallback": Color(0.09, 0.15, 0.20, 0.96), "border": Color(0.24, 0.48, 0.58, 0.18)})
 	for room in state.map_data.get("rooms", []):
 		var terrain_id = String(room.get("terrain_id", "safe_room"))
 		var terrain_data: Dictionary = state.terrain_type_defs.get(terrain_id, {})
@@ -155,19 +183,37 @@ func _draw_terrain_layout() -> void:
 		for raw_key in room.get("floor_cells", []):
 			var world_rect = _cell_world_rect(String(raw_key), tile_size)
 			if viewport_world.intersects(world_rect):
-				map_tile_draw_count += 1
-				var screen_rect = Rect2(world_to_screen(world_rect.position), world_rect.size)
 				var room_biome_id: String = state.biome_system.biome_id_for_position(state, world_rect.get_center())
 				var floor_color := environment_visual_system.terrain_color(room_biome_id, color, terrain_id)
 				floor_color.a = 0.92
-				_draw_environment_tile(screen_rect, room_biome_id, "floor", floor_color, Color(color.r + 0.12, color.g + 0.12, color.b + 0.12, 0.16))
+				terrain_draw_cache.append({"rect": world_rect, "biome": room_biome_id, "surface": "floor", "fallback": floor_color, "border": Color(color.r + 0.12, color.g + 0.12, color.b + 0.12, 0.16)})
 	for raw_key in state.map_data.get("boundary_cells", []):
 		var world_rect = _cell_world_rect(String(raw_key), tile_size)
 		if viewport_world.intersects(world_rect):
-			map_tile_draw_count += 1
-			var screen_rect = Rect2(world_to_screen(world_rect.position), world_rect.size)
 			var boundary_biome_id: String = state.biome_system.biome_id_for_position(state, world_rect.get_center())
-			_draw_environment_tile(screen_rect, boundary_biome_id, "void", Color(0.015, 0.012, 0.026, 1.0), Color(0.30, 0.20, 0.42, 0.34))
+			terrain_draw_cache.append({"rect": world_rect, "biome": boundary_biome_id, "surface": "void", "fallback": Color(0.015, 0.012, 0.026, 1.0), "border": Color(0.30, 0.20, 0.42, 0.34)})
+
+func _terrain_key(tile_size: float) -> String:
+	var origin := _camera_origin()
+	var cell := Vector2i(floori(origin.x / tile_size), floori(origin.y / tile_size))
+	var renderer := String(ProjectSettings.get_setting("rendering/renderer/rendering_method", "gl_compatibility"))
+	var quality_name := String(environment_visual_system.quality_config.get("default_profile", "medium"))
+	var map_counts := "%d:%d:%d" % [
+		(state.map_data.get("corridors", []) as Array).size(),
+		(state.map_data.get("rooms", []) as Array).size(),
+		(state.map_data.get("boundary_cells", []) as Array).size()
+	]
+	return "%s:%s:%s:%s:%s:%s:%s:%s:%s" % [
+		str(cell),
+		str(size),
+		str(camera_zoom),
+		str(state.map_seed),
+		map_counts,
+		renderer,
+		quality_name,
+		str(environment_visual_system.texture_enabled()),
+		str(environment_visual_system.tile_texture_alpha())
+	]
 
 func _draw_environment_tile(screen_rect: Rect2, biome_id: String, surface: String, fallback_color: Color, border_color: Color) -> void:
 	var surface_color := environment_visual_system.surface_color(biome_id, surface, fallback_color)
@@ -365,6 +411,7 @@ func _draw_enemies() -> void:
 	for enemy in state.enemies:
 		if not _is_world_visible(enemy.position, enemy.radius + 20.0):
 			continue
+		_phase6_metric("dynamic_enemy_draws")
 		var pos = world_to_screen(enemy.position)
 		var color = Color(1.0, 0.35, 0.20) if enemy.boss else ENEMY_COLORS.get(enemy.type, Color.WHITE)
 		if enemy.boss:
@@ -420,6 +467,7 @@ func _draw_gems() -> void:
 	for gem in state.gems:
 		if not _is_world_visible(gem.position, 16.0):
 			continue
+		_phase6_metric("dynamic_gem_draws")
 		var pos = world_to_screen(gem.position)
 		var color = Color(0.35, 0.86, 1.0) if gem.value < 12 else Color(0.75, 0.42, 1.0)
 		draw_polygon(PackedVector2Array([pos + Vector2(0, -8), pos + Vector2(7, 0), pos + Vector2(0, 8), pos + Vector2(-7, 0)]), PackedColorArray([Color.WHITE, color, color.darkened(0.1), color]))
@@ -470,6 +518,7 @@ func _draw_projectiles() -> void:
 	for projectile in state.projectiles:
 		if not _is_world_visible(projectile.position, maxf(projectile.radius, projectile.splash_radius)):
 			continue
+		_phase6_metric("dynamic_projectile_draws")
 		var pos = world_to_screen(projectile.position)
 		var effect: Dictionary = state.weapon_effect(projectile.kind)
 		var color = _effect_color(effect, Color(1.0, 0.88, 0.38))
@@ -500,6 +549,7 @@ func _draw_enemy_projectiles() -> void:
 	for shot in state.enemy_projectiles:
 		if not _is_world_visible(shot.get("position", Vector2.ZERO), float(shot.get("radius", 7.0)) + 10.0):
 			continue
+		_phase6_metric("dynamic_projectile_draws")
 		var pos = world_to_screen(shot.get("position", Vector2.ZERO))
 		var radius = float(shot.get("radius", 7.0))
 		var color = Color(1.0, 0.25, 0.34)
@@ -724,9 +774,11 @@ func _navigation_indicator_targets() -> Array:
 	return objective_indicator_system.targets_for_state(state, int(state.ui_layout_defs.get("indicator_max_count", 3)))
 
 func _draw_minimap() -> void:
+	_phase6_metric("minimap_draw_calls")
 	if state.elapsed_seconds - last_minimap_update_time >= minimap_update_interval:
 		last_minimap_update_time = state.elapsed_seconds
 		minimap_update_count += 1
+		_phase6_metric("minimap_cadence_updates")
 	var rect := minimap_rect
 	if rect.size == Vector2.ZERO:
 		var map_size = float(state.ui_layout_defs.get("minimap_size", 144.0))
@@ -737,6 +789,7 @@ func _draw_minimap() -> void:
 	_draw_minimap_content(rect, map_expanded)
 
 func _draw_minimap_content(rect: Rect2, show_legend: bool) -> void:
+	_phase6_metric("minimap_content_draws")
 	draw_rect(rect, Color(0.02, 0.03, 0.05, minimap_opacity), true)
 	draw_rect(rect, Color(0.42, 0.82, 1.0, 0.88), false, 3.0 if show_legend else 2.0)
 	var scale = Vector2(rect.size.x / state.field_size.x, rect.size.y / state.field_size.y)
@@ -889,3 +942,7 @@ func _draw_biome_void(camera: Vector2, accent: Color) -> void:
 	for i in range(12):
 		var p = Vector2(fmod(float(i * 421) - camera.x * 0.11, size.x), fmod(float(i * 193) - camera.y * 0.11, size.y))
 		draw_arc(p, 28.0 + float(i % 4) * 8.0, 0.0, TAU, 32, Color(accent.r, accent.g, accent.b, 0.16), 2.0)
+
+func _phase6_metric(name: String, amount: int = 1) -> void:
+	if phase6_metrics != null:
+		phase6_metrics.add(name, amount)

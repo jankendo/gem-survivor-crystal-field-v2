@@ -247,6 +247,10 @@ func _initialize() -> void:
 		,"res://tests/test_phase5_spawn_curve_parity.gd"
 		,"res://tests/test_phase5_enemy_count_parity.gd"
 		,"res://tests/test_phase5_environment_readability.gd"
+		,"res://tests/test_phase6_renderer_contract.gd"
+		,"res://tests/test_phase6_ui_dirty_refresh_contract.gd"
+		,"res://tests/test_phase6_arena_cache_contract.gd"
+		,"res://tests/test_phase6_release_telemetry_contract.gd"
 	]
 	for suite_path in suites:
 		print("Running ", suite_path)

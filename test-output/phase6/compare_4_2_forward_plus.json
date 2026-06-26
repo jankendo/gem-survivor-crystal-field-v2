@@ -1,0 +1,77 @@
+{
+	"alive": 13,
+	"average_fps": 60,
+	"benchmark_seed": 60606,
+	"boss_spawn": 0,
+	"commit_sha": "e8875dc04bee1f0d6e8fb27a97f7d6ecebe6b498",
+	"duration_seconds": 59.9999999999979,
+	"enemy_spawn": 212,
+	"frame_time_p50": 4.528,
+	"frame_time_p95": 8.33,
+	"frame_time_p99": 34.548,
+	"gems_collected": 1,
+	"godot_version": {
+		"build": "official",
+		"hash": "46dc277917a93cbf601bbcf0d27d00f6feeec0d5",
+		"hex": 262656,
+		"major": 4,
+		"minor": 2,
+		"patch": 0,
+		"status": "stable",
+		"string": "4.2-stable (official)",
+		"year": 2023
+	},
+	"kills": 199,
+	"label": "Godot_4_2_Forward_Plus",
+	"long_frame_count_over_33ms": 64,
+	"max_effect_count": 4,
+	"max_enemy_count": 19,
+	"max_gem_count": 153,
+	"max_projectile_count": 15,
+	"metrics": {
+		"counters": {
+			"arena_draw_calls": 60,
+			"arena_queue_redraw_calls": 3600,
+			"dynamic_enemy_draws": 419,
+			"dynamic_gem_draws": 2591,
+			"dynamic_projectile_draws": 323,
+			"event_enemy_die": 199,
+			"event_enemy_spawn": 212,
+			"event_gem_collect": 1,
+			"label_text_attempts": 37583,
+			"label_text_updates": 1569,
+			"minimap_cadence_updates": 60,
+			"minimap_content_draws": 60,
+			"minimap_draw_calls": 60,
+			"process_calls": 3600,
+			"progress_value_attempts": 7200,
+			"progress_value_updates": 2,
+			"refresh_calls": 3600,
+			"static_terrain_rebuilds": 60,
+			"static_tile_draw_submissions": 30622
+		},
+		"enabled": true,
+		"gauges": {
+			"ios_label_update_count": 1580,
+			"ios_ui_rebuild_count": 0,
+			"max_effect_count": 4,
+			"max_enemy_count": 19,
+			"max_gem_count": 153,
+			"max_projectile_count": 15,
+			"ui_dirty_update_counts": {
+				"equipment": 226,
+				"goal": 2612,
+				"notifications": 279
+			}
+		}
+	},
+	"ok": true,
+	"project_features": [
+		"4.2",
+		"Forward Plus"
+	],
+	"project_rendering_method": "forward_plus",
+	"runtime_rendering_driver": "",
+	"runtime_rendering_method": "",
+	"sample_count": 60
+}

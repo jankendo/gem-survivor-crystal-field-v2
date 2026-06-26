@@ -1,0 +1,21 @@
+# Phase 6 Benchmark
+
+- label: Godot 4.2 Forward+ baseline
+- commit_sha: e8875dc04bee1f0d6e8fb27a97f7d6ecebe6b498
+- project_rendering_method: forward_plus
+- runtime_rendering_method: 
+- runtime_rendering_driver: 
+- benchmark_seed: 60606
+- average_fps: 60
+- frame_time_p50: 4.493
+- frame_time_p95: 5.753
+- frame_time_p99: 32.854
+- long_frame_count_over_33ms: 30
+- enemy_spawn: 212
+- boss_spawn: 0
+- alive: 13
+- kills: 199
+- max_enemy_count: 19
+- max_projectile_count: 15
+- max_gem_count: 153
+- max_effect_count: 4

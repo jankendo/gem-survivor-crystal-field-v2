@@ -60,6 +60,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/test_runner.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/test_phase6_runner.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_phase6_renderer_compare.gd -- --stem=res://test-output/phase6/ci_selected_renderer --label="CI selected renderer"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/inspect_ios_layout.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $godot --headless --path . --script res://tests/auto_play_60sec.gd
@@ -230,12 +234,16 @@ jobs:
           Pop-Location
           if (-not (Test-Path "builds/ChronoMergeTactics-Windows.zip")) { throw "Windows archive was not created." }
           if ((Get-Item "builds/ChronoMergeTactics-Windows.zip").Length -lt 1MB) { throw "Windows archive is unexpectedly small." }
+          Get-FileHash $exePath -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  windows/$($_.Path | Split-Path -Leaf)" } | Set-Content builds/SHA256SUMS-Windows.txt
+          Get-FileHash "builds/ChronoMergeTactics-Windows.zip" -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $($_.Path | Split-Path -Leaf)" } | Add-Content builds/SHA256SUMS-Windows.txt
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: ChronoMergeTactics-Windows
-          path: builds/ChronoMergeTactics-Windows.zip
+          path: |
+            builds/ChronoMergeTactics-Windows.zip
+            builds/SHA256SUMS-Windows.txt
           if-no-files-found: error
 
       - name: Upload Phase 3 item placement QA
@@ -478,6 +486,19 @@ jobs:
             test-output/phase5/*.png
           if-no-files-found: warn
 
+      - name: Upload Phase 6 renderer and frame architecture QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Phase6-Renderer-Frame-QA
+          path: |
+            test-output/phase6/*.csv
+            test-output/phase6/*.json
+            test-output/phase6/*.md
+            test-output/phase5/enemy_parity.*
+            test-output/phase5/environment_contrast.*
+            test-output/phase5/collectible_confusion.*
+          if-no-files-found: error
+
   ios-unsigned-build:
     runs-on: macos-15
     timeout-minutes: 60
@@ -557,7 +578,19 @@ jobs:
             zip -qry GemSurvivor-unsigned.ipa Payload
           )
           test -s builds/ios/GemSurvivor-unsigned.ipa
-          unzip -l builds/ios/GemSurvivor-unsigned.ipa | head -80
+          unzip -t builds/ios/GemSurvivor-unsigned.ipa
+          VERIFY_DIR="$(mktemp -d)"
+          unzip -q builds/ios/GemSurvivor-unsigned.ipa -d "${VERIFY_DIR}"
+          APP_DIR="$(find "${VERIFY_DIR}/Payload" -maxdepth 1 -type d -name '*.app' -print -quit)"
+          test -n "${APP_DIR}"
+          test -f "${APP_DIR}/Info.plist"
+          plutil -lint "${APP_DIR}/Info.plist"
+          BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${APP_DIR}/Info.plist")"
+          test "${BUNDLE_ID}" = "com.jankendo14.gemsurvivor"
+          EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "${APP_DIR}/Info.plist")"
+          test -x "${APP_DIR}/${EXECUTABLE}"
+          shasum -a 256 builds/ios/GemSurvivor-unsigned.ipa > builds/ios/SHA256SUMS-iOS.txt
+          rm -rf "${VERIFY_DIR}"
           echo "This IPA is unsigned. It cannot be installed directly on a normal iPhone."
           echo "Use AltStore, Sideloadly, or your own Apple signing flow."
 
@@ -567,6 +600,7 @@ jobs:
           name: GemSurvivor-iOS-unsigned-IPA
           path: |
             builds/ios/GemSurvivor-unsigned.ipa
+            builds/ios/SHA256SUMS-iOS.txt
             README.md
             IOS_UNSIGNED_README.md
           if-no-files-found: error

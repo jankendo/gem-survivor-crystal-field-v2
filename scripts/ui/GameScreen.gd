@@ -62,6 +62,7 @@ const V2FeedbackDirectorScript = preload("res://scripts/systems/V2FeedbackDirect
 const V2HudPresenterScript = preload("res://scripts/systems/V2HudPresenter.gd")
 const V2ThemeProviderScript = preload("res://scripts/ui/v2/V2ThemeProvider.gd")
 const ArenaViewScript = preload("res://scripts/ui/ArenaView.gd")
+const Phase6MetricsSystemScript = preload("res://scripts/performance/Phase6MetricsSystem.gd")
 const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.gd")
 const ConfirmDialogScript = preload("res://scripts/ui/components/ConfirmDialog.gd")
 const VirtualJoystickScript = preload("res://scripts/ui/components/VirtualJoystick.gd")
@@ -128,6 +129,7 @@ var v2_momentum_system
 var v2_momentum_telemetry
 var v2_feedback_director
 var v2_hud_presenter
+var phase6_metrics = null
 var v2_theme
 var arena_view
 var audio_manager: AudioManager
@@ -180,6 +182,10 @@ var pause_tab_index := 0
 var pause_tabs := ["ステータス", "武器", "パッシブ", "進化条件", "ビルド相性", "フィールドヘルプ", "契約/過充電", "設定", "ログ"]
 var pause_actions_signature := ""
 var speed_active := false
+var phase6_full_refresh_elapsed := 999.0
+var phase6_touch_refresh_elapsed := 999.0
+var phase6_critical_refresh_elapsed := 999.0
+var phase6_last_critical_signature := ""
 var touch_root: Control
 var virtual_joystick
 var touch_direction := Vector2.ZERO
@@ -284,13 +290,18 @@ func _ready() -> void:
 	var touch_debug_enabled: bool = bool(settings.get("touch_hit_test_debug", false)) and debug_overlay_system.can_create_overlay_node()
 	add_child(touch_hit_test_debug_system)
 	touch_hit_test_debug_system.configure(self, touch_debug_enabled, not input_mode.is_ios_touch())
-	ios_performance_log_system.configure(input_mode.is_ios_touch())
-	ios_energy_log_system.configure(input_mode.is_ios_touch())
+	var qa_telemetry_enabled := bool(settings.get("qa_telemetry_enabled", false)) or bool(settings.get("phase6_benchmark", false))
+	ios_performance_log_system.configure(input_mode.is_ios_touch() and qa_telemetry_enabled)
+	ios_energy_log_system.configure(input_mode.is_ios_touch() and qa_telemetry_enabled)
 	ios_frame_pacing_system.apply(ios_energy_optimizer.budget, input_mode.is_ios_touch())
 	ui_dirty_flag_system.configure({
 		"equipment": float(ios_energy_optimizer.budget.get("equipment_hud_update_interval", 0.25)),
 		"notifications": float(ios_energy_optimizer.budget.get("notification_update_interval", 0.20)),
-		"goal": float(ios_energy_optimizer.budget.get("goal_update_interval", 0.25))
+		"goal": float(ios_energy_optimizer.budget.get("goal_update_interval", 0.25)),
+		"critical_hud": 1.0 / 30.0,
+		"combat_hud": 0.10,
+		"touch_controls": 0.10,
+		"debug_overlay": 0.25
 	})
 	performance_profile_system.apply_to_state(state, settings)
 	runtime_ui_limits = performance_profile_system.ui_limits(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
@@ -325,6 +336,7 @@ func _exit_tree() -> void:
 		ios_frame_pacing_system.restore()
 
 func _process(delta: float) -> void:
+	_phase6_metric("process_calls")
 	ui_dirty_flag_system.tick(delta)
 	ios_energy_optimizer.tick(delta)
 	ios_energy_optimizer.haptic_count = touch_control_system.haptic_count
@@ -402,7 +414,7 @@ func _process(delta: float) -> void:
 	_handle_events(events)
 	if state.game_over and not pending_finish:
 		_finish_game(events)
-	_refresh()
+	_refresh_runtime_frame(sim_delta)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.ctrl_pressed and event.keycode == KEY_F12:
@@ -486,6 +498,8 @@ func _build_ui() -> void:
 	arena_view.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(arena_view)
 	arena_view.bind_state(state)
+	if phase6_metrics != null:
+		arena_view.set_phase6_metrics(phase6_metrics)
 	if input_mode.is_touch_mode():
 		arena_view.configure_mobile(mobile_layout)
 		arena_view.minimap_tapped.connect(_toggle_expanded_map)
@@ -783,6 +797,17 @@ func _handle_events(events: Array) -> void:
 		v2_feedback_director.ingest(event, state.elapsed_seconds)
 		if String(event.get("type", "")) in ["v2_momentum", "v2_momentum_tier_up", "v2_momentum_ending"]:
 			v2_momentum_telemetry.record(state, String(event.get("trigger_type", "")))
+		match String(event.get("type", "")):
+			"enemy_spawn":
+				_phase6_metric("event_enemy_spawn")
+			"boss_spawn":
+				_phase6_metric("event_boss_spawn")
+			"enemy_die":
+				_phase6_metric("event_enemy_die")
+			"gem_collect":
+				_phase6_metric("event_gem_collect")
+			"chest_open":
+				_phase6_metric("event_chest_open")
 		if notification_log_system.revision != notification_revision:
 			ios_energy_optimizer.mark_notification()
 		boss_alert_system.ingest(event)
@@ -947,13 +972,157 @@ func _handle_events(events: Array) -> void:
 func _play_sfx(name: String) -> void:
 	return
 
+func _refresh_runtime_frame(delta: float) -> void:
+	phase6_critical_refresh_elapsed += delta
+	var critical_signature := _critical_hud_signature()
+	if critical_signature != phase6_last_critical_signature or phase6_critical_refresh_elapsed >= 1.0 / 30.0:
+		phase6_last_critical_signature = critical_signature
+		phase6_critical_refresh_elapsed = 0.0
+		_refresh_critical_hud(critical_signature)
+	phase6_full_refresh_elapsed += delta
+	phase6_touch_refresh_elapsed += delta
+	if phase6_full_refresh_elapsed >= 0.25:
+		phase6_full_refresh_elapsed = 0.0
+		_refresh()
+		return
+	var touch_signature := _touch_controls_signature()
+	if ui_dirty_flag_system.should_update("touch_controls", touch_signature, 0.10):
+		_refresh_touch_controls()
+	_refresh_low_hp_overlay()
+	_queue_arena_redraw()
+
+func _critical_hud_signature() -> String:
+	var exp_percent = int(round(100.0 * clampf(float(state.exp) / float(maxi(state.exp_to_next, 1)), 0.0, 1.0)))
+	return "%d:%d:%d:%d:%d:%d:%s:%s:%s" % [
+		state.hp,
+		state.max_hp,
+		state.level,
+		exp_percent,
+		int(state.elapsed_seconds * 4.0),
+		state.kills,
+		str(state.character_evolution_available),
+		str(state.recall_drone_ready),
+		str(speed_active)
+	]
+
+func _refresh_critical_hud(critical_signature: String = "") -> void:
+	_phase6_metric("critical_refresh_calls")
+	var exp_percent = int(round(100.0 * clampf(float(state.exp) / float(maxi(state.exp_to_next, 1)), 0.0, 1.0)))
+	if critical_signature == "":
+		critical_signature = _critical_hud_signature()
+	if ui_dirty_flag_system.should_update("critical_hud", critical_signature, 1.0 / 30.0):
+		_set_label_text(hp_label, "HP %d / %d" % [maxi(state.hp, 0), state.max_hp])
+		var hp_changed: bool = hp_bar.max_value != state.max_hp or hp_bar.value != clampi(state.hp, 0, state.max_hp)
+		_phase6_metric("progress_value_attempts")
+		if hp_changed:
+			hp_bar.max_value = state.max_hp
+			hp_bar.value = clampi(state.hp, 0, state.max_hp)
+			_phase6_metric("progress_value_updates")
+			_update_hp_bar_style()
+		var hud_text := "Lv %d　EXP %d%%　時間 %s　撃破 %s" % [
+			state.level,
+			exp_percent,
+			JaText.format_time(state.elapsed_seconds),
+			JaText.format_int(state.kills)
+		]
+		if input_mode.is_touch_mode():
+			hud_text += "　武器 %s　パッシブ %s" % [state.equipment_count_label("weapon"), state.equipment_count_label("passive")]
+		if not is_equal_approx(state.debug_exp_multiplier, 1.0):
+			hud_text += "　テストEXP：%.1fx" % state.debug_exp_multiplier
+		if int(state.passives.get("resonance_magnet_core", 0)) > 0 and state.resonance_magnet_timer > 0.0:
+			hud_text += "　共鳴 %.0fs" % state.resonance_magnet_timer
+		if state.character_evolution_available:
+			hud_text += "　キャラ進化可"
+		hud_text += v2_hud_presenter.top_hud_suffix(state)
+		_set_label_text(hud_label, hud_text)
+		_phase6_metric("progress_value_attempts")
+		if exp_bar.value != exp_percent:
+			exp_bar.value = exp_percent
+			_phase6_metric("progress_value_updates")
+		_set_label_text(speed_label, speed_hold_system.display_text(speed_active))
+	var combat_signature := "%d:%d:%d:%d:%d:%d:%d:%s:%s" % [
+		state.pickup_combo_count,
+		state.max_combo,
+		int(state.gem_fever_timer * 10.0),
+		int(state.crystal_overdrive_timer * 10.0),
+		int(state.recall_drone_meter),
+		int(state.melee_rush_timer * 4.0),
+		state.melee_rush_level,
+		str(state.active_synergies),
+		state.current_terrain_name
+	]
+	if ui_dirty_flag_system.should_update("combat_hud", combat_signature, 0.10):
+		_set_label_text(combo_label, _combo_hud_text())
+		_refresh_v2_phase2_hud()
+	var boss_snapshot = boss_alert_system.active_boss_snapshot(state)
+	var boss_signature := "%s:%s:%s:%s" % [
+		str(boss_snapshot.get("name", "")),
+		str(boss_snapshot.get("hp", 0)),
+		str(boss_snapshot.get("max_hp", 0)),
+		str(boss_alert_system.warning_timer > 0.0)
+	]
+	if ui_dirty_flag_system.should_update("boss_hud", boss_signature, 1.0 / 30.0):
+		_set_label_text(boss_alert_label, boss_alert_system.warning_text if boss_alert_system.warning_timer > 0.0 else "")
+		boss_hp_label.visible = not boss_snapshot.is_empty()
+		boss_hp_bar.visible = not boss_snapshot.is_empty()
+		if not boss_snapshot.is_empty():
+			_set_label_text(boss_hp_label, "%s  %d / %d" % [String(boss_snapshot.get("name", "ボス")), int(boss_snapshot.get("hp", 0)), int(boss_snapshot.get("max_hp", 1))])
+			_phase6_metric("progress_value_attempts")
+			var boss_bar_changed := boss_hp_bar.max_value != int(boss_snapshot.get("max_hp", 1)) or boss_hp_bar.value != int(boss_snapshot.get("hp", 0))
+			boss_hp_bar.max_value = int(boss_snapshot.get("max_hp", 1))
+			boss_hp_bar.value = int(boss_snapshot.get("hp", 0))
+			if boss_bar_changed:
+				_phase6_metric("progress_value_updates")
+
+func _combo_hud_text() -> String:
+	var combo_text := ""
+	if state.pickup_combo_count > 0:
+		combo_text = "吸収コンボ %d　最大 %d　現在地：%s" % [state.pickup_combo_count, state.max_combo, state.current_terrain_name]
+	else:
+		combo_text = "最大コンボ %d　現在地：%s" % [state.max_combo, state.current_terrain_name]
+	if state.gem_fever_timer > 0.0:
+		combo_text += "　FEVER %.1fs" % state.gem_fever_timer
+	if state.crystal_overdrive_timer > 0.0:
+		combo_text += "　OD %.1fs" % state.crystal_overdrive_timer
+	if state.recall_drone_ready:
+		combo_text += "　回収ドローン 使用可能" if input_mode.is_touch_mode() else "　回収ドローン 使用可能 [R]"
+	else:
+		var charge = int(round(100.0 * state.recall_drone_meter / float(state.balance_data.get("recall_drone_charge_seconds", 180.0))))
+		combo_text += "　ドローン %d%%" % clampi(charge, 0, 100)
+	if state.melee_rush_timer > 0.0:
+		combo_text += "　近接ラッシュLv%d %.0fs" % [state.melee_rush_level, state.melee_rush_timer]
+	if not state.active_synergies.is_empty():
+		combo_text += "　%s" % state.active_synergy_label()
+	var build_focus: String = v2_hud_presenter.build_focus_text(state)
+	if build_focus != "":
+		combo_text += "　%s" % build_focus
+	var momentum_text: String = v2_hud_presenter.momentum_text(state)
+	if momentum_text != "":
+		combo_text += "　%s" % momentum_text
+	return combo_text
+
+func _touch_controls_signature() -> String:
+	return "%s:%s:%s:%s:%s:%s:%s:%s" % [
+		str(touch_control_system.should_show()),
+		str(state.paused),
+		str(map_expanded),
+		str(state.level_up_pending),
+		str(state.chest_pending),
+		str(state.recall_drone_ready),
+		str(not state.nearby_field_help.is_empty()),
+		str(speed_active)
+	]
+
 func _refresh() -> void:
+	_phase6_metric("refresh_calls")
 	var exp_percent = int(round(100.0 * clampf(float(state.exp) / float(maxi(state.exp_to_next, 1)), 0.0, 1.0)))
 	_set_label_text(hp_label, "HP %d / %d" % [maxi(state.hp, 0), state.max_hp])
 	var hp_changed: bool = hp_bar.max_value != state.max_hp or hp_bar.value != clampi(state.hp, 0, state.max_hp)
+	_phase6_metric("progress_value_attempts")
 	if hp_changed:
 		hp_bar.max_value = state.max_hp
 		hp_bar.value = clampi(state.hp, 0, state.max_hp)
+		_phase6_metric("progress_value_updates")
 		_update_hp_bar_style()
 	var hud_text := "Lv %d　EXP %d%%　時間 %s　撃破 %s" % [
 		state.level,
@@ -993,8 +1162,12 @@ func _refresh() -> void:
 	boss_hp_bar.visible = not boss_snapshot.is_empty()
 	if not boss_snapshot.is_empty():
 		_set_label_text(boss_hp_label, "%s  %d / %d" % [String(boss_snapshot.get("name", "ボス")), int(boss_snapshot.get("hp", 0)), int(boss_snapshot.get("max_hp", 1))])
+		_phase6_metric("progress_value_attempts")
+		var boss_bar_changed := boss_hp_bar.max_value != int(boss_snapshot.get("max_hp", 1)) or boss_hp_bar.value != int(boss_snapshot.get("hp", 0))
 		boss_hp_bar.max_value = int(boss_snapshot.get("max_hp", 1))
 		boss_hp_bar.value = int(boss_snapshot.get("hp", 0))
+		if boss_bar_changed:
+			_phase6_metric("progress_value_updates")
 	var combo_text := ""
 	if state.pickup_combo_count > 0:
 		combo_text = "吸収コンボ %d　最大 %d　現在地：%s" % [state.pickup_combo_count, state.max_combo, state.current_terrain_name]
@@ -1027,8 +1200,10 @@ func _refresh() -> void:
 		combo_text += "　%s" % momentum_text
 	_set_label_text(combo_label, combo_text)
 	_refresh_v2_phase2_hud()
+	_phase6_metric("progress_value_attempts")
 	if exp_bar.value != exp_percent:
 		exp_bar.value = exp_percent
+		_phase6_metric("progress_value_updates")
 	var goal_signature := "%s:%d:%d:%d" % [str(state.current_goals), int(state.player_position.x / 16.0), int(state.player_position.y / 16.0), int(state.elapsed_seconds * 4.0)]
 	if ui_dirty_flag_system.should_update("goal", goal_signature):
 		_refresh_goal_hud()
@@ -1054,7 +1229,7 @@ func _refresh() -> void:
 	else:
 		reward_popup.hide_popup()
 		last_reward_signature = ""
-	arena_view.queue_redraw()
+	_queue_arena_redraw()
 	_refresh_touch_controls()
 
 func _refresh_goal_hud() -> void:
@@ -1129,10 +1304,48 @@ func _feedback_color(accent: String) -> Color:
 			return v2_theme.color("crystal", Color(0.42, 0.92, 1.0))
 
 func _set_label_text(label: Label, value: String) -> void:
+	if label != null:
+		_phase6_metric("label_text_attempts")
+	var changed := false
 	if ios_energy_optimizer != null:
-		ios_energy_optimizer.set_label(label, value)
+		changed = ios_energy_optimizer.set_label(label, value)
 	elif label != null and label.text != value:
 		label.text = value
+		changed = true
+	if changed:
+		_phase6_metric("label_text_updates")
+
+func enable_phase6_metrics(metrics = null) -> void:
+	phase6_metrics = metrics if metrics != null else Phase6MetricsSystemScript.new()
+	if phase6_metrics.has_method("configure") and not bool(phase6_metrics.get("enabled")):
+		phase6_metrics.configure(true)
+	if arena_view != null and arena_view.has_method("set_phase6_metrics"):
+		arena_view.set_phase6_metrics(phase6_metrics)
+
+func phase6_metrics_snapshot() -> Dictionary:
+	if phase6_metrics == null:
+		return {}
+	if state != null:
+		phase6_metrics.max_value("max_enemy_count", state.enemies.size())
+		phase6_metrics.max_value("max_projectile_count", state.projectiles.size() + state.enemy_projectiles.size())
+		phase6_metrics.max_value("max_gem_count", state.gems.size())
+		phase6_metrics.max_value("max_effect_count", state.hit_flashes.size() + state.effect_lines.size() + state.floating_texts.size())
+	if ios_energy_optimizer != null:
+		phase6_metrics.set_value("ios_label_update_count", ios_energy_optimizer.label_update_count)
+		phase6_metrics.set_value("ios_ui_rebuild_count", ios_energy_optimizer.ui_rebuild_count)
+	if ui_dirty_flag_system != null:
+		phase6_metrics.set_value("ui_dirty_update_counts", ui_dirty_flag_system.update_counts.duplicate(true))
+	return phase6_metrics.snapshot()
+
+func _queue_arena_redraw() -> void:
+	if arena_view == null:
+		return
+	_phase6_metric("arena_queue_redraw_calls")
+	arena_view.queue_redraw()
+
+func _phase6_metric(name: String, amount: int = 1) -> void:
+	if phase6_metrics != null:
+		phase6_metrics.add(name, amount)
 
 func _refresh_field_help_hud() -> void:
 	if field_help_label == null:
