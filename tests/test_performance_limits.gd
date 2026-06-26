@@ -37,7 +37,7 @@ func test_spawner_respects_enemy_cap(t) -> void:
 	var state = SurvivorStateScript.new()
 	state.start_new_run(613)
 	state.balance_data["max_enemies"] = 12
-	state.elapsed_seconds = 1800.0
+	state.elapsed_seconds = 240.0
 	state.spawn_meter = 20.0
 	var events: Array = []
 	EnemySpawnerScript.new().process(state, 0.1, events)

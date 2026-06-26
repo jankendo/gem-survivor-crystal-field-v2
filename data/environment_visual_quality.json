@@ -5,33 +5,33 @@
     "ios_low": {
       "texture_enabled": true,
       "material_maps": false,
-      "decals_per_screen": 18,
+      "decals_per_screen": 14,
       "max_environment_lights": 0,
-      "tile_texture_alpha": 0.72,
+      "tile_texture_alpha": 0.62,
       "target_fps": 60
     },
     "low": {
       "texture_enabled": true,
       "material_maps": false,
-      "decals_per_screen": 24,
+      "decals_per_screen": 20,
       "max_environment_lights": 0,
-      "tile_texture_alpha": 0.78,
+      "tile_texture_alpha": 0.68,
       "target_fps": 60
     },
     "medium": {
       "texture_enabled": true,
       "material_maps": true,
-      "decals_per_screen": 38,
+      "decals_per_screen": 32,
       "max_environment_lights": 2,
-      "tile_texture_alpha": 0.86,
+      "tile_texture_alpha": 0.78,
       "target_fps": 60
     },
     "high": {
       "texture_enabled": true,
       "material_maps": true,
-      "decals_per_screen": 56,
+      "decals_per_screen": 44,
       "max_environment_lights": 4,
-      "tile_texture_alpha": 0.92,
+      "tile_texture_alpha": 0.84,
       "target_fps": 60
     }
   },
@@ -39,7 +39,7 @@
     "max_texture_size_px": 512,
     "max_single_environment_png_bytes": 900000,
     "max_visible_environment_tiles": 520,
-    "max_cpu_ms_for_environment_draw": 2.6,
-    "max_vram_estimate_mb": 96
+    "max_cpu_ms_for_environment_draw": 2.1,
+    "max_vram_estimate_mb": 88
   }
 }

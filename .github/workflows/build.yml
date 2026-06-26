@@ -110,6 +110,26 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/environment/generate_environment_report.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/environment/measure_environment_contrast.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/environment/audit_collectible_confusion.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/environment/audit_environment_readability.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/environment/generate_grayscale_contact_sheet.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/environment/generate_colorblind_contact_sheet.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_phase5_enemy_parity.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_phase5_all_biomes.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_phase5_visual_adaptation.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $godot --headless --path . --script res://tests/auto_play_phase5_ios_60sec.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/analyze_ios_performance.py test-output/phase5/ios_60sec.csv --output test-output/phase5/ios_60sec_report.md --baseline test-output/phase5/baseline_performance.csv
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/generate_ui_redesign_qa.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/generate_field_equipment_qa.py
@@ -176,13 +196,19 @@ jobs:
             "res://tests/auto_play_global_gem_collection_balance_20min.gd",
             "res://tests/auto_play_random_field_equipment_balance_20min.gd",
             "res://tests/auto_play_environment_windows_high_10min.gd",
-            "res://tests/auto_play_item_placement_environment_30min.gd"
+            "res://tests/auto_play_item_placement_environment_30min.gd",
+            "res://tests/auto_play_phase5_ios_10min.gd",
+            "res://tests/auto_play_phase5_density_30min.gd",
+            "res://tests/auto_play_phase5_density_45min.gd",
+            "res://tests/auto_play_phase5_density_60min.gd"
           )
           foreach ($script in $scripts) {
             & $godot --headless --path . --script $script
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
           python tools/analyze_ios_performance.py test-output/ios_performance_log.csv --output test-output/ios_performance_report.md
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/analyze_ios_performance.py test-output/phase5/density_60min.csv --output test-output/phase5/density_60min_report.md --baseline test-output/phase5/baseline_performance.csv
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Generate balance report
@@ -439,6 +465,17 @@ jobs:
             test-output/environment_ios_low_10min.json
             test-output/ios_title_navigation.md
             test-output/ios_title_navigation.json
+          if-no-files-found: warn
+
+      - name: Upload Phase 5 performance and readability QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Phase5-Performance-QA
+          path: |
+            test-output/phase5/*.csv
+            test-output/phase5/*.json
+            test-output/phase5/*.md
+            test-output/phase5/*.png
           if-no-files-found: warn
 
   ios-unsigned-build:

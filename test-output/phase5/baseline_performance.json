@@ -1,0 +1,20 @@
+{
+  "source": "Phase 4 baseline captured before Phase 5 edits",
+  "capture": "Windows Godot 4.2 headless synthetic iOS harness, 1 minute",
+  "limitations": [
+    "No real iOS device",
+    "No Metal System Trace",
+    "No thermal or battery telemetry"
+  ],
+  "samples": 12,
+  "duration_seconds": 56.1166666666667,
+  "avg_fps": 60.0,
+  "p95_frame_time_ms": 2.00870666666667,
+  "p99_frame_time_ms": 2.00870666666667,
+  "max_enemy_count": 124,
+  "max_gem_count": 66,
+  "max_projectile_count": 6,
+  "max_effect_count": 0,
+  "memory_estimate_start": 74375672,
+  "memory_estimate_end": 76273332
+}

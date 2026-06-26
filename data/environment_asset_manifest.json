@@ -1,20 +1,23 @@
 {
   "schema_version": 1,
-  "source_concept_path": "res://assets/v2/environment/generated/source/phase4_environment_master_concept.png",
-  "source_generation_path": "C:/Users/janke/.codex/generated_images/019ef2b2-15a4-7b60-bc36-67a441e2a33c/ig_08bca61624134a22016a3c791958748191b21227f9823053da.png",
+  "source_concept_path": "res://assets/v2/environment/generated/source/phase5_environment_readability_concept.png",
+  "source_generation_path": "C:/Users/janke/.codex/generated_images/019ef2b2-15a4-7b60-bc36-67a441e2a33c/ig_0019202507a009ad016a3dfd86c43c8191badb18bf2f2d813c.png",
   "generation_record": {
-    "generation_date": "2026-06-25",
-    "source_model_or_tool": "built_in_image_generation_plus_project_local_generation_pipeline",
+    "generation_date": "2026-06-26",
+    "source_model_or_tool": "built_in_image_generation_plus_phase5_local_readability_pipeline",
     "human_review_status": "needs_review",
     "legal_review_status": "project_original_no_external_download",
     "approval_state": "generated_unreviewed",
-    "prompt_document": "res://docs/asset_generation/v2_environment_batch_01.md"
+    "prompt_document": "res://docs/asset_generation/v2_environment_readability_batch.md"
   },
   "visibility_contract": {
     "pickup_contrast_min": 0.42,
     "enemy_contrast_min": 0.38,
+    "floor_wall_luma_delta_min": 0.16,
+    "floor_void_luma_delta_min": 0.14,
+    "pickup_floor_luma_delta_min": 0.18,
     "ui_overlay_dimming_allowed": true,
-    "max_albedo_average_luma": 150
+    "max_albedo_average_luma": 145
   },
   "collision_visual_contract": {
     "floor": {
@@ -59,11 +62,11 @@
           "seamless": true,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "a5b35cd74a80c304056523bab5fb64953b3cdb7e95d582aefcf3bcccfd792170",
+          "checksum": "c01771b4055ffa43c358ca916e720247cd6a57f9d47041986d92735ac0fc3295",
           "fallback_color": [
-            16,
-            37,
-            58
+            17,
+            44,
+            71
           ]
         },
         "wall": {
@@ -79,11 +82,11 @@
           "seamless": true,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "d022d01dc63fa38d40c6afb1c64da4b3f5760e901f2db8340c175f6920ab3e0f",
+          "checksum": "5d1c88b148be790759b30a6a01a105daab346a9bec164dc2bef11b86585589f1",
           "fallback_color": [
-            6,
-            17,
-            31
+            40,
+            109,
+            171
           ]
         },
         "void": {
@@ -99,11 +102,11 @@
           "seamless": true,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "923a3b1cdff159403fc2b0ff5e37753d3718ecb58a99af2a55bce9c9b4981a3e",
+          "checksum": "945ce8354e4bb0c6fbe4ad6ce72d65828c23298ca8a0afa4d431c52a945094c7",
           "fallback_color": [
-            6,
-            17,
-            31
+            1,
+            3,
+            5
           ]
         },
         "decal": {
@@ -119,11 +122,11 @@
           "seamless": false,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "dfb0d7055cea7a95d7768c1bdc78acfd18d3b6dbe4f7964d3433ce992d05f76e",
+          "checksum": "c90b5319cf8aa0085e63c5a92111f0e78938924d323b6bb4bebb112499eca7d2",
           "fallback_color": [
-            6,
-            17,
-            31
+            1,
+            2,
+            3
           ]
         }
       }
@@ -152,11 +155,11 @@
           "seamless": true,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "3787f032638dc4592562142a340243770c4ec51a9b071e02edcdd43fac36871b",
+          "checksum": "8367222d287936eceb18a2b50d46c2aa4d04e708caf96882b0136fe424abf6c2",
           "fallback_color": [
+            48,
             33,
-            24,
-            57
+            89
           ]
         },
         "wall": {
@@ -172,11 +175,11 @@
           "seamless": true,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "7689e8a04ac6a8a7e829715297d895f315bf1e257f23bf95ee44ed30f47935a8",
+          "checksum": "912986cea40fddd607c859bb88abe9fdcce3a9771f3e0429b0173b02c88977d0",
           "fallback_color": [
-            11,
-            7,
-            24
+            126,
+            78,
+            219
           ]
         },
         "void": {
@@ -192,11 +195,11 @@
           "seamless": true,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "736350f8663c3413cb5e668b71727d3c0938662715434fcded57c78e2a4f8c8a",
+          "checksum": "9f864ccf213c867917cff9b4c44dc419add90c21580ebc9d015441ca7d23e956",
           "fallback_color": [
-            11,
-            7,
-            24
+            4,
+            2,
+            6
           ]
         },
         "decal": {
@@ -212,11 +215,11 @@
           "seamless": false,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "435738d841b5e0eb82882c07a6301b93445502653585bea38159f4c200be9678",
+          "checksum": "d5b87cea2c65f99447532e961cdee646dc41d79dde771cb4edab89c10c9ba3be",
           "fallback_color": [
-            11,
-            7,
-            24
+            3,
+            2,
+            5
           ]
         }
       }
@@ -245,11 +248,11 @@
           "seamless": true,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "91a50e1f02fb05b0510a71317222447625a8269b20198b79da9b500bb54b8e19",
+          "checksum": "c64f0d24123a8ce4d47f607c20d4ce4bd724097511ff6ecb81dcdea99861ecd7",
           "fallback_color": [
-            42,
-            23,
-            22
+            64,
+            33,
+            34
           ]
         },
         "wall": {
@@ -265,11 +268,11 @@
           "seamless": true,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "2724e9d7147e17344cc56d07ae48170ed5dca65eb333e8303e02cb854b43d834",
+          "checksum": "98e8da5714f55830abbb55eff4cc84bdc5aecd2816e2cb3179c63f4fd4e10bf1",
           "fallback_color": [
-            16,
-            8,
-            9
+            174,
+            77,
+            76
           ]
         },
         "void": {
@@ -285,11 +288,11 @@
           "seamless": true,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "a2b29b9d799c5b17b0a226d713769ebce537e309bd5bd65ff821fa2164db2440",
+          "checksum": "38dd1454c6a87619e6f94abb0e4e14cb8d0e10660cc6731be9fda246a708d995",
           "fallback_color": [
-            16,
-            8,
-            9
+            5,
+            2,
+            3
           ]
         },
         "decal": {
@@ -305,11 +308,11 @@
           "seamless": false,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "5bb1288537f617f2eba1a3362663d8c286f09a501a8ea02971dec970f630cda6",
+          "checksum": "a8f52152eaa6d6e3dbdb16894038df31c0a368f20df3b4cab4ace5112cbc813e",
           "fallback_color": [
-            16,
-            8,
-            9
+            5,
+            2,
+            2
           ]
         }
       }
@@ -338,11 +341,11 @@
           "seamless": true,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "bb3c78616621b6a31e702ba9b262026759beef99c57e551965233f8b96f6f837",
+          "checksum": "b3e37faaa337fe03ebfb3fa789d63a0ff2157679249996720bb6fa81e37669fd",
           "fallback_color": [
-            18,
-            18,
-            38
+            43,
+            34,
+            92
           ]
         },
         "wall": {
@@ -358,11 +361,11 @@
           "seamless": true,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "5b4d11410f7fa424dadfa81fa3a3b8c4a63b7adb196cc0e1c690c999308fc4a4",
+          "checksum": "a7dd3f1408e469b80f7bac49067fec505808800da68fbb22d17058228c1d2380",
           "fallback_color": [
-            5,
-            3,
-            12
+            127,
+            77,
+            225
           ]
         },
         "void": {
@@ -378,11 +381,11 @@
           "seamless": true,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "fb09f7960d394f07b566e76935cafac4e38369fa1246f54ad97ff78f155b2c3a",
+          "checksum": "4356a4553f9579259de7e4aeef9bf056533b7ce2b24be0678ddbfce57fce37f5",
           "fallback_color": [
-            5,
-            3,
-            12
+            4,
+            2,
+            7
           ]
         },
         "decal": {
@@ -398,11 +401,11 @@
           "seamless": false,
           "replacement_status": "integrated",
           "human_review_status": "needs_review",
-          "checksum": "9d6f8fb7df5a1dcca935d54ac55a37a8586f3390cf4838c62570f404d70837be",
+          "checksum": "ba2e14029fe0cb89e352ce360326026cc17848f0350f285d97a55341d3f75957",
           "fallback_color": [
-            5,
-            3,
-            12
+            4,
+            1,
+            5
           ]
         }
       }

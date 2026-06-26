@@ -1,0 +1,369 @@
+{
+  "thresholds": {
+    "luma_delta": 0.18,
+    "rgb_distance": 0.2
+  },
+  "rows": [
+    {
+      "biome": "star_plain",
+      "pickup": "weapon_core",
+      "floor_luma_delta": 0.667,
+      "floor_rgb_distance": 0.634,
+      "decal_luma_delta": 0.813,
+      "decal_rgb_distance": 0.814,
+      "pass": true
+    },
+    {
+      "biome": "star_plain",
+      "pickup": "passive_core",
+      "floor_luma_delta": 0.722,
+      "floor_rgb_distance": 0.592,
+      "decal_luma_delta": 0.869,
+      "decal_rgb_distance": 0.753,
+      "pass": true
+    },
+    {
+      "biome": "star_plain",
+      "pickup": "evolution_core",
+      "floor_luma_delta": 0.743,
+      "floor_rgb_distance": 0.691,
+      "decal_luma_delta": 0.889,
+      "decal_rgb_distance": 0.803,
+      "pass": true
+    },
+    {
+      "biome": "star_plain",
+      "pickup": "overclock_core",
+      "floor_luma_delta": 0.465,
+      "floor_rgb_distance": 0.585,
+      "decal_luma_delta": 0.611,
+      "decal_rgb_distance": 0.661,
+      "pass": true
+    },
+    {
+      "biome": "star_plain",
+      "pickup": "cursed_relic",
+      "floor_luma_delta": 0.273,
+      "floor_rgb_distance": 0.645,
+      "decal_luma_delta": 0.419,
+      "decal_rgb_distance": 0.789,
+      "pass": true
+    },
+    {
+      "biome": "star_plain",
+      "pickup": "heal_ore",
+      "floor_luma_delta": 0.69,
+      "floor_rgb_distance": 0.538,
+      "decal_luma_delta": 0.836,
+      "decal_rgb_distance": 0.688,
+      "pass": true
+    },
+    {
+      "biome": "star_plain",
+      "pickup": "magnet_ore",
+      "floor_luma_delta": 0.688,
+      "floor_rgb_distance": 0.646,
+      "decal_luma_delta": 0.835,
+      "decal_rgb_distance": 0.825,
+      "pass": true
+    },
+    {
+      "biome": "star_plain",
+      "pickup": "crystal_cache",
+      "floor_luma_delta": 0.768,
+      "floor_rgb_distance": 0.735,
+      "decal_luma_delta": 0.914,
+      "decal_rgb_distance": 0.906,
+      "pass": true
+    },
+    {
+      "biome": "star_plain",
+      "pickup": "skip_charge",
+      "floor_luma_delta": 0.668,
+      "floor_rgb_distance": 0.688,
+      "decal_luma_delta": 0.814,
+      "decal_rgb_distance": 0.859,
+      "pass": true
+    },
+    {
+      "biome": "star_plain",
+      "pickup": "seal_charge",
+      "floor_luma_delta": 0.477,
+      "floor_rgb_distance": 0.585,
+      "decal_luma_delta": 0.623,
+      "decal_rgb_distance": 0.694,
+      "pass": true
+    },
+    {
+      "biome": "amethyst_forest",
+      "pickup": "weapon_core",
+      "floor_luma_delta": 0.647,
+      "floor_rgb_distance": 0.606,
+      "decal_luma_delta": 0.81,
+      "decal_rgb_distance": 0.809,
+      "pass": true
+    },
+    {
+      "biome": "amethyst_forest",
+      "pickup": "passive_core",
+      "floor_luma_delta": 0.702,
+      "floor_rgb_distance": 0.57,
+      "decal_luma_delta": 0.865,
+      "decal_rgb_distance": 0.749,
+      "pass": true
+    },
+    {
+      "biome": "amethyst_forest",
+      "pickup": "evolution_core",
+      "floor_luma_delta": 0.723,
+      "floor_rgb_distance": 0.654,
+      "decal_luma_delta": 0.886,
+      "decal_rgb_distance": 0.799,
+      "pass": true
+    },
+    {
+      "biome": "amethyst_forest",
+      "pickup": "overclock_core",
+      "floor_luma_delta": 0.445,
+      "floor_rgb_distance": 0.539,
+      "decal_luma_delta": 0.608,
+      "decal_rgb_distance": 0.656,
+      "pass": true
+    },
+    {
+      "biome": "amethyst_forest",
+      "pickup": "cursed_relic",
+      "floor_luma_delta": 0.253,
+      "floor_rgb_distance": 0.568,
+      "decal_luma_delta": 0.416,
+      "decal_rgb_distance": 0.781,
+      "pass": true
+    },
+    {
+      "biome": "amethyst_forest",
+      "pickup": "heal_ore",
+      "floor_luma_delta": 0.67,
+      "floor_rgb_distance": 0.529,
+      "decal_luma_delta": 0.832,
+      "decal_rgb_distance": 0.684,
+      "pass": true
+    },
+    {
+      "biome": "amethyst_forest",
+      "pickup": "magnet_ore",
+      "floor_luma_delta": 0.669,
+      "floor_rgb_distance": 0.619,
+      "decal_luma_delta": 0.831,
+      "decal_rgb_distance": 0.82,
+      "pass": true
+    },
+    {
+      "biome": "amethyst_forest",
+      "pickup": "crystal_cache",
+      "floor_luma_delta": 0.748,
+      "floor_rgb_distance": 0.692,
+      "decal_luma_delta": 0.911,
+      "decal_rgb_distance": 0.9,
+      "pass": true
+    },
+    {
+      "biome": "amethyst_forest",
+      "pickup": "skip_charge",
+      "floor_luma_delta": 0.648,
+      "floor_rgb_distance": 0.639,
+      "decal_luma_delta": 0.811,
+      "decal_rgb_distance": 0.853,
+      "pass": true
+    },
+    {
+      "biome": "amethyst_forest",
+      "pickup": "seal_charge",
+      "floor_luma_delta": 0.457,
+      "floor_rgb_distance": 0.526,
+      "decal_luma_delta": 0.62,
+      "decal_rgb_distance": 0.688,
+      "pass": true
+    },
+    {
+      "biome": "red_mine",
+      "pickup": "weapon_core",
+      "floor_luma_delta": 0.653,
+      "floor_rgb_distance": 0.685,
+      "decal_luma_delta": 0.81,
+      "decal_rgb_distance": 0.814,
+      "pass": true
+    },
+    {
+      "biome": "red_mine",
+      "pickup": "passive_core",
+      "floor_luma_delta": 0.708,
+      "floor_rgb_distance": 0.613,
+      "decal_luma_delta": 0.865,
+      "decal_rgb_distance": 0.752,
+      "pass": true
+    },
+    {
+      "biome": "red_mine",
+      "pickup": "evolution_core",
+      "floor_luma_delta": 0.728,
+      "floor_rgb_distance": 0.64,
+      "decal_luma_delta": 0.886,
+      "decal_rgb_distance": 0.798,
+      "pass": true
+    },
+    {
+      "biome": "red_mine",
+      "pickup": "overclock_core",
+      "floor_luma_delta": 0.451,
+      "floor_rgb_distance": 0.496,
+      "decal_luma_delta": 0.608,
+      "decal_rgb_distance": 0.654,
+      "pass": true
+    },
+    {
+      "biome": "red_mine",
+      "pickup": "cursed_relic",
+      "floor_luma_delta": 0.258,
+      "floor_rgb_distance": 0.635,
+      "decal_luma_delta": 0.416,
+      "decal_rgb_distance": 0.785,
+      "pass": true
+    },
+    {
+      "biome": "red_mine",
+      "pickup": "heal_ore",
+      "floor_luma_delta": 0.675,
+      "floor_rgb_distance": 0.558,
+      "decal_luma_delta": 0.833,
+      "decal_rgb_distance": 0.687,
+      "pass": true
+    },
+    {
+      "biome": "red_mine",
+      "pickup": "magnet_ore",
+      "floor_luma_delta": 0.674,
+      "floor_rgb_distance": 0.696,
+      "decal_luma_delta": 0.831,
+      "decal_rgb_distance": 0.825,
+      "pass": true
+    },
+    {
+      "biome": "red_mine",
+      "pickup": "crystal_cache",
+      "floor_luma_delta": 0.754,
+      "floor_rgb_distance": 0.753,
+      "decal_luma_delta": 0.911,
+      "decal_rgb_distance": 0.904,
+      "pass": true
+    },
+    {
+      "biome": "red_mine",
+      "pickup": "skip_charge",
+      "floor_luma_delta": 0.654,
+      "floor_rgb_distance": 0.704,
+      "decal_luma_delta": 0.811,
+      "decal_rgb_distance": 0.857,
+      "pass": true
+    },
+    {
+      "biome": "red_mine",
+      "pickup": "seal_charge",
+      "floor_luma_delta": 0.462,
+      "floor_rgb_distance": 0.52,
+      "decal_luma_delta": 0.62,
+      "decal_rgb_distance": 0.688,
+      "pass": true
+    },
+    {
+      "biome": "void_zone",
+      "pickup": "weapon_core",
+      "floor_luma_delta": 0.65,
+      "floor_rgb_distance": 0.603,
+      "decal_luma_delta": 0.811,
+      "decal_rgb_distance": 0.81,
+      "pass": true
+    },
+    {
+      "biome": "void_zone",
+      "pickup": "passive_core",
+      "floor_luma_delta": 0.705,
+      "floor_rgb_distance": 0.57,
+      "decal_luma_delta": 0.866,
+      "decal_rgb_distance": 0.75,
+      "pass": true
+    },
+    {
+      "biome": "void_zone",
+      "pickup": "evolution_core",
+      "floor_luma_delta": 0.725,
+      "floor_rgb_distance": 0.66,
+      "decal_luma_delta": 0.886,
+      "decal_rgb_distance": 0.799,
+      "pass": true
+    },
+    {
+      "biome": "void_zone",
+      "pickup": "overclock_core",
+      "floor_luma_delta": 0.448,
+      "floor_rgb_distance": 0.549,
+      "decal_luma_delta": 0.609,
+      "decal_rgb_distance": 0.656,
+      "pass": true
+    },
+    {
+      "biome": "void_zone",
+      "pickup": "cursed_relic",
+      "floor_luma_delta": 0.255,
+      "floor_rgb_distance": 0.571,
+      "decal_luma_delta": 0.416,
+      "decal_rgb_distance": 0.782,
+      "pass": true
+    },
+    {
+      "biome": "void_zone",
+      "pickup": "heal_ore",
+      "floor_luma_delta": 0.672,
+      "floor_rgb_distance": 0.529,
+      "decal_luma_delta": 0.833,
+      "decal_rgb_distance": 0.685,
+      "pass": true
+    },
+    {
+      "biome": "void_zone",
+      "pickup": "magnet_ore",
+      "floor_luma_delta": 0.671,
+      "floor_rgb_distance": 0.616,
+      "decal_luma_delta": 0.832,
+      "decal_rgb_distance": 0.822,
+      "pass": true
+    },
+    {
+      "biome": "void_zone",
+      "pickup": "crystal_cache",
+      "floor_luma_delta": 0.751,
+      "floor_rgb_distance": 0.693,
+      "decal_luma_delta": 0.912,
+      "decal_rgb_distance": 0.901,
+      "pass": true
+    },
+    {
+      "biome": "void_zone",
+      "pickup": "skip_charge",
+      "floor_luma_delta": 0.65,
+      "floor_rgb_distance": 0.64,
+      "decal_luma_delta": 0.811,
+      "decal_rgb_distance": 0.854,
+      "pass": true
+    },
+    {
+      "biome": "void_zone",
+      "pickup": "seal_charge",
+      "floor_luma_delta": 0.459,
+      "floor_rgb_distance": 0.535,
+      "decal_luma_delta": 0.62,
+      "decal_rgb_distance": 0.689,
+      "pass": true
+    }
+  ],
+  "errors": []
+}

@@ -18,3 +18,11 @@ Move the field from flat color blocks toward a crystal labyrinth while preservin
 - Wall/void visuals can look dangerous, but collision remains data-driven.
 - Decals have no collision and must not be used for reward placement logic.
 - Every generated image keeps `human_review_status` until approved.
+
+## Phase 5 direction
+
+- Floor: low-noise matte crystal, readable but subordinate to pickups and enemies.
+- Wall: brighter ridge silhouettes and sharper edge language than floor.
+- Void: much darker than floor with sparse glow only at readable boundaries.
+- Decal: low-alpha decoration that never resembles pickup cores.
+- Grayscale and colorblind contact sheets are required before approval.

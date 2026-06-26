@@ -2,6 +2,12 @@
 
 Godot 4.2 + GDScriptで作る、2D探索型サバイバー / bullet-heavenアクションゲームです。
 
+## Phase 5 Extreme iOS Performance / Combat Readability
+
+v2 Phase 5では、iOS向け最適化で敵数、スポーン量、難易度、ボス、報酬を削らない契約を追加しました。iOS低品質プロファイルでも`max_enemies`は標準と同じ600を維持し、ボス出現時に既存敵を削除しません。
+
+環境アートはPhase 5用に再生成し、床/壁/奈落の明度差とpickup混同を自動監査します。詳細は[docs/v2_phase5_extreme_ios_performance.md](docs/v2_phase5_extreme_ios_performance.md)と[docs/environment_readability_contract.md](docs/environment_readability_contract.md)を正本にします。
+
 ## Phase 4 iOS / Environment Upgrade
 
 v2 Phase 4では、iOS横画面タイトルのSafe Area内レスポンシブ化と、結晶迷宮らしい環境アート基盤を追加しています。タイトルはタッチ環境で縦スクロール可能な構造になり、環境テクスチャは`data/environment_asset_manifest.json`と`EnvironmentVisualSystem.gd`で解決します。
@@ -87,6 +93,9 @@ python tools/environment/validate_environment_assets.py
 python tools/environment/validate_tile_seams.py
 python tools/environment/audit_texture_imports.py
 python tools/environment/generate_environment_report.py
+python tools/environment/measure_environment_contrast.py
+python tools/environment/audit_collectible_confusion.py
+python tools/environment/audit_environment_readability.py
 ```
 
 ## ビルド
@@ -109,6 +118,9 @@ iOS unsigned IPA:
 ## v2正本文書
 
 - [docs/current_gameplay_spec.md](docs/current_gameplay_spec.md)
+- [docs/v2_phase5_extreme_ios_performance.md](docs/v2_phase5_extreme_ios_performance.md)
+- [docs/environment_readability_contract.md](docs/environment_readability_contract.md)
+- [docs/performance/enemy_simulation_architecture.md](docs/performance/enemy_simulation_architecture.md)
 - [docs/v2_phase4_ios_environment_upgrade.md](docs/v2_phase4_ios_environment_upgrade.md)
 - [docs/ios_responsive_title_spec.md](docs/ios_responsive_title_spec.md)
 - [docs/environment_art_direction.md](docs/environment_art_direction.md)

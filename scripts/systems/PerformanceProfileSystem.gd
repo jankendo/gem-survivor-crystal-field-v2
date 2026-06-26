@@ -1,8 +1,7 @@
 extends RefCounted
 class_name PerformanceProfileSystem
 
-const CAP_KEYS := [
-	"max_enemies",
+const VISUAL_CAP_KEYS := [
 	"max_gems",
 	"max_projectiles",
 	"max_enemy_projectiles",
@@ -19,7 +18,7 @@ func apply_to_state(state, settings: Dictionary, platform: String = OS.get_name(
 	var profile_id = "%s_%s" % [family, quality]
 	var profiles: Dictionary = state.balance_data.get("performance_profiles", {})
 	var profile: Dictionary = profiles.get(profile_id, profiles.get("%s_standard" % family, {}))
-	for key in CAP_KEYS:
+	for key in VISUAL_CAP_KEYS:
 		if profile.has(key):
 			state.balance_data[key] = int(profile[key])
 	state.performance_profile_id = profile_id

@@ -33,7 +33,7 @@ func test_ios_performance_profile(t) -> void:
 	state.start_new_run(4201)
 	var profile = PerformanceProfileSystemScript.new().apply_to_state(state, {"render_quality": "low"}, "iOS")
 	t.assert_eq(profile, "ios_low", "iOS low quality should select the mobile profile")
-	t.assert_eq(state.max_enemies(), 260, "iOS low profile should cap enemies")
+	t.assert_eq(state.max_enemies(), 600, "iOS low profile should not reduce enemy count")
 	t.assert_eq(state.max_projectiles(), 200, "iOS low profile should cap projectiles")
 
 func test_touch_settings_are_persisted(t) -> void:

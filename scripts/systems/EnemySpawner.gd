@@ -34,7 +34,9 @@ func process_enemies(state, delta: float, events: Array) -> void:
 	state.ios_pathing_update_count = 0
 	_ensure_position_recovery()
 	position_recovery.process(state, events)
-	for enemy in state.enemies.duplicate():
+	var enemy_count: int = state.enemies.size()
+	for enemy_index in range(enemy_count):
+		var enemy = state.enemies[enemy_index]
 		enemy.tick_cooldowns(delta)
 		enemy.action_timer = maxf(0.0, enemy.action_timer - delta)
 		enemy.charge_timer = maxf(0.0, enemy.charge_timer - delta)
@@ -154,8 +156,6 @@ func spawn_boss(state, boss_id: String, events: Array, scheduled_minute: int = -
 	var data = state.boss_defs.get(boss_id, {}).duplicate(true)
 	if data.is_empty():
 		return null
-	while state.enemies.size() >= state.max_enemies() and not state.enemies.is_empty():
-		state.release_runtime("enemy", state.enemies.pop_front())
 	data["boss"] = true
 	data["elite"] = true
 	data["guaranteed_chest"] = true
@@ -393,8 +393,6 @@ func _process_ruin_contract(state, events: Array) -> void:
 
 func _spawn_boss_minions(state, pos: Vector2, enemy_type: String, count: int, events: Array) -> void:
 	for i in range(count):
-		if state.enemies.size() >= state.max_enemies():
-			return
 		var angle = TAU * float(i) / float(maxi(1, count))
 		spawn_enemy(state, enemy_type, events, pos + Vector2(cos(angle), sin(angle)) * 120.0)
 

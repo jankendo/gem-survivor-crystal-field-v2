@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-06-26 Phase 5
+
+### Added
+
+* Phase 5 performance research, enemy simulation architecture, spatial hash, frame budget, threading, object pool, GDExtension, and iOS device QA docs.
+* Data-oriented enemy store, spatial query buffer, 2D spatial hash, enemy frame scheduler, combat frame budget scheduler, and deterministic simulation core.
+* Phase 5 enemy count, no culling, spawn parity, frame budget, and environment readability tests.
+* Environment readability audit tools and grayscale/colorblind contact sheets.
+* Phase 5 readability concept image and regenerated runtime environment textures.
+
+### Changed
+
+* iOS performance profiles no longer reduce `max_enemies`.
+* Boss spawn no longer deletes existing enemies when the enemy list is full.
+* Boss minions and split children are not skipped by enemy cap paths.
+* Weapon hot loops use spatial hash candidates for beams, auras, rune gates, black holes, explosions, and slow splash.
+* Environment visual quality profiles reduce texture dominance and decorative decal budgets.
+
+### Notes
+
+* Real iOS device, Metal System Trace, thermal, and battery validation remain external to this Windows environment.
+
 ## 2026-06-25 Phase 4
 
 ### Added

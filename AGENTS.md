@@ -43,6 +43,11 @@ v2では以下の3本柱を同時に満たす。
 * 環境アートは`data/environment_asset_manifest.json`と`data/environment_visual_quality.json`を正本にし、描画は`EnvironmentVisualSystem.gd`経由にする。
 * 環境デカールやテクスチャは衝突・pickup配置・到達可能性を変更しない。見た目とゲームロジックを分離する。
 * 画像生成した環境アートは`human_review_status`を残し、承認前にapproved扱いしない。
+* Phase 5以降、iOS性能対策として敵数、スポーン量、スポーンカーブ、敵HP、敵攻撃力、敵速度、ボス、エリート、報酬を下げない。
+* Phase 5以降、ボス出現、ボス召喚、分裂子生成で既存敵を削除しない。
+* 敵処理最適化は`SpatialHashGrid2D.gd`、`EnemyEntityStore.gd`、`EnemyFrameScheduler.gd`、`CombatFrameBudgetScheduler.gd`などの専用基盤へ寄せる。
+* WorkerThreadPoolを使う場合もSceneTree、Node、Resource、ゲーム結果に影響するRNGはメインスレッドに残す。
+* 環境視認性は`tools/environment/measure_environment_contrast.py`と`tools/environment/audit_collectible_confusion.py`で数値確認する。
 
 ## 禁止事項
 
@@ -52,6 +57,8 @@ v2では以下の3本柱を同時に満たす。
 * 視認性を落とす過剰演出を入れない。
 * Safe Area外へiOS/touchタイトルの操作ボタンを置かない。
 * 環境アートを理由にpickupや敵の視認性を下げない。
+* iOSだけ敵数、スポーン密度、敵性能、報酬を落とさない。
+* フレーム低下対策として敵を削除、統合、非生成、報酬なし間引きしない。
 * 複雑すぎる属性相性や説明困難な新システムを追加しない。
 * 既存のWindows操作、既存セーブ、既存テスト資産を軽視しない。
 
@@ -65,6 +72,9 @@ v2では以下の3本柱を同時に満たす。
 * アート方向性: `docs/v2_asset_direction.md`
 * アセットパイプライン: `docs/v2_asset_pipeline.md`
 * Phase 4 iOS/環境: `docs/v2_phase4_ios_environment_upgrade.md`
+* Phase 5 iOS性能/視認性: `docs/v2_phase5_extreme_ios_performance.md`
+* Phase 5敵処理: `docs/performance/enemy_simulation_architecture.md`
+* Phase 5環境視認性: `docs/environment_readability_contract.md`
 * iOSタイトル仕様: `docs/ios_responsive_title_spec.md`
 * 環境アート方向性: `docs/environment_art_direction.md`
 * 環境描画パイプライン: `docs/environment_rendering_pipeline.md`

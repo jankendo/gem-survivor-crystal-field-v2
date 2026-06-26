@@ -236,6 +236,17 @@ func _initialize() -> void:
 		,"res://tests/test_objective_risk_reward_display.gd"
 		,"res://tests/test_boss_telegraph_contract.gd"
 		,"res://tests/test_accessibility_visual_contract.gd"
+		,"res://tests/test_enemy_entity_store.gd"
+		,"res://tests/test_enemy_free_list.gd"
+		,"res://tests/test_enemy_simulation_determinism.gd"
+		,"res://tests/test_enemy_update_lod.gd"
+		,"res://tests/test_phase5_spatial_hash_grid.gd"
+		,"res://tests/test_phase5_frame_budget_scheduler.gd"
+		,"res://tests/test_phase5_no_enemy_culling.gd"
+		,"res://tests/test_phase5_no_difficulty_reduction.gd"
+		,"res://tests/test_phase5_spawn_curve_parity.gd"
+		,"res://tests/test_phase5_enemy_count_parity.gd"
+		,"res://tests/test_phase5_environment_readability.gd"
 	]
 	for suite_path in suites:
 		print("Running ", suite_path)

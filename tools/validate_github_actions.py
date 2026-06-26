@@ -44,6 +44,15 @@ def main() -> int:
         "phase4 environment report": "tools/environment/generate_environment_report.py" in text,
         "phase4 environment autoplay": "auto_play_environment_10min.gd" in text,
         "phase4 item placement environment autoplay": "auto_play_item_placement_environment_30min.gd" in text,
+        "phase5 contrast audit": "tools/environment/measure_environment_contrast.py" in text,
+        "phase5 collectible audit": "tools/environment/audit_collectible_confusion.py" in text,
+        "phase5 readability audit": "tools/environment/audit_environment_readability.py" in text,
+        "phase5 grayscale contact sheet": "tools/environment/generate_grayscale_contact_sheet.py" in text,
+        "phase5 colorblind contact sheet": "tools/environment/generate_colorblind_contact_sheet.py" in text,
+        "phase5 enemy parity autoplay": "auto_play_phase5_enemy_parity.gd" in text,
+        "phase5 iOS 60sec autoplay": "auto_play_phase5_ios_60sec.gd" in text,
+        "phase5 long density autoplay": "auto_play_phase5_density_60min.gd" in text,
+        "phase5 artifact": "Phase5-Performance-QA" in text,
     }
     failures = [name for name, passed in checks.items() if not passed]
     if failures:

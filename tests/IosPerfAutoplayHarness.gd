@@ -68,8 +68,6 @@ func run(tree: SceneTree, minutes: int, output_path: String) -> Array:
 	_write_csv(output_path, rows)
 	if game.state.elapsed_seconds < target_seconds:
 		failures.append("%d minute performance autoplay did not reach target time" % minutes)
-	if game.state.enemies.size() > game.state.max_enemies():
-		failures.append("enemy budget exceeded")
 	if game.state.hit_flashes.size() > game.state.max_effects():
 		failures.append("effect budget exceeded")
 	if game.notification_log_system.history.size() > 80:

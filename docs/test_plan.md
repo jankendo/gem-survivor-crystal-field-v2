@@ -46,6 +46,29 @@ python tools/environment/generate_environment_report.py
 .\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_ios_title_navigation.gd
 ```
 
+## Phase 5 targeted tests
+
+```powershell
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_enemy_entity_store.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_phase5_no_enemy_culling.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_phase5_no_difficulty_reduction.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_phase5_spawn_curve_parity.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_phase5_environment_readability.gd
+python tools/environment/measure_environment_contrast.py
+python tools/environment/audit_collectible_confusion.py
+python tools/environment/audit_environment_readability.py
+python tools/environment/generate_grayscale_contact_sheet.py
+python tools/environment/generate_colorblind_contact_sheet.py
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_enemy_parity.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_all_biomes.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_visual_adaptation.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_ios_60sec.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_ios_10min.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_density_30min.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_density_45min.gd
+.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_density_60min.gd
+```
+
 ## 長時間検証
 
 標準テスト全体やオートプレイは時間がかかる。タイムアウトする場合は、実行した範囲、成功した範囲、未完走の範囲を最終報告に明記する。

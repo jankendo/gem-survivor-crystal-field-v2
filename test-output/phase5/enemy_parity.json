@@ -1,0 +1,23 @@
+{
+	"alive_match": true,
+	"boss_spawn_match": true,
+	"desktop": {
+		"alive": 335,
+		"boss_spawn": 0,
+		"chests": 0,
+		"enemy_spawn": 335,
+		"gems": 0,
+		"kills": 0
+	},
+	"enemy_spawn_match": true,
+	"ios": {
+		"alive": 335,
+		"boss_spawn": 0,
+		"chests": 0,
+		"enemy_spawn": 335,
+		"gems": 0,
+		"kills": 0
+	},
+	"kill_match": true,
+	"reward_match": true
+}

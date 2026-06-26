@@ -13,7 +13,7 @@ var melee_rush_system = preload("res://scripts/systems/MeleeRushSystem.gd").new(
 var enemy_projectile_policy = preload("res://scripts/systems/EnemyProjectilePolicySystem.gd").new()
 var field_gimmick_system = preload("res://scripts/systems/FieldGimmickSystem.gd").new()
 var knockback_resolver = preload("res://scripts/systems/KnockbackResolver.gd").new()
-var enemy_grid = preload("res://scripts/systems/SpatialHashGrid.gd").new(160.0)
+var enemy_grid = preload("res://scripts/performance/SpatialHashGrid2D.gd").new(160.0)
 
 func process(state, delta: float, events: Array) -> void:
 	if state.game_over or state.level_up_pending or state.chest_pending:
@@ -139,7 +139,7 @@ func _process_ice_orbit(state, delta: float, events: Array) -> void:
 				var actual_damage = damage * (2 if state.has_overclock("ice_orbit", "absolute_zero") and enemy.slow_timer > 0.0 else 1)
 				_damage_enemy(state, enemy, actual_damage, events, "ice_orbit", orb_pos)
 		field_system.damage_walls_in_radius(state, orb_pos, 20.0, damage, events, "ice_orbit")
-	for enemy in state.enemies.duplicate():
+	for enemy in enemy_grid.query_radius(state.player_position, radius + 64.0):
 		var ring_distance = abs(enemy.position.distance_to(state.player_position) - radius)
 		if ring_distance <= enemy.radius + 18.0 and enemy.can_take_periodic_hit("ice_orbit_ring", 0.38):
 			enemy.slow_timer = maxf(enemy.slow_timer, 1.0 + float(level) * 0.12)
@@ -235,11 +235,12 @@ func _process_laser_lance(state, events: Array) -> void:
 	var damage = int(round(float(8 + level * 2) * state.get_damage_multiplier_for_weapon("laser_lance")))
 	if evolved:
 		damage = int(round(float(damage) * 1.35))
-	for enemy in state.enemies.duplicate():
+	var beam_center: Vector2 = start + direction * range * 0.5
+	for enemy in enemy_grid.query_radius(beam_center, range * 0.5 + width + 64.0):
 		if _distance_to_segment(enemy.position, start, end) <= enemy.radius + width:
 			_damage_enemy(state, enemy, damage, events, "laser_lance", enemy.position)
-	field_system.damage_walls_in_radius(state, start + direction * range * 0.5, range * 0.5 + width, damage, events, "laser_lance")
-	field_gimmick_system.damage_gimmicks_in_radius(state, start + direction * range * 0.5, range * 0.5 + width, damage, events, "laser_lance")
+	field_system.damage_walls_in_radius(state, beam_center, range * 0.5 + width, damage, events, "laser_lance")
+	field_gimmick_system.damage_gimmicks_in_radius(state, beam_center, range * 0.5 + width, damage, events, "laser_lance")
 	state.add_effect_line({"start": start, "end": end, "life": 0.16, "source": "laser_lance", "evolved": evolved})
 	state.add_hit_flash({"pos": end, "life": 0.20, "source": "laser_lance"})
 	events.append({"type": "attack", "weapon": "laser_lance", "count": 1, "start": start, "end": end})
@@ -254,7 +255,7 @@ func _process_poison_mist(state, events: Array) -> void:
 	var damage = int(round(float(3 + level) * state.get_damage_multiplier_for_weapon("poison_mist") * (1.0 + 0.09 * float(state.passives.get("curse", 0)))))
 	if evolved:
 		damage += 4
-	for enemy in state.enemies.duplicate():
+	for enemy in enemy_grid.query_radius(state.player_position, radius + 64.0):
 		if enemy.position.distance_to(state.player_position) <= radius + enemy.radius and enemy.can_take_periodic_hit("poison_mist", 0.42 if not evolved else 0.30):
 			_damage_enemy(state, enemy, damage, events, "poison_mist", enemy.position)
 	field_system.damage_walls_in_radius(state, state.player_position, radius, max(1, int(damage * 0.55)), events, "poison_mist")
@@ -355,7 +356,7 @@ func _process_soul_scythe(state, events: Array) -> void:
 	var damage = int(round(float(5 + level * 2) * state.get_damage_multiplier_for_weapon("soul_scythe")))
 	var direction = state.player_velocity.normalized() if state.player_velocity.length() > 8.0 else Vector2.RIGHT
 	var hit_count = 0
-	for enemy in state.enemies.duplicate():
+	for enemy in enemy_grid.query_radius(state.player_position, radius + 64.0):
 		var to_enemy = enemy.position - state.player_position
 		if to_enemy.length() <= radius + enemy.radius and direction.dot(to_enemy.normalized()) > -0.25:
 			_damage_enemy(state, enemy, damage, events, "soul_scythe", enemy.position)
@@ -393,7 +394,7 @@ func _process_sonic_wave(state, events: Array) -> void:
 	var radius = (120.0 + level * 16.0) * state.get_area_multiplier_for_weapon("sonic_wave") * (1.35 if evolved else 1.0)
 	var damage = int(round(float(3 + level) * state.get_damage_multiplier_for_weapon("sonic_wave")))
 	var hit_count = 0
-	for enemy in state.enemies.duplicate():
+	for enemy in enemy_grid.query_radius(state.player_position, radius + 64.0):
 		var distance = enemy.position.distance_to(state.player_position)
 		if distance <= radius + enemy.radius:
 			var direction = (enemy.position - state.player_position).normalized()
@@ -475,7 +476,7 @@ func _process_projectiles(state, delta: float, events: Array) -> void:
 
 func _process_rune_gate_projectile(state, projectile, delta: float, events: Array) -> void:
 	var periodic_interval := 0.50 if projectile.kind == "rune_gate" else (0.46 if projectile.kind in ["mine_lantern", "frost_wall"] else 0.38)
-	for enemy in state.enemies.duplicate():
+	for enemy in enemy_grid.query_radius(projectile.position, projectile.splash_radius + 64.0):
 		if enemy.position.distance_to(projectile.position) <= projectile.splash_radius + enemy.radius and enemy.can_take_periodic_hit(projectile.kind, periodic_interval):
 			_damage_enemy(state, enemy, projectile.damage, events, projectile.kind, enemy.position)
 			if projectile.kind == "frost_wall":
@@ -507,7 +508,7 @@ func _process_mirror_bounce(state, projectile, events: Array) -> void:
 func _process_black_hole_projectile(state, projectile, delta: float, events: Array) -> void:
 	var periodic_interval := 0.52 if projectile.kind == "gravity_anchor" else 0.48
 	var pull_speed := 185.0 if projectile.kind == "gravity_anchor" else 155.0
-	for enemy in state.enemies.duplicate():
+	for enemy in enemy_grid.query_radius(projectile.position, projectile.splash_radius + 64.0):
 		var distance = enemy.position.distance_to(projectile.position)
 		if distance <= projectile.splash_radius + enemy.radius:
 			var direction = (projectile.position - enemy.position).normalized()
@@ -548,7 +549,7 @@ func _explode(state, pos: Vector2, radius: float, damage: int, events: Array, so
 	state.add_hit_flash({"pos": pos, "life": 0.28, "source": source, "radius": radius})
 	field_system.damage_walls_in_radius(state, pos, radius, damage, events, source)
 	field_gimmick_system.damage_gimmicks_in_radius(state, pos, radius, damage, events, source)
-	for enemy in state.enemies.duplicate():
+	for enemy in enemy_grid.query_radius(pos, radius + 64.0):
 		if enemy.position.distance_to(pos) <= radius + enemy.radius:
 			_damage_enemy(state, enemy, damage, events, source, pos)
 
@@ -683,14 +684,12 @@ func _process_expansion_weapons(state, events: Array) -> void:
 		state.weapon_cooldowns[weapon_id] = cooldown
 
 func _slow_nearby(state, pos: Vector2, radius: float, duration: float) -> void:
-	for enemy in state.enemies:
+	for enemy in enemy_grid.query_radius(pos, radius + 64.0):
 		if enemy.position.distance_to(pos) <= radius + enemy.radius:
 			enemy.slow_timer = maxf(enemy.slow_timer, duration)
 
 func _spawn_split_children(state, enemy, pos: Vector2, events: Array) -> void:
 	for i in range(enemy.splits):
-		if state.enemies.size() >= state.max_enemies():
-			return
 		var angle = TAU * float(i) / float(maxi(1, enemy.splits)) + state.rng.range_float(-0.25, 0.25)
 		var child_pos = state.resolve_walkable_position(pos + Vector2(cos(angle), sin(angle)) * 34.0, 18.0, pos)
 		var child = EnemyScript.new(enemy.split_type, state.enemy_defs.get(enemy.split_type, {}), child_pos, 0, 1.0)

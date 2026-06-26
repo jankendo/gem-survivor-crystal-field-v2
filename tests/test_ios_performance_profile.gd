@@ -11,6 +11,7 @@ func run(t) -> void:
 	var ios = SurvivorStateScript.new()
 	ios.start_new_run(1)
 	system.apply_to_state(ios, {"render_quality": "standard"}, "iOS")
+	t.assert_eq(ios.max_enemies(), desktop.max_enemies(), "iOS should keep the same enemy cap as desktop")
 	t.assert_true(ios.max_effects() < desktop.max_effects(), "iOS should cap effects below desktop")
 	var desktop_ui: Dictionary = system.ui_limits({"render_quality": "standard"}, "Windows")
 	var ios_ui: Dictionary = system.ui_limits({"render_quality": "low"}, "iOS")
