@@ -480,6 +480,7 @@ jobs:
           FULL_TEST_SHARD: ${{ matrix.shard }}
         run: |
           $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_win64_console.exe" | Select-Object -First 1).FullName
+          & $godot --headless --editor --path . --quit-after 1000
           foreach ($name in $env:SCRIPT_LIST.Split(",")) {
             $script = "res://tests/$name"
             Write-Output "[$env:FULL_TEST_SHARD] $script"
