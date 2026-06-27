@@ -35,7 +35,7 @@ def main() -> int:
     require(presets, "application/export_project_only=true", "Xcode project export", failures)
     require(workflow, "CODE_SIGNING_ALLOWED=NO", "unsigned build flag", failures)
     require(workflow, "CODE_SIGNING_REQUIRED=NO", "unsigned build flag", failures)
-    require(workflow, "runs-on: macos-15", "pinned macOS 15 runner", failures)
+    require(workflow, "runs-on: macos-26", "Godot 4.7 Xcode 26 runner", failures)
     require(workflow, "mkdir -p builds/ios/Payload", "Payload creation", failures)
     require(workflow, "GemSurvivor-unsigned.ipa", "IPA packaging", failures)
     require(workflow, 'GODOT_VERSION: "4.7-stable"', "Godot 4.7 workflow", failures)

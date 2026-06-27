@@ -20,6 +20,7 @@ Godot公式`godotengine/godot-builds`の`4.7-stable` releaseを使用する。
 * `application/config/features`: `4.2`から`4.7`
 * renderer: Windows/iOSとも`gl_compatibility`
 * workflow: `GODOT_VERSION=4.7-stable`、`TEMPLATE_VERSION=4.7.stable`
+* iOS runner: Godot 4.7 templateが参照するiOS 26 SDK symbolsを解決するため`macos-26` / Xcode 26
 * global class: 4.7 native `VirtualJoystick`との衝突を避け、project classを`GemVirtualJoystick`へ変更
 * 4.7が生成するscript `.gd.uid`をversioned metadataとして追跡し、`.godot` import cacheは追跡しない
 
@@ -45,3 +46,5 @@ save schemaは変更していない。既存SaveSystemテストを全suiteで実
 ## 既知の問題
 
 Windows headless 60秒計測の33ms超過0は未達。実iPhone profiler、thermal、battery、長時間frame pacingは未検証。
+
+`macos-15` / Xcode 16.4ではGodot 4.7 iOS static libraryの`CADynamicRange*`と`MTLTensorDomain`がlinkできない。CIは`macos-26`を固定し、OS image変更時はunsigned buildを再検証する。

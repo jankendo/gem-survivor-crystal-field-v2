@@ -15,7 +15,7 @@ def main() -> int:
     text = WORKFLOW.read_text(encoding="utf-8")
     checks = {
         "windows-latest runner": "runs-on: windows-latest" in text,
-        "macos-15 runner": "runs-on: macos-15" in text,
+        "macos-26 runner": "runs-on: macos-26" in text,
         "workflow_dispatch": re.search(r"(?m)^\s*workflow_dispatch:\s*$", text) is not None,
         "full_test input": "full_test:" in text,
         "GODOT_VERSION": 'GODOT_VERSION: "4.7-stable"' in text,

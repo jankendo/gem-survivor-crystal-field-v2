@@ -55,7 +55,7 @@ v2では以下の3本柱を同時に満たす。
 * static cacheはcamera、viewport/orientation、zoom、map seed/構造、renderer、quality、texture条件の変更で無効化する。
 * Release標準では詳細performance/energy CSV、Phase 6 counter、debug Dictionary集計を行わない。QAフラグ時だけ有効にする。
 * Phase 6 benchmarkはseed 60606、60秒、敵/弾/ジェム条件固定で比較する。負荷低減による見かけの改善を禁止する。
-* CIはGodot 4.7 stable editor/export templatesを使用し、Windows releaseとmacOS上の未署名iOS IPAを検証する。
+* CIはGodot 4.7 stable editor/export templatesを使用し、Windows releaseと`macos-26`/Xcode 26上の未署名iOS IPAを検証する。
 * headless、CI、Simulatorの結果を実iPhone、Metal、thermal、battery、実機60 FPSの証明として扱わない。
 
 ## 禁止事項
