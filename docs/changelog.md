@@ -18,6 +18,7 @@
 * `full_test=true`の44長時間scriptを8 shardへ並列化し、単一60分jobの未完走を解消。
 * 30分balance testの敵上限を、Phase 5のprotected boss/minion/split overflow契約とhard safety budget 700へ整合。
 * iOS touch 60秒QAのlevel-upを固定EXP注入で決定化し、save進行度依存を除去。
+* category balance QAもprotected spawnをsoft cap違反と誤判定せず、hard safety budgetを検証するよう更新。
 
 ### Validation
 

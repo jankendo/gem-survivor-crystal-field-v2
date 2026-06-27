@@ -1,6 +1,7 @@
 extends RefCounted
 
 const PlayerScript = preload("res://scripts/systems/Player.gd")
+const IosPerformanceBudgetScript = preload("res://scripts/systems/IosPerformanceBudgetSystem.gd")
 
 func run(tree: SceneTree, config: Dictionary) -> Dictionary:
 	var game: GameScreen = load("res://scenes/Game.tscn").instantiate()
@@ -44,6 +45,8 @@ func run(tree: SceneTree, config: Dictionary) -> Dictionary:
 		"damage_at_five": damage_at_five,
 		"damage_taken": game.state.max_hp - game.state.hp,
 		"enemy_count": game.state.enemies.size(),
+		"enemy_soft_cap": game.state.max_enemies(),
+		"enemy_hard_budget": IosPerformanceBudgetScript.new().get_int("max_enemies_total", 700),
 		"projectile_count": game.state.projectiles.size(),
 		"game_over": game.state.game_over,
 		"boss_minutes": game.state.boss_spawned_minutes.duplicate(),

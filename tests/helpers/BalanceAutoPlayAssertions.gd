@@ -10,8 +10,11 @@ func common_failures(metrics: Dictionary) -> Array:
 		failures.append("category autoplay did not defeat enemies")
 	if int(metrics.get("damage", 0)) <= 0:
 		failures.append("category autoplay did not record weapon damage")
-	if int(metrics.get("enemy_count", 0)) > 140:
-		failures.append("category autoplay exceeded the enemy cap")
+	if int(metrics.get("enemy_count", 0)) > int(metrics.get("enemy_hard_budget", 700)):
+		failures.append(
+			"category autoplay exceeded the protected-spawn hard safety budget: enemies=%d soft_cap=%d hard_budget=%d"
+			% [int(metrics.get("enemy_count", 0)), int(metrics.get("enemy_soft_cap", 0)), int(metrics.get("enemy_hard_budget", 700))]
+		)
 	if int(metrics.get("projectile_count", 0)) > 180:
 		failures.append("category autoplay exceeded the projectile cap")
 	var boss_minutes: Array = metrics.get("boss_minutes", [])
