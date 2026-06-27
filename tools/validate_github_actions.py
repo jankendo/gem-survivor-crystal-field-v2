@@ -61,6 +61,7 @@ def main() -> int:
         "IPA structure verification": 'unzip -t builds/ios/GemSurvivor-unsigned.ipa' in text,
         "full test matrix": "windows-full-tests:" in text and "fail-fast: false" in text,
         "full shard import": text.count("& $godot --headless --editor --path . --quit-after 1000") >= 2,
+        "full shard prerequisites": "prepare_full_test_shard.gd" in text,
         "full core shard": "shard: core-long" in text,
         "full density shard": "shard: density" in text,
         "full shard artifacts": "Full-Test-${{ matrix.shard }}" in text,
