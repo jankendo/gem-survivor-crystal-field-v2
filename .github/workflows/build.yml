@@ -439,9 +439,9 @@ jobs:
             test-output/phase5/collectible_confusion.*
           if-no-files-found: error
 
-  windows-full-tests:
+  full-tests:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.full_test == 'true' }}
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 360
     strategy:
       fail-fast: false
@@ -480,7 +480,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path .tools | Out-Null
-          Invoke-WebRequest "https://github.com/godotengine/godot-builds/releases/download/${env:GODOT_VERSION}/Godot_v${env:GODOT_VERSION}_win64.exe.zip" -OutFile ".tools/godot.zip"
+          Invoke-WebRequest "https://github.com/godotengine/godot-builds/releases/download/${env:GODOT_VERSION}/Godot_v${env:GODOT_VERSION}_linux.x86_64.zip" -OutFile ".tools/godot.zip"
           Expand-Archive ".tools/godot.zip" ".tools/godot" -Force
 
       - name: Run full test shard
@@ -489,7 +489,8 @@ jobs:
           SCRIPT_LIST: ${{ matrix.scripts }}
           FULL_TEST_SHARD: ${{ matrix.shard }}
         run: |
-          $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_win64_console.exe" | Select-Object -First 1).FullName
+          $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_linux.x86_64" | Select-Object -First 1).FullName
+          & chmod +x $godot
           & $godot --headless --editor --path . --quit-after 1000
           & $godot --headless --path . --script res://tests/prepare_full_test_shard.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

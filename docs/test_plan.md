@@ -88,7 +88,7 @@ python tools/validate_ios_workflow.py
 
 Phase 6 benchmarkはseed 60606、60秒、同一装備と同一敵密度で実行する。Windows/headlessの結果は実iPhone/GPU性能の証明ではない。実機項目は`docs/qa/phase6_ios_real_device_checklist.md`で別管理する。
 
-`workflow_dispatch full_test=true`は既存44本の長時間scriptを削除せず、通常群に加えてiOS perf 10/20/30分、energy、density 30/45/60分を個別化した13 shardで並列実行する。高密度runner差を吸収するため各shard timeoutはGitHub Actionsの最大枠360分とする。各shardは個別artifactを残し、1件でも失敗すればworkflowを失敗させる。
+`workflow_dispatch full_test=true`は既存44本の長時間scriptを削除せず、通常群に加えてiOS perf 10/20/30分、energy、density 30/45/60分を個別化した13 Ubuntu shardで並列実行する。Windows固有契約はstandard Windows jobで別途検証する。高密度runner差を吸収するため各shard timeoutはGitHub Actionsの最大枠360分とする。各shardは個別artifactを残し、1件でも失敗すればworkflowを失敗させる。
 
 full shardの共通save準備では初回ヘルプだけを既読化し、`qa_telemetry_enabled=false`を維持する。各performance/energy harnessが必要なloggerを直接有効化するため、GameScreenのRelease標準loggerを重ねて動かさない。
 
