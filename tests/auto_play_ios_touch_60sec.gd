@@ -1,5 +1,7 @@
 extends SceneTree
 
+const ExpSystemScript = preload("res://scripts/systems/ExpSystem.gd")
+
 var failures: Array = []
 var old_settings: Dictionary = {}
 
@@ -31,6 +33,8 @@ func _run() -> void:
 	var start: Vector2 = game.state.player_position
 	var selected := false
 	for i in range(330):
+		if i == 5:
+			ExpSystemScript.new().add_exp(game.state, game.state.exp_to_next, [])
 		var direction := Vector2.RIGHT.rotated(float(i) * 0.07)
 		if not game.state.gems.is_empty():
 			direction = (game.state.gems[0].position - game.state.player_position).normalized()
