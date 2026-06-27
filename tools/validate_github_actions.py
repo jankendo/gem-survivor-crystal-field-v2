@@ -59,6 +59,10 @@ def main() -> int:
         "Windows SHA256": "SHA256SUMS-Windows.txt" in text,
         "iOS SHA256": "SHA256SUMS-iOS.txt" in text,
         "IPA structure verification": 'unzip -t builds/ios/GemSurvivor-unsigned.ipa' in text,
+        "full test matrix": "windows-full-tests:" in text and "fail-fast: false" in text,
+        "full core shard": "shard: core-long" in text,
+        "full density shard": "shard: density" in text,
+        "full shard artifacts": "Full-Test-${{ matrix.shard }}" in text,
     }
     failures = [name for name, passed in checks.items() if not passed]
     if failures:

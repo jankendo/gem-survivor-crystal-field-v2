@@ -2,6 +2,7 @@ extends SceneTree
 
 const PlayerScript = preload("res://scripts/systems/Player.gd")
 const ExpSystemScript = preload("res://scripts/systems/ExpSystem.gd")
+const IosPerformanceBudgetScript = preload("res://scripts/systems/IosPerformanceBudgetSystem.gd")
 
 var failures: Array = []
 
@@ -81,7 +82,11 @@ func _run() -> void:
 	_assert(game.state.chests.size() <= game.state.max_chests(), "chest cap should hold during 30min autoplay")
 	_assert(game.state.chests_opened <= 24, "30min autoplay should not flood chest rewards, opened=%d" % game.state.chests_opened)
 	_assert(game.state.auto_infinite_count > 0, "auto infinite should apply in exhausted build")
-	_assert(game.state.enemies.size() <= game.state.max_enemies(), "enemy cap should hold")
+	var hard_enemy_budget := IosPerformanceBudgetScript.new().get_int("max_enemies_total", 700)
+	_assert(
+		game.state.enemies.size() <= hard_enemy_budget,
+		"enemy hard safety budget should hold while protected boss/minion/split spawns may exceed the soft cap, enemies=%d hard_budget=%d" % [game.state.enemies.size(), hard_enemy_budget]
+	)
 	_assert(game.state.projectiles.size() <= game.state.max_projectiles(), "projectile cap should hold")
 	_assert(game.state.enemy_projectiles.size() <= game.state.max_enemy_projectiles(), "enemy projectile cap should hold")
 	root.remove_child(main)

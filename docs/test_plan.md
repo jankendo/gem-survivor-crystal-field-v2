@@ -88,6 +88,8 @@ python tools/validate_ios_workflow.py
 
 Phase 6 benchmarkはseed 60606、60秒、同一装備と同一敵密度で実行する。Windows/headlessの結果は実iPhone/GPU性能の証明ではない。実機項目は`docs/qa/phase6_ios_real_device_checklist.md`で別管理する。
 
+`workflow_dispatch full_test=true`は既存44本の長時間scriptを削除せず、`core-long`、`weapons`、`ios-ui`、`ios-perf`、`gameplay`、`progression`、`environment`、`density`の8 shardで並列実行する。各shardは個別artifactを残し、1件でも失敗すればworkflowを失敗させる。
+
 ## 長時間検証
 
 標準テスト全体やオートプレイは時間がかかる。タイムアウトする場合は、実行した範囲、成功した範囲、未完走の範囲を最終報告に明記する。

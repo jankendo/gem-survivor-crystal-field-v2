@@ -155,66 +155,6 @@ jobs:
           & $godot --headless --path . --script res://tests/capture_v2_phase2_screenshots.gd
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Run full balance tests
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.full_test == 'true' }}
-        shell: pwsh
-        run: |
-          $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_win64_console.exe" | Select-Object -First 1).FullName
-          $scripts = @(
-            "res://tests/auto_play_10min.gd",
-            "res://tests/auto_play_30min_balance.gd",
-            "res://tests/auto_play_balance_ranged_10min.gd",
-            "res://tests/auto_play_balance_melee_10min.gd",
-            "res://tests/auto_play_balance_lightning_10min.gd",
-            "res://tests/auto_play_balance_poison_10min.gd",
-            "res://tests/auto_play_balance_explosion_10min.gd",
-            "res://tests/auto_play_balance_deploy_10min.gd",
-            "res://tests/auto_play_balance_gem_10min.gd",
-            "res://tests/auto_play_ios_touch_60sec.gd",
-            "res://tests/auto_play_ios_touch_5min.gd",
-            "res://tests/auto_play_ios_levelup_selection.gd",
-            "res://tests/auto_play_ios_menu_flow.gd",
-            "res://tests/auto_play_ios_layout_qa.gd",
-            "res://tests/auto_play_ios_pause_scroll_flow.gd",
-            "res://tests/auto_play_ios_full_ui_flow.gd",
-            "res://tests/auto_play_ios_perf_10min.gd",
-            "res://tests/auto_play_ios_perf_20min.gd",
-            "res://tests/auto_play_ios_perf_30min.gd",
-            "res://tests/auto_play_wall_slide_5min.gd",
-            "res://tests/auto_play_disabled_pool_10min.gd",
-            "res://tests/auto_play_balance_disabled_pool_10min.gd",
-            "res://tests/auto_play_skip_seal_10min.gd",
-            "res://tests/auto_play_exploration_reward_15min.gd",
-            "res://tests/auto_play_event_motivation_15min.gd",
-            "res://tests/auto_play_field_equipment_pickups_15min.gd",
-            "res://tests/auto_play_knockback_wall_10min.gd",
-            "res://tests/auto_play_map_pause_10min.gd",
-            "res://tests/auto_play_result_status_ui_flow.gd",
-            "res://tests/auto_play_ios_lightweight_energy_20min.gd",
-            "res://tests/auto_play_camping_vs_exploration_20min.gd",
-            "res://tests/auto_play_exp_curve_30min.gd",
-            "res://tests/auto_play_global_collection_ios_stress_20min.gd",
-            "res://tests/auto_play_all_character_evolution_conditions.gd",
-            "res://tests/auto_play_exp_balance_10min.gd",
-            "res://tests/auto_play_resonance_magnet_balance_15min.gd",
-            "res://tests/auto_play_global_gem_collection_balance_20min.gd",
-            "res://tests/auto_play_random_field_equipment_balance_20min.gd",
-            "res://tests/auto_play_environment_windows_high_10min.gd",
-            "res://tests/auto_play_item_placement_environment_30min.gd",
-            "res://tests/auto_play_phase5_ios_10min.gd",
-            "res://tests/auto_play_phase5_density_30min.gd",
-            "res://tests/auto_play_phase5_density_45min.gd",
-            "res://tests/auto_play_phase5_density_60min.gd"
-          )
-          foreach ($script in $scripts) {
-            & $godot --headless --path . --script $script
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          }
-          python tools/analyze_ios_performance.py test-output/ios_performance_log.csv --output test-output/ios_performance_report.md
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tools/analyze_ios_performance.py test-output/phase5/density_60min.csv --output test-output/phase5/density_60min_report.md --baseline test-output/phase5/baseline_performance.csv
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
       - name: Generate balance report
         run: python tools/analyze_balance.py --candidate-runs test-output/balance_candidate_runs.json --output balance_report.md
 
@@ -498,6 +438,69 @@ jobs:
             test-output/phase5/environment_contrast.*
             test-output/phase5/collectible_confusion.*
           if-no-files-found: error
+
+  windows-full-tests:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.full_test == 'true' }}
+    runs-on: windows-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: core-long
+            scripts: auto_play_10min.gd,auto_play_30min_balance.gd
+          - shard: weapons
+            scripts: auto_play_balance_ranged_10min.gd,auto_play_balance_melee_10min.gd,auto_play_balance_lightning_10min.gd,auto_play_balance_poison_10min.gd,auto_play_balance_explosion_10min.gd,auto_play_balance_deploy_10min.gd,auto_play_balance_gem_10min.gd
+          - shard: ios-ui
+            scripts: auto_play_ios_touch_60sec.gd,auto_play_ios_touch_5min.gd,auto_play_ios_levelup_selection.gd,auto_play_ios_menu_flow.gd,auto_play_ios_layout_qa.gd,auto_play_ios_pause_scroll_flow.gd,auto_play_ios_full_ui_flow.gd
+          - shard: ios-perf
+            scripts: auto_play_ios_perf_10min.gd,auto_play_ios_perf_20min.gd,auto_play_ios_perf_30min.gd,auto_play_ios_lightweight_energy_20min.gd
+          - shard: gameplay
+            scripts: auto_play_wall_slide_5min.gd,auto_play_disabled_pool_10min.gd,auto_play_balance_disabled_pool_10min.gd,auto_play_skip_seal_10min.gd,auto_play_exploration_reward_15min.gd,auto_play_event_motivation_15min.gd,auto_play_field_equipment_pickups_15min.gd,auto_play_knockback_wall_10min.gd,auto_play_map_pause_10min.gd,auto_play_result_status_ui_flow.gd
+          - shard: progression
+            scripts: auto_play_camping_vs_exploration_20min.gd,auto_play_exp_curve_30min.gd,auto_play_global_collection_ios_stress_20min.gd,auto_play_all_character_evolution_conditions.gd,auto_play_exp_balance_10min.gd,auto_play_resonance_magnet_balance_15min.gd,auto_play_global_gem_collection_balance_20min.gd,auto_play_random_field_equipment_balance_20min.gd
+          - shard: environment
+            scripts: auto_play_environment_windows_high_10min.gd,auto_play_item_placement_environment_30min.gd,auto_play_phase5_ios_10min.gd
+          - shard: density
+            scripts: auto_play_phase5_density_30min.gd,auto_play_phase5_density_45min.gd,auto_play_phase5_density_60min.gd
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Godot
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path .tools | Out-Null
+          Invoke-WebRequest "https://github.com/godotengine/godot-builds/releases/download/${env:GODOT_VERSION}/Godot_v${env:GODOT_VERSION}_win64.exe.zip" -OutFile ".tools/godot.zip"
+          Expand-Archive ".tools/godot.zip" ".tools/godot" -Force
+
+      - name: Run full test shard
+        shell: pwsh
+        env:
+          SCRIPT_LIST: ${{ matrix.scripts }}
+          FULL_TEST_SHARD: ${{ matrix.shard }}
+        run: |
+          $godot = (Get-ChildItem ".tools/godot/Godot_v${env:GODOT_VERSION}_win64_console.exe" | Select-Object -First 1).FullName
+          foreach ($name in $env:SCRIPT_LIST.Split(",")) {
+            $script = "res://tests/$name"
+            Write-Output "[$env:FULL_TEST_SHARD] $script"
+            & $godot --headless --path . --script $script
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          if ($env:FULL_TEST_SHARD -eq "ios-perf") {
+            python tools/analyze_ios_performance.py test-output/ios_performance_log.csv --output test-output/ios_performance_report.md
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          if ($env:FULL_TEST_SHARD -eq "density") {
+            python tools/analyze_ios_performance.py test-output/phase5/density_60min.csv --output test-output/phase5/density_60min_report.md --baseline test-output/phase5/baseline_performance.csv
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Upload full test shard report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Full-Test-${{ matrix.shard }}
+          path: test-output/
+          if-no-files-found: warn
 
   ios-unsigned-build:
     runs-on: macos-26
