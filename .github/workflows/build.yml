@@ -453,16 +453,26 @@ jobs:
             scripts: auto_play_balance_ranged_10min.gd,auto_play_balance_melee_10min.gd,auto_play_balance_lightning_10min.gd,auto_play_balance_poison_10min.gd,auto_play_balance_explosion_10min.gd,auto_play_balance_deploy_10min.gd,auto_play_balance_gem_10min.gd
           - shard: ios-ui
             scripts: auto_play_ios_touch_60sec.gd,auto_play_ios_touch_5min.gd,auto_play_ios_levelup_selection.gd,auto_play_ios_menu_flow.gd,auto_play_ios_layout_qa.gd,auto_play_ios_pause_scroll_flow.gd,auto_play_ios_full_ui_flow.gd
-          - shard: ios-perf
-            scripts: auto_play_ios_perf_10min.gd,auto_play_ios_perf_20min.gd,auto_play_ios_perf_30min.gd,auto_play_ios_lightweight_energy_20min.gd
+          - shard: ios-perf-10
+            scripts: auto_play_ios_perf_10min.gd
+          - shard: ios-perf-20
+            scripts: auto_play_ios_perf_20min.gd
+          - shard: ios-perf-30
+            scripts: auto_play_ios_perf_30min.gd
+          - shard: ios-energy
+            scripts: auto_play_ios_lightweight_energy_20min.gd
           - shard: gameplay
             scripts: auto_play_wall_slide_5min.gd,auto_play_disabled_pool_10min.gd,auto_play_balance_disabled_pool_10min.gd,auto_play_skip_seal_10min.gd,auto_play_exploration_reward_15min.gd,auto_play_event_motivation_15min.gd,auto_play_field_equipment_pickups_15min.gd,auto_play_knockback_wall_10min.gd,auto_play_map_pause_10min.gd,auto_play_result_status_ui_flow.gd
           - shard: progression
             scripts: auto_play_camping_vs_exploration_20min.gd,auto_play_exp_curve_30min.gd,auto_play_global_collection_ios_stress_20min.gd,auto_play_all_character_evolution_conditions.gd,auto_play_exp_balance_10min.gd,auto_play_resonance_magnet_balance_15min.gd,auto_play_global_gem_collection_balance_20min.gd,auto_play_random_field_equipment_balance_20min.gd
           - shard: environment
             scripts: auto_play_environment_windows_high_10min.gd,auto_play_item_placement_environment_30min.gd,auto_play_phase5_ios_10min.gd
-          - shard: density
-            scripts: auto_play_phase5_density_30min.gd,auto_play_phase5_density_45min.gd,auto_play_phase5_density_60min.gd
+          - shard: density-30
+            scripts: auto_play_phase5_density_30min.gd
+          - shard: density-45
+            scripts: auto_play_phase5_density_45min.gd
+          - shard: density-60
+            scripts: auto_play_phase5_density_60min.gd
     steps:
       - uses: actions/checkout@v4
 
@@ -489,11 +499,11 @@ jobs:
             & $godot --headless --path . --script $script
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          if ($env:FULL_TEST_SHARD -eq "ios-perf") {
+          if ($env:FULL_TEST_SHARD -eq "ios-perf-10") {
             python tools/analyze_ios_performance.py test-output/ios_performance_log.csv --output test-output/ios_performance_report.md
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          if ($env:FULL_TEST_SHARD -eq "density") {
+          if ($env:FULL_TEST_SHARD -eq "density-60") {
             python tools/analyze_ios_performance.py test-output/phase5/density_60min.csv --output test-output/phase5/density_60min_report.md --baseline test-output/phase5/baseline_performance.csv
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }

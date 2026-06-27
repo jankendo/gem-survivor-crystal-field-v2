@@ -63,7 +63,8 @@ def main() -> int:
         "full shard import": text.count("& $godot --headless --editor --path . --quit-after 1000") >= 2,
         "full shard prerequisites": "prepare_full_test_shard.gd" in text,
         "full core shard": "shard: core-long" in text,
-        "full density shard": "shard: density" in text,
+        "full density shard": all(f"shard: density-{minutes}" in text for minutes in (30, 45, 60)),
+        "full iOS performance shards": all(f"shard: ios-perf-{minutes}" in text for minutes in (10, 20, 30)),
         "full shard artifacts": "Full-Test-${{ matrix.shard }}" in text,
     }
     failures = [name for name, passed in checks.items() if not passed]

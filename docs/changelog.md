@@ -15,7 +15,7 @@
 * static terrain再構築を60回から14回へ削減。
 * Release標準のiOS performance/energy集計とCSVを停止。
 * 4.7 native classとの衝突回避のためproject classを`GemVirtualJoystick`へ変更。
-* `full_test=true`の44長時間scriptを8 shardへ並列化し、単一60分jobの未完走を解消。
+* `full_test=true`の44長時間scriptを13 shardへ並列化し、単一jobのtimeoutを解消。
 * 30分balance testの敵上限を、Phase 5のprotected boss/minion/split overflow契約とhard safety budget 700へ整合。
 * iOS touch 60秒QAのlevel-upを固定EXP注入で決定化し、save進行度依存を除去。
 * category balance QAもprotected spawnをsoft cap違反と誤判定せず、hard safety budgetを検証するよう更新。
