@@ -4,7 +4,7 @@
 
 * 開始: `e8875dc04bee1f0d6e8fb27a97f7d6ecebe6b498`
 * 4.2 Compatibility確定: `4373a55b1d27c39219939639cf01f8483b60d5b4`
-* 4.7移行: この文書を含む`build: migrate project and CI from Godot 4.2 to 4.7`コミット
+* 4.7移行: `2a7dadda63f7da5f6ea1c0ea3598dc4dc1252909`
 
 ## 配布物
 
