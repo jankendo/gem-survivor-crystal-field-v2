@@ -8,7 +8,7 @@ func _initialize() -> void:
 	save.update_settings({
 		"touch_tutorial_seen": true,
 		"touch_ui_mode": "auto",
-		"qa_telemetry_enabled": true,
+		"qa_telemetry_enabled": false,
 	})
 	print("Full test shard prerequisites prepared.")
 	quit(0)

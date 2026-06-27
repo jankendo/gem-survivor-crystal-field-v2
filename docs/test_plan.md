@@ -90,6 +90,8 @@ Phase 6 benchmarkはseed 60606、60秒、同一装備と同一敵密度で実行
 
 `workflow_dispatch full_test=true`は既存44本の長時間scriptを削除せず、通常群に加えてiOS perf 10/20/30分、energy、density 30/45/60分を個別化した13 shardで並列実行する。高密度runner差を吸収するため各shard timeoutはGitHub Actionsの最大枠360分とする。各shardは個別artifactを残し、1件でも失敗すればworkflowを失敗させる。
 
+full shardの共通save準備では初回ヘルプだけを既読化し、`qa_telemetry_enabled=false`を維持する。各performance/energy harnessが必要なloggerを直接有効化するため、GameScreenのRelease標準loggerを重ねて動かさない。
+
 ## 長時間検証
 
 標準テスト全体やオートプレイは時間がかかる。タイムアウトする場合は、実行した範囲、成功した範囲、未完走の範囲を最終報告に明記する。
