@@ -6,7 +6,7 @@
 
 ## 1. 結論
 
-このリポジトリの実体は、AGENTS.mdに書かれている「Chrono Merge Tactics」というターン制・合成タクティクス仕様ではなく、Godot 4.2 + GDScript製のサバイバーアクションゲーム「ジェムサバイバー：クリスタルフィールド」です。
+このリポジトリの実体は、旧「Chrono Merge Tactics」というターン制・合成タクティクス仕様ではなく、Godot 4.7 + GDScript製のサバイバーアクションゲーム「ジェムサバイバー：クリスタルフィールド」です。
 
 `project.godot`のアプリ名は`Gem Survivor Crystal Field`、説明は`Gem Survivor: Crystal Field bullet-heaven action for Windows.`です。READMEにも、内部フォルダ名とexe名は既存配布互換のため`ChronoMergeTactics`のまま、と明記されています。
 
@@ -22,7 +22,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| エンジン | Godot 4.2 stable |
+| エンジン | Godot 4.7 stable / Compatibility renderer |
 | 言語 | GDScript |
 | メインシーン | `res://scenes/Main.tscn` |
 | アプリ名 | `Gem Survivor Crystal Field` |
@@ -351,7 +351,7 @@ iOS:
 | capabilities/access_wifi | false |
 | push_notifications | false |
 
-`.github/workflows/build.yml`はWindowsでGodot 4.2とexport templatesを取得し、標準テスト、QA生成、Windows export、iOS未署名IPA作成、成果物アップロードを行います。
+`.github/workflows/build.yml`はWindows/macOSでGodot 4.7 stableとexport templatesを取得し、標準テスト、QA生成、Windows export、iOS未署名IPA作成、SHA-256/IPA構造検査、成果物アップロードを行います。
 
 `builds`配下には既存成果物があります。
 
@@ -470,4 +470,3 @@ iOS:
 | `test-output/asset_qa_report.md` | 生成素材QA |
 | `test-output/baseline-test-runner-20260620.log` | 既存テスト成功証跡 |
 | `balance_report.md` | バランス診断 |
-

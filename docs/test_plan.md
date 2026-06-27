@@ -3,26 +3,26 @@
 ## 最低限の検証
 
 ```powershell
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --check-only --script res://tests/test_runner.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/smoke_main_scene.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_rng.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --check-only --script res://tests/test_runner.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/smoke_main_scene.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_rng.gd
 ```
 
 ## v2 targeted tests
 
 ```powershell
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_momentum_system.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_momentum_telemetry.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_momentum_deduplication.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_feedback_director.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_feedback_priority.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_hud_presenter.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_asset_registry.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_asset_manifest.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_asset_registry_fallback.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_ui_layout_contract.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_main_navigation.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_result_summary.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_momentum_system.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_momentum_telemetry.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_momentum_deduplication.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_feedback_director.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_feedback_priority.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_hud_presenter.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_asset_registry.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_asset_manifest.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_asset_registry_fallback.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_ui_layout_contract.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_main_navigation.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_v2_result_summary.gd
 python tools/validate_v2_asset_manifest.py
 python tools/audit_ios_title_layout.py
 python tools/environment/validate_environment_assets.py
@@ -34,40 +34,59 @@ python tools/environment/generate_environment_report.py
 ## Phase 4 targeted tests
 
 ```powershell
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_ios_title_screen_fit.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_ios_title_safe_area.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_ios_title_button_visibility.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_environment_asset_manifest.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_environment_quality_profiles.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_environment_10min.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_environment_ios_low_10min.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_environment_windows_high_10min.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_item_placement_environment_30min.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_ios_title_navigation.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_ios_title_screen_fit.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_ios_title_safe_area.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_ios_title_button_visibility.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_environment_asset_manifest.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_environment_quality_profiles.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_environment_10min.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_environment_ios_low_10min.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_environment_windows_high_10min.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_item_placement_environment_30min.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_ios_title_navigation.gd
 ```
 
 ## Phase 5 targeted tests
 
 ```powershell
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_enemy_entity_store.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_phase5_no_enemy_culling.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_phase5_no_difficulty_reduction.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_phase5_spawn_curve_parity.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_phase5_environment_readability.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_enemy_entity_store.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_phase5_no_enemy_culling.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_phase5_no_difficulty_reduction.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_phase5_spawn_curve_parity.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_phase5_environment_readability.gd
 python tools/environment/measure_environment_contrast.py
 python tools/environment/audit_collectible_confusion.py
 python tools/environment/audit_environment_readability.py
 python tools/environment/generate_grayscale_contact_sheet.py
 python tools/environment/generate_colorblind_contact_sheet.py
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_enemy_parity.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_all_biomes.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_visual_adaptation.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_ios_60sec.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_ios_10min.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_density_30min.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_density_45min.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_density_60min.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_enemy_parity.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_all_biomes.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_visual_adaptation.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_ios_60sec.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_ios_10min.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_density_30min.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_density_45min.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_phase5_density_60min.gd
 ```
+
+## Phase 6 targeted tests
+
+```powershell
+$GODOT = ".\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe"
+& $GODOT --headless --editor --path . --quit-after 3000
+& $GODOT --headless --path . --check-only --script res://tests/test_runner.gd
+& $GODOT --headless --path . --script res://tests/test_phase6_runner.gd
+& $GODOT --headless --path . --script res://tests/test_runner.gd
+& $GODOT --headless --path . --script res://tests/auto_play_phase6_renderer_compare.gd -- --stem=res://test-output/phase6/after_4_7_compatibility --label=Godot_4_7_Compatibility_Phase6
+& $GODOT --headless --path . --script res://tests/auto_play_phase5_enemy_parity.gd
+& $GODOT --headless --path . --script res://tests/auto_play_phase5_all_biomes.gd
+python tools/environment/measure_environment_contrast.py
+python tools/environment/audit_collectible_confusion.py
+python tools/validate_github_actions.py
+python tools/validate_ios_workflow.py
+```
+
+Phase 6 benchmarkはseed 60606、60秒、同一装備と同一敵密度で実行する。Windows/headlessの結果は実iPhone/GPU性能の証明ではない。実機項目は`docs/qa/phase6_ios_real_device_checklist.md`で別管理する。
 
 ## 長時間検証
 
@@ -76,8 +95,8 @@ python tools/environment/generate_colorblind_contact_sheet.py
 Phase 2追加:
 
 ```powershell
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/auto_play_v2_momentum_10min.gd
-.\.tools\godot-download\Godot_v4.2-stable_win64_console.exe --headless --path . --script res://tests/capture_v2_phase2_screenshots.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/auto_play_v2_momentum_10min.gd
+.\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/capture_v2_phase2_screenshots.gd
 ```
 
 ## 重点確認

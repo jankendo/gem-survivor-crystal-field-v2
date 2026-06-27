@@ -18,8 +18,8 @@ def main() -> int:
         "macos-15 runner": "runs-on: macos-15" in text,
         "workflow_dispatch": re.search(r"(?m)^\s*workflow_dispatch:\s*$", text) is not None,
         "full_test input": "full_test:" in text,
-        "GODOT_VERSION": 'GODOT_VERSION: "4.2-stable"' in text,
-        "TEMPLATE_VERSION": 'TEMPLATE_VERSION: "4.2.stable"' in text,
+        "GODOT_VERSION": 'GODOT_VERSION: "4.7-stable"' in text,
+        "TEMPLATE_VERSION": 'TEMPLATE_VERSION: "4.7.stable"' in text,
         "upload-artifact": "actions/upload-artifact@v4" in text,
         "Pillow dependency": "python -m pip install --upgrade pillow" in text,
         "Windows artifact": "ChronoMergeTactics-Windows" in text,
@@ -53,6 +53,12 @@ def main() -> int:
         "phase5 iOS 60sec autoplay": "auto_play_phase5_ios_60sec.gd" in text,
         "phase5 long density autoplay": "auto_play_phase5_density_60min.gd" in text,
         "phase5 artifact": "Phase5-Performance-QA" in text,
+        "phase6 targeted tests": "test_phase6_runner.gd" in text,
+        "phase6 benchmark": "auto_play_phase6_renderer_compare.gd" in text,
+        "phase6 artifact": "Phase6-Renderer-Frame-QA" in text,
+        "Windows SHA256": "SHA256SUMS-Windows.txt" in text,
+        "iOS SHA256": "SHA256SUMS-iOS.txt" in text,
+        "IPA structure verification": 'unzip -t builds/ios/GemSurvivor-unsigned.ipa' in text,
     }
     failures = [name for name, passed in checks.items() if not passed]
     if failures:

@@ -2,7 +2,7 @@
 
 ## 現行前提
 
-* このリポジトリの実体は、Godot 4.2 + GDScript製の2Dサバイバーアクションゲーム「Gem Survivor Crystal Field（ジェムサバイバー：クリスタルフィールド）」である。
+* このリポジトリの実体は、Godot 4.7 + GDScript製の2Dサバイバーアクションゲーム「Gem Survivor Crystal Field（ジェムサバイバー：クリスタルフィールド）」である。
 * `ChronoMergeTactics`というフォルダ名、exe名、保存ファイル名は既存配布互換のため残っている。ターン制・合成ゲームとして扱わない。
 * v2は現行の探索型サバイバー / bullet-heaven路線を強化する。別ジャンルへの作り替えは行わない。
 * 現行仕様の棚卸しは`docs/current_asset_spec_audit.md`をベースラインとして扱う。
@@ -17,7 +17,8 @@ v2では以下の3本柱を同時に満たす。
 
 ## 開発ルール
 
-* Godot 4.2 + GDScriptで実装する。
+* Godot 4.7 + GDScriptで実装する。
+* rendererはWindows/iOSとも`gl_compatibility`を正本とする。Forward+やMobileへ戻す場合は、同一seedのvisual/performance parity、Windows/iOS export、実GPU検証を先に追加する。
 * Windows 10/11向け安定動作を最優先する。iOS資産と設定は壊さず、Phase 4以降はiOSタイトルとSafe Areaの回帰も必ず確認する。
 * ゲーム本編はEndlessランを中心に維持する。周辺のキャラ選択、ショップ、図鑑、実績、設定はメタ進行UIとして扱う。
 * 完全無音方針を維持する。BGM、SE、音声素材、AudioStreamPlayerの新規導入はしない。
@@ -48,6 +49,14 @@ v2では以下の3本柱を同時に満たす。
 * 敵処理最適化は`SpatialHashGrid2D.gd`、`EnemyEntityStore.gd`、`EnemyFrameScheduler.gd`、`CombatFrameBudgetScheduler.gd`などの専用基盤へ寄せる。
 * WorkerThreadPoolを使う場合もSceneTree、Node、Resource、ゲーム結果に影響するRNGはメインスレッドに残す。
 * 環境視認性は`tools/environment/measure_environment_contrast.py`と`tools/environment/audit_collectible_confusion.py`で数値確認する。
+* Phase 6以降、HUDはdirty/cadence更新を維持する。critical HUDは変更時即時かつ上限30Hz、combat/touchは10Hz、equipment/goal/notification/debugは4Hzを基準とする。
+* 変化していないLabel textとProgressBar valueを毎フレーム再代入しない。
+* static terrainはprecomputed draw cacheを利用し、動的object描画とsimulationを停止しない。
+* static cacheはcamera、viewport/orientation、zoom、map seed/構造、renderer、quality、texture条件の変更で無効化する。
+* Release標準では詳細performance/energy CSV、Phase 6 counter、debug Dictionary集計を行わない。QAフラグ時だけ有効にする。
+* Phase 6 benchmarkはseed 60606、60秒、敵/弾/ジェム条件固定で比較する。負荷低減による見かけの改善を禁止する。
+* CIはGodot 4.7 stable editor/export templatesを使用し、Windows releaseとmacOS上の未署名iOS IPAを検証する。
+* headless、CI、Simulatorの結果を実iPhone、Metal、thermal、battery、実機60 FPSの証明として扱わない。
 
 ## 禁止事項
 
@@ -75,6 +84,12 @@ v2では以下の3本柱を同時に満たす。
 * Phase 5 iOS性能/視認性: `docs/v2_phase5_extreme_ios_performance.md`
 * Phase 5敵処理: `docs/performance/enemy_simulation_architecture.md`
 * Phase 5環境視認性: `docs/environment_readability_contract.md`
+* Phase 6 renderer/frame: `docs/v2_phase6_renderer_frame_architecture.md`
+* Phase 6 renderer選定: `docs/performance/renderer_selection_report.md`
+* Phase 6 UI更新: `docs/performance/ui_refresh_architecture.md`
+* Phase 6 arena cache: `docs/performance/arena_render_cache_architecture.md`
+* Godot 4.7移行: `docs/migration/godot_4_2_to_4_7.md`
+* Phase 6 iOS実機: `docs/qa/phase6_ios_real_device_checklist.md`
 * iOSタイトル仕様: `docs/ios_responsive_title_spec.md`
 * 環境アート方向性: `docs/environment_art_direction.md`
 * 環境描画パイプライン: `docs/environment_rendering_pipeline.md`

@@ -18,7 +18,7 @@ config/name="ジェムサバイバー：クリスタルフィールド"
 config/description="結晶迷宮を探索し、危険な報酬でビルドを完成させる探索型サバイバー。"
 config/version="0.4.0"
 run/main_scene="res://scenes/Main.tscn"
-config/features=PackedStringArray("4.2", "GL Compatibility")
+config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://assets/sprites/title_logo.svg"
 
 [display]

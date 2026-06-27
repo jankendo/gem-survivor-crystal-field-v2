@@ -1,0 +1,82 @@
+{
+	"alive": 13,
+	"average_fps": 60.0,
+	"benchmark_seed": 60606,
+	"boss_spawn": 0,
+	"commit_sha": "4373a55b1d27c39219939639cf01f8483b60d5b4",
+	"duration_seconds": 59.9999999999979,
+	"enemy_spawn": 212,
+	"frame_time_p50": 4.611,
+	"frame_time_p95": 6.873,
+	"frame_time_p99": 33.644,
+	"gems_collected": 1,
+	"godot_version": {
+		"build": "official",
+		"hash": "5b4e0cb0fd279832bbdd69fed5354d4e5ad26f88",
+		"hex": 263936,
+		"major": 4,
+		"minor": 7,
+		"patch": 0,
+		"status": "stable",
+		"string": "4.7-stable (official)",
+		"timestamp": 0
+	},
+	"kills": 199,
+	"label": "Godot_4_7_Compatibility_Phase6",
+	"long_frame_count_over_33ms": 65,
+	"max_effect_count": 4,
+	"max_enemy_count": 19,
+	"max_gem_count": 153,
+	"max_projectile_count": 15,
+	"metrics": {
+		"counters": {
+			"arena_draw_calls": 60,
+			"arena_queue_redraw_calls": 3600,
+			"critical_refresh_calls": 1932,
+			"dynamic_enemy_draws": 419,
+			"dynamic_gem_draws": 2591,
+			"dynamic_projectile_draws": 323,
+			"event_enemy_die": 199,
+			"event_enemy_spawn": 212,
+			"event_gem_collect": 1,
+			"label_text_attempts": 12312,
+			"label_text_updates": 1288,
+			"minimap_cadence_updates": 60,
+			"minimap_content_draws": 60,
+			"minimap_draw_calls": 60,
+			"process_calls": 3600,
+			"progress_value_attempts": 4314,
+			"progress_value_updates": 2,
+			"refresh_calls": 225,
+			"static_terrain_rebuilds": 14,
+			"static_tile_draw_submissions": 30560
+		},
+		"enabled": true,
+		"gauges": {
+			"ios_label_update_count": 1299,
+			"ios_ui_rebuild_count": 0,
+			"max_effect_count": 4,
+			"max_enemy_count": 19,
+			"max_gem_count": 153,
+			"max_projectile_count": 15,
+			"ui_dirty_update_counts": {
+				"boss_hud": 1681,
+				"combat_hud": 488,
+				"critical_hud": 1933,
+				"equipment": 226,
+				"goal": 227,
+				"notifications": 226,
+				"touch_controls": 507
+			}
+		}
+	},
+	"ok": true,
+	"project_features": [
+		"4.7",
+		"GL Compatibility"
+	],
+	"project_rendering_method": "gl_compatibility",
+	"runtime_rendering_driver": "opengl3",
+	"runtime_rendering_method": "gl_compatibility",
+	"sample_count": 60
+}

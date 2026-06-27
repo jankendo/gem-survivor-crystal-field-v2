@@ -43,6 +43,9 @@ test-output/phase6/*
 !test-output/phase6/after_4_2_compatibility_rerun2.csv
 !test-output/phase6/after_4_2_compatibility_rerun2.json
 !test-output/phase6/after_4_2_compatibility_rerun2.md
+!test-output/phase6/after_4_7_compatibility.csv
+!test-output/phase6/after_4_7_compatibility.json
+!test-output/phase6/after_4_7_compatibility.md
 *.pck
 *.ipa
 *.xcarchive

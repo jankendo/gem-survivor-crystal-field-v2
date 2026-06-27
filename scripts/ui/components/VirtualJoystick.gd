@@ -1,5 +1,5 @@
 extends Control
-class_name VirtualJoystick
+class_name GemVirtualJoystick
 
 const DynamicVirtualJoystickSystemScript = preload("res://scripts/systems/DynamicVirtualJoystickSystem.gd")
 

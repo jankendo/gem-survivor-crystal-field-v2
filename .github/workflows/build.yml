@@ -16,8 +16,8 @@ on:
           - "true"
 
 env:
-  GODOT_VERSION: "4.2-stable"
-  TEMPLATE_VERSION: "4.2.stable"
+  GODOT_VERSION: "4.7-stable"
+  TEMPLATE_VERSION: "4.7.stable"
   PROJECT_NAME: "GemSurvivor"
   IOS_PRESET: "iOS"
   WINDOWS_PRESET: "Windows Desktop"

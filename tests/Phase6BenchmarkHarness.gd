@@ -198,7 +198,8 @@ func _write_markdown(stem: String, summary: Dictionary) -> void:
 	file.store_line("# Phase 6 Benchmark")
 	file.store_line("")
 	for key in ["label", "commit_sha", "project_rendering_method", "runtime_rendering_method", "runtime_rendering_driver", "benchmark_seed", "average_fps", "frame_time_p50", "frame_time_p95", "frame_time_p99", "long_frame_count_over_33ms", "enemy_spawn", "boss_spawn", "alive", "kills", "max_enemy_count", "max_projectile_count", "max_gem_count", "max_effect_count"]:
-		file.store_line("- %s: %s" % [key, str(summary.get(key, ""))])
+		var value := str(summary.get(key, ""))
+		file.store_line("- %s: %s" % [key, value if value != "" else "unavailable"])
 
 func _rendering_method() -> String:
 	if RenderingServer.has_method("get_current_rendering_method"):
@@ -225,4 +226,3 @@ func _find_game(node: Node) -> GameScreen:
 		if found != null:
 			return found
 	return null
-

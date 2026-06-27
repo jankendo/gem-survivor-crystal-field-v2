@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-06-27 Phase 6
+
+### Added
+
+* Renderer比較、UI dirty update、arena static cache、Release telemetry、Godot 4.7移行の設計資料とQA契約。
+* Phase 6専用39 assertionsと同一seed 60秒benchmark。
+* Phase 6 metrics、renderer report、UI counter、static cache reportのActions artifact。
+
+### Changed
+
+* Godot 4.2から4.7 stableへ移行し、Windows/iOS rendererをCompatibilityへ統一。
+* HUD全更新を毎フレーム3,600回から60秒225回へ削減。
+* static terrain再構築を60回から14回へ削減。
+* Release標準のiOS performance/energy集計とCSVを停止。
+* 4.7 native classとの衝突回避のためproject classを`GemVirtualJoystick`へ変更。
+
+### Validation
+
+* 4.7 import/parser error 0、全4,790 assertions成功。
+* desktop/iOS enemy parity 335/335、4 biome、環境視認性監査成功。
+* Windows release exportと15秒起動、Compatibility/OpenGL 3.3を確認。
+* iOS未署名IPAはGitHub Actions macOS buildで検証する。
+
+### Notes
+
+* Windows headless合成計測の33ms超過0は未達。実iPhone Instruments、thermal、battery、長時間frame pacingは未検証。
+
 ## 2026-06-26 Phase 5
 
 ### Added
