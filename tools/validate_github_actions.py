@@ -59,7 +59,7 @@ def main() -> int:
         "Windows SHA256": "SHA256SUMS-Windows.txt" in text,
         "iOS SHA256": "SHA256SUMS-iOS.txt" in text,
         "IPA structure verification": 'unzip -t builds/ios/GemSurvivor-unsigned.ipa' in text,
-        "full test matrix": "windows-full-tests:" in text and "fail-fast: false" in text,
+        "full test matrix": "windows-full-tests:" in text and "fail-fast: false" in text and "timeout-minutes: 180" in text,
         "full shard import": text.count("& $godot --headless --editor --path . --quit-after 1000") >= 2,
         "full shard prerequisites": "prepare_full_test_shard.gd" in text,
         "full core shard": "shard: core-long" in text,
