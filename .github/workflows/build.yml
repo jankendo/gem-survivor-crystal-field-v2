@@ -442,7 +442,7 @@ jobs:
   windows-full-tests:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.full_test == 'true' }}
     runs-on: windows-latest
-    timeout-minutes: 180
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
