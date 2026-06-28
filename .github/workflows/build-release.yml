@@ -3,6 +3,9 @@ name: Build Windows and iOS Release
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
+      - "phase7/**"
     tags: ["v*"]
     paths:
       - "project.godot"
@@ -174,4 +177,3 @@ jobs:
             IOS_UNSIGNED_README.md
           if-no-files-found: error
           compression-level: 0
-

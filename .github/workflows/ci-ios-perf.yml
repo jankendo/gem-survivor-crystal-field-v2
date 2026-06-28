@@ -2,6 +2,19 @@ name: Phase 7 iOS Performance
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - "phase7/**"
+    paths:
+      - "scripts/core/SurvivorState.gd"
+      - "scripts/systems/WeaponSystem.gd"
+      - "scripts/systems/VisualEffect*.gd"
+      - "scripts/systems/WeaponRenderStyleCache.gd"
+      - "scripts/ui/ArenaView.gd"
+      - "data/visual_effect_profiles.json"
+      - "data/weapon_effects.json"
+      - "tests/Phase7EffectStressHarness.gd"
+      - ".github/workflows/ci-ios-perf.yml"
   pull_request:
     branches: [main]
     paths:
@@ -80,4 +93,3 @@ jobs:
             test-output/ci/phase7_perf_timing.json
           if-no-files-found: error
           compression-level: 1
-
