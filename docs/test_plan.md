@@ -92,6 +92,8 @@ Phase 6 benchmarkはseed 60606、60秒、同一装備と同一敵密度で実行
 
 full shardの共通save準備では初回ヘルプだけを既読化し、`qa_telemetry_enabled=false`を維持する。各performance/energy harnessが必要なloggerを直接有効化するため、GameScreenのRelease標準loggerを重ねて動かさない。
 
+density 30/45分は1秒simulation stepを維持する。density 60分はGitHub Actionsの6時間job上限内でlong-horizonを完走するため2秒stepを使う。seed、装備、敵上限、合計3600秒、spawn meter、hard budget検査は維持し、敵削除や密度削減は行わない。
+
 ## 長時間検証
 
 標準テスト全体やオートプレイは時間がかかる。タイムアウトする場合は、実行した範囲、成功した範囲、未完走の範囲を最終報告に明記する。

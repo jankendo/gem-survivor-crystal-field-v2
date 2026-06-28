@@ -1,7 +1,7 @@
 extends RefCounted
 class_name IosPerfAutoplayHarness
 
-func run(tree: SceneTree, minutes: int, output_path: String) -> Array:
+func run(tree: SceneTree, minutes: int, output_path: String, simulation_step_seconds: float = 1.0) -> Array:
 	var failures: Array = []
 	var old_settings: Dictionary = SaveSystem.new().load_data().get("settings", {}).duplicate(true)
 	SaveSystem.new().update_settings({
@@ -27,7 +27,10 @@ func run(tree: SceneTree, minutes: int, output_path: String) -> Array:
 	var frame_ms: Array = []
 	var rows: Array = []
 	var target_seconds := float(minutes * 60)
-	var max_iterations := minutes * 60 + 180
+	var simulation_step := maxf(1.0, simulation_step_seconds)
+	var max_iterations := int(ceil(target_seconds / simulation_step)) + 180
+	var sample_interval := maxi(1, int(round(5.0 / simulation_step)))
+	var render_interval := maxi(1, int(round(60.0 / simulation_step)))
 	var i := 0
 	while game.state.elapsed_seconds < target_seconds and i < max_iterations:
 		var point := Vector2(180.0 + float(i % 5) * 24.0, 120.0 + float(i % 11) * 42.0)
@@ -52,16 +55,16 @@ func run(tree: SceneTree, minutes: int, output_path: String) -> Array:
 				failures.append("pause must cancel dynamic movement")
 			game._toggle_pause()
 		var started := Time.get_ticks_usec()
-		game._process(1.0)
+		game._process(simulation_step)
 		frame_ms.append(float(Time.get_ticks_usec() - started) / 1000.0)
 		if game.state.level_up_pending and not game.state.level_up_options.is_empty():
 			game._select_reward(0)
 		if game.state.chest_pending:
 			game._on_touch_action_started("action_confirm")
-		if i % 5 == 0:
+		if i % sample_interval == 0:
 			rows.append(_sample_row(game, frame_ms))
 			frame_ms.clear()
-		if i % 60 == 0:
+		if i % render_interval == 0:
 			await tree.process_frame
 		i += 1
 	game.virtual_joystick.dynamic_system.end_touch(11)
