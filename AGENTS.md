@@ -57,6 +57,10 @@ v2では以下の3本柱を同時に満たす。
 * Phase 6 benchmarkはseed 60606、60秒、敵/弾/ジェム条件固定で比較する。負荷低減による見かけの改善を禁止する。
 * CIはGodot 4.7 stable editor/export templatesを使用し、Windows releaseと`macos-26`/Xcode 26上の未署名iOS IPAを検証する。
 * headless、CI、Simulatorの結果を実iPhone、Metal、thermal、battery、実機60 FPSの証明として扱わない。
+* Phase 7以降、simulation projectile/gem/enemy projectile配列を表示品質のために削除、置換、統合しない。
+* iOS品質は`data/visual_effect_profiles.json`のrendered上限だけを変更し、damage、collision、DPS、RNG、報酬へ影響させない。
+* Critical visualはsoft budgetで欠落させない。Signature、Combat、Decorativeの順に決定的な表示選択を行う。
+* 通常CIはFast Gate、性能はPhase 7 perf、成果物はRelease、全長時間検証はNightlyを正本とする。
 
 ## 禁止事項
 
@@ -90,6 +94,12 @@ v2では以下の3本柱を同時に満たす。
 * Phase 6 arena cache: `docs/performance/arena_render_cache_architecture.md`
 * Godot 4.7移行: `docs/migration/godot_4_2_to_4_7.md`
 * Phase 6 iOS実機: `docs/qa/phase6_ios_real_device_checklist.md`
+* Phase 7 iOS effect/CI: `docs/v2_phase7_ios_effect_budget_fast_ci.md`
+* Phase 7 effect監査: `docs/performance/phase7_ios_effect_audit.md`
+* Phase 7 visual予算: `docs/performance/phase7_visual_budget_architecture.md`
+* Phase 7 Before/After: `docs/performance/phase7_before_after.md`
+* Phase 7 CI時間: `docs/performance/phase7_ci_timing_baseline.md` / `docs/performance/phase7_ci_timing_after.md`
+* Phase 7 iOS実機: `docs/qa/phase7_ios_real_device_checklist.md`
 * iOSタイトル仕様: `docs/ios_responsive_title_spec.md`
 * 環境アート方向性: `docs/environment_art_direction.md`
 * 環境描画パイプライン: `docs/environment_rendering_pipeline.md`

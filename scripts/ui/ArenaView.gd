@@ -3,12 +3,19 @@ class_name ArenaView
 
 const ObjectiveIndicatorSystemScript = preload("res://scripts/systems/ObjectiveIndicatorSystem.gd")
 const EnvironmentVisualSystemScript = preload("res://scripts/systems/EnvironmentVisualSystem.gd")
+const VisualEffectBudgetSystemScript = preload("res://scripts/systems/VisualEffectBudgetSystem.gd")
+const ProjectileRenderSelectionSystemScript = preload("res://scripts/systems/ProjectileRenderSelectionSystem.gd")
+const MinimapRenderCacheScript = preload("res://scripts/systems/MinimapRenderCache.gd")
 
 signal minimap_tapped
 
 var state = null
 var objective_indicator_system = ObjectiveIndicatorSystemScript.new()
 var environment_visual_system = EnvironmentVisualSystemScript.new()
+var visual_effect_budget_system = VisualEffectBudgetSystemScript.new()
+var projectile_render_selection_system = ProjectileRenderSelectionSystemScript.new()
+var minimap_render_cache = MinimapRenderCacheScript.new()
+var visual_limits: Dictionary = {}
 var camera_zoom := 1.0
 var minimap_rect := Rect2()
 var expanded_map_rect := Rect2()
@@ -25,6 +32,8 @@ var phase6_metrics = null
 var terrain_cache_key := ""
 var terrain_draw_cache: Array = []
 var terrain_cache_rebuild_count := 0
+var background_grid_texture: ImageTexture = null
+var background_grid_color := Color.TRANSPARENT
 
 const ENEMY_COLORS = {
 	"slime": Color(0.36, 0.92, 0.55),
@@ -51,7 +60,14 @@ const ENEMY_COLORS = {
 func bind_state(value) -> void:
 	state = value
 	invalidate_static_cache("bind_state")
+	minimap_render_cache.invalidate()
 	queue_redraw()
+
+func configure_visual_profile(profile_id: String, limits: Dictionary, qa_metrics_enabled: bool = false) -> void:
+	visual_limits = limits.duplicate()
+	visual_effect_budget_system.set_profile(profile_id)
+	visual_effect_budget_system.configure_metrics(qa_metrics_enabled)
+	minimap_render_cache.invalidate()
 
 func configure_mobile(layout: Dictionary) -> void:
 	camera_zoom = float(layout.get("camera_zoom", 1.0))
@@ -75,6 +91,18 @@ func invalidate_static_cache(reason: String = "") -> void:
 	terrain_cache_key = ""
 	terrain_draw_cache.clear()
 	_phase6_metric("static_cache_invalidations")
+
+func phase7_metrics_snapshot() -> Dictionary:
+	return {
+		"visual_budget": visual_effect_budget_system.snapshot(),
+		"minimap_rebuilds": minimap_render_cache.rebuild_count,
+		"weapon_style_cache": state.weapon_render_style_cache.stats() if state != null else {},
+		"effect_commands": state.visual_effect_command_buffer.snapshot() if state != null else {},
+	}
+
+func update_adaptive_visual_quality(frame_time_ms: float, delta: float) -> int:
+	visual_effect_budget_system.update_frame_pressure(frame_time_ms, delta)
+	return visual_effect_budget_system.target_fps()
 
 func _gui_input(event: InputEvent) -> void:
 	var point := Vector2(-1, -1)
@@ -134,11 +162,20 @@ func _draw_background() -> void:
 	var spacing = 48.0
 	var start_x = -fmod(camera.x, spacing)
 	var start_y = -fmod(camera.y, spacing)
-	for x in range(int(start_x), int(size.x) + int(spacing), int(spacing)):
-		draw_line(Vector2(x, 0), Vector2(x, size.y), Color(grid.r, grid.g, grid.b, 0.18), 1.0)
-	for y in range(int(start_y), int(size.y) + int(spacing), int(spacing)):
-		draw_line(Vector2(0, y), Vector2(size.x, y), Color(grid.r, grid.g, grid.b, 0.18), 1.0)
-	for particle in state.background_particles:
+	_ensure_background_grid_texture(Color(grid.r, grid.g, grid.b, 0.18), int(spacing))
+	if background_grid_texture != null:
+		draw_texture_rect(
+			background_grid_texture,
+			Rect2(Vector2(start_x, start_y), size + Vector2(spacing, spacing)),
+			true
+		)
+	var background_particles := visual_effect_budget_system.select_visual_items(
+		state.background_particles,
+		state.camera_position,
+		size / maxf(camera_zoom, 0.01),
+		_visual_limit("background_particles", state.background_particles.size())
+	)
+	for particle in background_particles:
 		var world_pos = particle.get("pos", Vector2.ZERO)
 		if world_pos.distance_to(state.camera_position) > maxf(size.x, size.y) * 0.9:
 			continue
@@ -464,7 +501,14 @@ func _draw_enemies() -> void:
 			draw_circle(pos + Vector2(-enemy.radius * 0.55, -enemy.radius * 0.65), 5.0, Color(0.48, 1.0, 0.34, 0.72))
 
 func _draw_gems() -> void:
-	for gem in state.gems:
+	var rendered_gems := visual_effect_budget_system.select_visual_items(
+		state.gems,
+		state.camera_position,
+		size / maxf(camera_zoom, 0.01),
+		_visual_limit("gems", state.gems.size()),
+		32.0
+	)
+	for gem in rendered_gems:
 		if not _is_world_visible(gem.position, 16.0):
 			continue
 		_phase6_metric("dynamic_gem_draws")
@@ -491,7 +535,7 @@ func _draw_gem_ring_effects() -> void:
 		var alpha = 0.90 * (1.0 - maxf(0.0, t - 0.72) / 0.28)
 		for ring in range(ring_count):
 			var radius = lerpf(58.0 + float(ring) * 28.0, 6.0 + float(ring) * 2.0, collapse_t)
-			draw_arc(center, radius, 0.0, TAU, 48, Color(color.r, color.g, color.b, alpha * 0.30), 2.0)
+			draw_arc(center, radius, 0.0, TAU, _arc_segments(radius), Color(color.r, color.g, color.b, alpha * 0.30), 2.0)
 		var per_ring = maxi(1, int(ceil(float(proxy_count) / float(ring_count))))
 		for i in range(proxy_count):
 			var ring_index = int(floor(float(i) / float(per_ring)))
@@ -515,7 +559,13 @@ func _draw_chests() -> void:
 		draw_rect(Rect2(pos + Vector2(-17, 16), Vector2(34.0 * ttl_ratio, 4)), fill, true)
 
 func _draw_projectiles() -> void:
-	for projectile in state.projectiles:
+	var rendered_projectiles := projectile_render_selection_system.select(
+		state.projectiles,
+		state.camera_position,
+		size / maxf(camera_zoom, 0.01),
+		_visual_limit("projectiles", state.projectiles.size())
+	)
+	for projectile in rendered_projectiles:
 		if not _is_world_visible(projectile.position, maxf(projectile.radius, projectile.splash_radius)):
 			continue
 		_phase6_metric("dynamic_projectile_draws")
@@ -528,7 +578,7 @@ func _draw_projectiles() -> void:
 			draw_line(pos + tail, pos, Color(color.r, color.g, color.b, 0.34), 5.0 if projectile.evolved else 3.0)
 		if projectile.kind == "black_hole":
 			draw_circle(pos, projectile.splash_radius, Color(0.18, 0.08, 0.28, 0.22))
-			draw_arc(pos, projectile.splash_radius, 0.0, TAU, 64, Color(0.74, 0.38, 1.0, 0.52), 3.0)
+			draw_arc(pos, projectile.splash_radius, 0.0, TAU, _arc_segments(projectile.splash_radius), Color(0.74, 0.38, 1.0, 0.52), 3.0)
 			color = _effect_color(effect, Color(0.80, 0.55, 1.0))
 		elif projectile.evolved:
 			color = _effect_color(effect, _evolved_projectile_color(projectile.kind))
@@ -537,7 +587,7 @@ func _draw_projectiles() -> void:
 		elif projectile.kind == "drone_bit":
 			color = _effect_color(effect, Color(0.45, 1.0, 0.90))
 		elif projectile.kind in ["rune_gate", "burning_afterglow", "comet_crater"]:
-			draw_arc(pos, projectile.splash_radius, 0.0, TAU, 48, Color(1.0, 0.42, 0.22, 0.26), 3.0)
+			draw_arc(pos, projectile.splash_radius, 0.0, TAU, _arc_segments(projectile.splash_radius), Color(1.0, 0.42, 0.22, 0.26), 3.0)
 			color = _effect_color(effect, Color(1.0, 0.52, 0.24))
 		elif projectile.kind == "mirror_shard":
 			color = _effect_color(effect, Color(0.78, 0.94, 1.0))
@@ -575,8 +625,8 @@ func _draw_enemy_attack_warnings() -> void:
 		else:
 			var radius = float(warning.get("radius", 52.0))
 			draw_circle(pos, radius, Color(1.0, 0.24, 0.18, 0.10 + pulse * 0.12))
-			draw_arc(pos, radius, 0.0, TAU, 48, Color(1.0, 0.36, 0.22, 0.72), 4.0)
-			draw_arc(pos, radius * clampf(life, 0.15, 1.0), 0.0, TAU, 40, Color(0.62, 0.94, 1.0, 0.78), 2.0)
+			draw_arc(pos, radius, 0.0, TAU, _arc_segments(radius, true), Color(1.0, 0.36, 0.22, 0.72), 4.0)
+			draw_arc(pos, radius * clampf(life, 0.15, 1.0), 0.0, TAU, _arc_segments(radius, true), Color(0.62, 0.94, 1.0, 0.78), 2.0)
 
 func _draw_bombs() -> void:
 	for bomb in state.bombs:
@@ -587,7 +637,7 @@ func _draw_bombs() -> void:
 		if bomb.kind in ["comet_staff", "meteor_rain"]:
 			color = Color(1.0, 0.72, 0.28)
 		draw_circle(pos, 11.0, color)
-		draw_arc(pos, bomb.splash_radius, 0.0, TAU, 36, Color(color.r, color.g, color.b, 0.18), 2.0)
+		draw_arc(pos, bomb.splash_radius, 0.0, TAU, _arc_segments(bomb.splash_radius), Color(color.r, color.g, color.b, 0.18), 2.0)
 
 func _draw_orbits() -> void:
 	if state == null or not state.weapons.has("ice_orbit"):
@@ -599,17 +649,23 @@ func _draw_orbits() -> void:
 	var center = world_to_screen(state.player_position)
 	var effect: Dictionary = state.weapon_effect("ice_orbit")
 	var color = _effect_color(effect, Color(0.32, 0.82, 1.0))
-	draw_arc(center, radius, 0.0, TAU, 64, Color(color.r, color.g, color.b, 0.20), 2.0)
+	draw_arc(center, radius, 0.0, TAU, _arc_segments(radius), Color(color.r, color.g, color.b, 0.20), 2.0)
 	if evolved:
-		draw_arc(center, radius * 0.72, 0.0, TAU, 64, Color(0.78, 0.94, 1.0, 0.24), 3.0)
-		draw_arc(center, radius * 1.28, 0.0, TAU, 64, Color(color.r, color.g, color.b, 0.18), 3.0)
+		draw_arc(center, radius * 0.72, 0.0, TAU, _arc_segments(radius * 0.72), Color(0.78, 0.94, 1.0, 0.24), 3.0)
+		draw_arc(center, radius * 1.28, 0.0, TAU, _arc_segments(radius * 1.28), Color(color.r, color.g, color.b, 0.18), 3.0)
 	for i in range(count):
 		var angle = state.orbit_angle + TAU * float(i) / float(count)
 		var pos = center + Vector2(cos(angle), sin(angle)) * radius
 		draw_circle(pos, 14.0 if not evolved else 17.0, color)
 
 func _draw_hit_flashes() -> void:
-	for flash in state.hit_flashes:
+	var flashes := visual_effect_budget_system.select_visual_items(
+		state.hit_flashes,
+		state.camera_position,
+		size / maxf(camera_zoom, 0.01),
+		_visual_limit("effects", state.hit_flashes.size())
+	)
+	for flash in flashes:
 		if not _is_world_visible(flash.get("pos", state.player_position), float(flash.get("radius", 32.0))):
 			continue
 		var pos = world_to_screen(flash.get("pos", state.player_position))
@@ -622,15 +678,22 @@ func _draw_hit_flashes() -> void:
 			draw_arc(pos, radius * 0.55, direction.angle() - 0.95, direction.angle() + 0.95, 28, Color(color.r, color.g, color.b, 0.56), 6.0)
 			draw_arc(pos, radius * 0.72, direction.angle() - 0.65, direction.angle() + 0.65, 24, Color(1.0, 1.0, 1.0, 0.42), 3.0)
 		elif String(flash.get("source", "")) in ["shock_stack", "thunder_chain"]:
-			draw_arc(pos, radius, 0.0, TAU, 48, Color(0.78, 0.70, 1.0, life * 1.8), 4.0)
+			draw_arc(pos, radius, 0.0, TAU, _arc_segments(radius), Color(0.78, 0.70, 1.0, life * 1.8), 4.0)
 			draw_circle(pos, 12.0 * life * 5.0, Color(1.0, 1.0, 1.0, life))
 		else:
 			draw_circle(pos, radius, Color(color.r, color.g, color.b, life * 2.4))
 		if bool(effect.get("trail", false)):
-			draw_arc(pos, 28.0 * life * 5.0, 0.0, TAU, 32, Color(color.r, color.g, color.b, life), 2.0)
+			var trail_radius: float = 28.0 * life * 5.0
+			draw_arc(pos, trail_radius, 0.0, TAU, _arc_segments(trail_radius), Color(color.r, color.g, color.b, life), 2.0)
 
 func _draw_effect_lines() -> void:
-	for line in state.effect_lines:
+	var lines := visual_effect_budget_system.select_visual_items(
+		state.effect_lines,
+		state.camera_position,
+		size / maxf(camera_zoom, 0.01),
+		_visual_limit("effects", state.effect_lines.size())
+	)
+	for line in lines:
 		if not _is_world_visible(line.get("start", state.player_position), 32.0) and not _is_world_visible(line.get("end", state.player_position), 32.0):
 			continue
 		var start = world_to_screen(line.get("start", state.player_position))
@@ -659,7 +722,13 @@ func _draw_effect_lines() -> void:
 
 func _draw_floating_texts() -> void:
 	var font = get_theme_default_font()
-	for text_data in state.floating_texts:
+	var texts := visual_effect_budget_system.select_visual_items(
+		state.floating_texts,
+		state.camera_position,
+		size / maxf(camera_zoom, 0.01),
+		_visual_limit("damage_numbers", state.floating_texts.size())
+	)
+	for text_data in texts:
 		if not _is_world_visible(text_data.get("pos", state.player_position), 60.0):
 			continue
 		var pos = world_to_screen(text_data.get("pos", state.player_position))
@@ -775,10 +844,6 @@ func _navigation_indicator_targets() -> Array:
 
 func _draw_minimap() -> void:
 	_phase6_metric("minimap_draw_calls")
-	if state.elapsed_seconds - last_minimap_update_time >= minimap_update_interval:
-		last_minimap_update_time = state.elapsed_seconds
-		minimap_update_count += 1
-		_phase6_metric("minimap_cadence_updates")
 	var rect := minimap_rect
 	if rect.size == Vector2.ZERO:
 		var map_size = float(state.ui_layout_defs.get("minimap_size", 144.0))
@@ -786,64 +851,51 @@ func _draw_minimap() -> void:
 	if map_expanded and expanded_map_rect.size != Vector2.ZERO:
 		draw_rect(Rect2(Vector2.ZERO, size), Color(0.01, 0.015, 0.025, 0.72), true)
 		rect = expanded_map_rect
+	var cadence_elapsed: bool = state.elapsed_seconds - last_minimap_update_time >= minimap_update_interval
+	if cadence_elapsed or minimap_render_cache.needs_rebuild(state, rect, map_expanded):
+		last_minimap_update_time = state.elapsed_seconds
+		minimap_update_count += 1
+		minimap_render_cache.rebuild(state, rect, map_expanded)
+		_phase6_metric("minimap_cadence_updates")
 	_draw_minimap_content(rect, map_expanded)
 
 func _draw_minimap_content(rect: Rect2, show_legend: bool) -> void:
 	_phase6_metric("minimap_content_draws")
-	draw_rect(rect, Color(0.02, 0.03, 0.05, minimap_opacity), true)
-	draw_rect(rect, Color(0.42, 0.82, 1.0, 0.88), false, 3.0 if show_legend else 2.0)
-	var scale = Vector2(rect.size.x / state.field_size.x, rect.size.y / state.field_size.y)
-	var player = rect.position + state.player_position * scale
 	var font = get_theme_default_font()
-	for corridor in state.map_data.get("corridors", []):
-		var visible = state.explored_room_ids.has(String(corridor.get("from", ""))) or state.explored_room_ids.has(String(corridor.get("to", "")))
-		if not visible:
-			continue
-		for rect_data in corridor.get("rects", []):
-			var p = rect.position + (rect_data.get("position", Vector2.ZERO) as Vector2) * scale
-			var corridor_size: Vector2 = rect_data.get("size", Vector2.ZERO)
-			draw_rect(Rect2(p - corridor_size * scale * 0.5, corridor_size * scale), Color(0.38, 0.66, 0.78, 0.50), true)
-	for room in state.map_data.get("rooms", []):
-		var room_id = String(room.get("id", ""))
-		var explored = state.explored_room_ids.has(room_id)
-		var p = rect.position + (room.get("position", Vector2.ZERO) as Vector2) * scale
-		var room_size: Vector2 = room.get("size", Vector2.ZERO)
-		var room_rect = Rect2(p - room_size * scale * 0.5, room_size * scale)
-		var terrain_id = String(room.get("terrain_id", "safe_room"))
-		var terrain_data: Dictionary = state.terrain_type_defs.get(terrain_id, {})
-		var color = _data_color(terrain_data, Color(0.28, 0.42, 0.50))
-		draw_rect(room_rect, Color(color.r, color.g, color.b, 0.76) if explored else Color(0.12, 0.14, 0.18, 0.48), true)
-		draw_rect(room_rect, Color(0.58, 0.82, 0.92, 0.42) if explored else Color(0.32, 0.36, 0.42, 0.35), false, 1.0)
-		if bool(room.get("important", false)):
-			var icon = _terrain_minimap_icon(terrain_id)
-			draw_string(font, p + Vector2(-minimap_icon_size * 0.6, minimap_icon_size * 0.45), icon if explored else "?", HORIZONTAL_ALIGNMENT_CENTER, minimap_icon_size * 1.2, int(maxf(10.0, minimap_icon_size)), color.lightened(0.35) if explored else Color(0.54, 0.56, 0.62))
-	for wall in state.crystal_walls:
-		var p = rect.position + wall.position * scale
-		var wall_size = Vector2(maxf(1.0, wall.size.x * scale.x), maxf(1.0, wall.size.y * scale.y))
-		var wall_color = Color(1.0, 0.78, 0.24, 0.90) if wall.breakable else Color(0.42, 0.48, 0.56, 0.72)
-		draw_rect(Rect2(p - wall_size * 0.5, wall_size), wall_color, true)
-	for zone in state.danger_zones:
-		var p = rect.position + (zone.get("position", Vector2.ZERO) as Vector2) * scale
-		draw_circle(p, maxf(4.0, float(zone.get("radius", 0.0)) * scale.x), Color(1.0, 0.12, 0.42, 0.18))
-	for chest in state.chests:
-		var p = rect.position + chest.position * scale
-		draw_rect(Rect2(p - Vector2.ONE * minimap_icon_size * 0.5, Vector2.ONE * minimap_icon_size), _chest_color(String(chest.rarity)), true)
-	for drop in state.field_drops:
-		if not bool(drop.get("collected", false)):
-			draw_circle(rect.position + (drop.get("position", Vector2.ZERO) as Vector2) * scale, minimap_icon_size * 0.45, _data_color(drop, Color.WHITE))
-	for equipment in state.field_equipment:
-		if not bool(equipment.get("collected", false)):
-			var p = rect.position + (equipment.get("position", Vector2.ZERO) as Vector2) * scale
-			draw_rect(Rect2(p - Vector2.ONE * minimap_icon_size * 0.45, Vector2.ONE * minimap_icon_size * 0.90), _data_color(equipment, Color(0.72, 0.92, 1.0)), true)
-	for gimmick in state.field_gimmicks:
-		if not bool(gimmick.get("destroyed", false)):
-			draw_rect(Rect2(rect.position + (gimmick.get("position", Vector2.ZERO) as Vector2) * scale - Vector2.ONE * minimap_icon_size * 0.35, Vector2.ONE * minimap_icon_size * 0.7), _data_color(gimmick, Color.WHITE), true)
-	var boss = state.active_boss()
-	if boss != null:
-		draw_circle(rect.position + boss.position * scale, minimap_icon_size * 0.65, Color(1.0, 0.20, 0.18))
-	elif state.boss_warning_timer > 0.0:
-		draw_circle(rect.position + state.boss_room_position() * scale, minimap_icon_size * 0.65, Color(1.0, 0.20, 0.18))
-	draw_circle(player, minimap_icon_size * 0.55, Color(1.0, 0.92, 0.34))
+	for command in minimap_render_cache.commands:
+		var kind := String(command.get("kind", ""))
+		match kind:
+			"background":
+				draw_rect(rect, Color(0.02, 0.03, 0.05, minimap_opacity), true)
+				draw_rect(rect, Color(0.42, 0.82, 1.0, 0.88), false, 3.0 if show_legend else 2.0)
+			"rect":
+				draw_rect(command.get("rect", Rect2()), command.get("color", Color.WHITE), true)
+			"room":
+				draw_rect(command.get("rect", Rect2()), command.get("color", Color.WHITE), true)
+				draw_rect(command.get("rect", Rect2()), command.get("border", Color.WHITE), false, 1.0)
+				if bool(command.get("important", false)):
+					var icon := _terrain_minimap_icon(String(command.get("terrain_id", "safe_room")))
+					var text := icon if bool(command.get("explored", false)) else "?"
+					var pos: Vector2 = command.get("pos", Vector2.ZERO)
+					draw_string(font, pos + Vector2(-minimap_icon_size * 0.6, minimap_icon_size * 0.45), text, HORIZONTAL_ALIGNMENT_CENTER, minimap_icon_size * 1.2, int(maxf(10.0, minimap_icon_size)), command.get("color_text", Color.WHITE))
+			"circle":
+				var radius := float(command.get("radius", 1.0))
+				if bool(command.get("icon_scale", false)):
+					radius *= minimap_icon_size
+				draw_circle(command.get("pos", Vector2.ZERO), radius, command.get("color", Color.WHITE))
+			"chest":
+				var pos: Vector2 = command.get("pos", Vector2.ZERO)
+				draw_rect(Rect2(pos - Vector2.ONE * minimap_icon_size * 0.5, Vector2.ONE * minimap_icon_size), _chest_color(String(command.get("rarity", "normal"))), true)
+			"equipment":
+				var pos: Vector2 = command.get("pos", Vector2.ZERO)
+				draw_rect(Rect2(pos - Vector2.ONE * minimap_icon_size * 0.45, Vector2.ONE * minimap_icon_size * 0.90), command.get("color", Color.WHITE), true)
+			"gimmick":
+				var pos: Vector2 = command.get("pos", Vector2.ZERO)
+				draw_rect(Rect2(pos - Vector2.ONE * minimap_icon_size * 0.35, Vector2.ONE * minimap_icon_size * 0.7), command.get("color", Color.WHITE), true)
+			"boss":
+				draw_circle(command.get("pos", Vector2.ZERO), minimap_icon_size * 0.65, Color(1.0, 0.20, 0.18))
+			"player":
+				draw_circle(command.get("pos", Vector2.ZERO), minimap_icon_size * 0.55, Color(1.0, 0.92, 0.34))
 	if show_legend:
 		draw_string(font, rect.position + Vector2(16, 28), "拡大マップ　上部の「閉じる」で戻る", HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 32.0, 18, Color(0.94, 0.98, 1.0))
 		var legend_y = rect.end.y - 34.0
@@ -941,7 +993,31 @@ func _draw_biome_ore(camera: Vector2, accent: Color) -> void:
 func _draw_biome_void(camera: Vector2, accent: Color) -> void:
 	for i in range(12):
 		var p = Vector2(fmod(float(i * 421) - camera.x * 0.11, size.x), fmod(float(i * 193) - camera.y * 0.11, size.y))
-		draw_arc(p, 28.0 + float(i % 4) * 8.0, 0.0, TAU, 32, Color(accent.r, accent.g, accent.b, 0.16), 2.0)
+		var radius := 28.0 + float(i % 4) * 8.0
+		draw_arc(p, radius, 0.0, TAU, _arc_segments(radius), Color(accent.r, accent.g, accent.b, 0.16), 2.0)
+
+func _visual_limit(kind: String, fallback: int) -> int:
+	var key := "max_rendered_%s" % kind
+	var configured := int(visual_limits.get(key, fallback))
+	return visual_effect_budget_system.rendered_limit(kind, configured)
+
+func _arc_segments(radius: float, critical: bool = false) -> int:
+	var segments := visual_effect_budget_system.adaptive_arc_segments(radius * camera_zoom, critical)
+	_phase6_metric("phase7_arc_vertex_estimate", segments)
+	return segments
+
+func _ensure_background_grid_texture(color: Color, spacing: int) -> void:
+	var safe_spacing := maxi(8, spacing)
+	if background_grid_texture != null and background_grid_color.is_equal_approx(color):
+		return
+	var image := Image.create_empty(safe_spacing, safe_spacing, false, Image.FORMAT_RGBA8)
+	image.fill(Color.TRANSPARENT)
+	for index in range(safe_spacing):
+		image.set_pixel(index, 0, color)
+		image.set_pixel(0, index, color)
+	background_grid_texture = ImageTexture.create_from_image(image)
+	background_grid_color = color
+	_phase6_metric("phase7_background_grid_texture_rebuilds")
 
 func _phase6_metric(name: String, amount: int = 1) -> void:
 	if phase6_metrics != null:

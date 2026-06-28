@@ -4,7 +4,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 PRESETS = ROOT / "export_presets.cfg"
-WORKFLOW = ROOT / ".github" / "workflows" / "build.yml"
+WORKFLOW = ROOT / ".github" / "workflows" / "build-release.yml"
 UNSIGNED_README = ROOT / "IOS_UNSIGNED_README.md"
 PROJECT = ROOT / "project.godot"
 

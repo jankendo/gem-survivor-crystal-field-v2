@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-06-29 Phase 7
+
+### Added
+
+* Visual effect budget、command buffer/coalescer、projectile render selection、weapon style cache。
+* 5種類の20秒相当iOS evolved-effect stress fixtureとPhase 7専用34 assertions。
+* Fast Gate、Phase 7 performance、Release build、Nightly fullの分割workflow。
+* changed-file routing、batch runner、OS/Godot別cache、suite timing artifact。
+
+### Changed
+
+* iOS qualityをsimulation配列上限からrendered上限へ分離。
+* projectile/bomb/effect hot loopを配列copy/eraseから順序維持compactへ変更。
+* `weapon_effect()`を毎回deep-copyからread-only style cacheへ変更。
+* background gridを複数line drawからrepeat textureへ変更。
+* minimapのstate全走査を4-8Hz command cacheへ変更。
+* 円弧segmentを画面半径とqualityから8-48で決定。
+
+### Validation
+
+* Phase 7 targeted 34 assertions、Fast manifest 68 assertions、全4,830 assertions成功。
+* 600 enemies、500 projectiles、1,000 gemsでsimulation hash完全一致。
+* visual command 7,240から1,880、74.03%削減、Critical欠落0。
+
+### Notes
+
+* headless Phase 6相当A/Bのp95 30%改善は未達。実iPhone Instruments、thermal、battery、30分frame pacingは未検証。
+
 ## 2026-06-27 Phase 6
 
 ### Added

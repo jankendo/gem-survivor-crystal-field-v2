@@ -1,0 +1,24 @@
+{
+  "name": "nightly_full",
+  "unit_runner": "res://tests/test_runner.gd",
+  "external_scripts": [
+    "auto_play_10min.gd",
+    "auto_play_30min_balance.gd",
+    "auto_play_balance_ranged_10min.gd",
+    "auto_play_balance_melee_10min.gd",
+    "auto_play_balance_lightning_10min.gd",
+    "auto_play_balance_poison_10min.gd",
+    "auto_play_balance_explosion_10min.gd",
+    "auto_play_balance_deploy_10min.gd",
+    "auto_play_balance_gem_10min.gd",
+    "auto_play_ios_touch_5min.gd",
+    "auto_play_ios_perf_10min.gd",
+    "auto_play_ios_perf_20min.gd",
+    "auto_play_ios_perf_30min.gd",
+    "auto_play_ios_lightweight_energy_20min.gd",
+    "auto_play_phase5_density_30min.gd",
+    "auto_play_phase5_density_45min.gd",
+    "auto_play_phase5_density_60min.gd"
+  ]
+}
+

@@ -1,79 +1,78 @@
 from pathlib import Path
-import re
 import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = ROOT / ".github" / "workflows" / "build.yml"
+WORKFLOW_DIR = ROOT / ".github" / "workflows"
+REQUIRED = {
+    "ci-fast.yml",
+    "ci-ios-perf.yml",
+    "build-release.yml",
+    "nightly-full.yml",
+}
 
 
 def main() -> int:
-    if not WORKFLOW.is_file():
-        print(f"ERROR: workflow not found: {WORKFLOW}", file=sys.stderr)
-        return 1
-
-    text = WORKFLOW.read_text(encoding="utf-8")
-    checks = {
-        "windows-latest runner": "runs-on: windows-latest" in text,
-        "macos-26 runner": "runs-on: macos-26" in text,
-        "workflow_dispatch": re.search(r"(?m)^\s*workflow_dispatch:\s*$", text) is not None,
-        "full_test input": "full_test:" in text,
-        "GODOT_VERSION": 'GODOT_VERSION: "4.7-stable"' in text,
-        "TEMPLATE_VERSION": 'TEMPLATE_VERSION: "4.7.stable"' in text,
-        "upload-artifact": "actions/upload-artifact@v4" in text,
-        "Pillow dependency": "python -m pip install --upgrade pillow" in text,
-        "Windows artifact": "ChronoMergeTactics-Windows" in text,
-        "Windows artifact archive": "ChronoMergeTactics-Windows.zip" in text,
-        "iOS artifact": "GemSurvivor-iOS-unsigned-IPA" in text,
-        "balance report artifact": "Balance-Report" in text,
-        "safe play area artifact": "Safe-Play-Area-QA" in text,
-        "exploration balance artifact": "Exploration-Balance-Report" in text,
-        "candidate pool artifact": "Candidate-Pool-QA" in text,
-        "asset qa artifact": "Asset-QA-Report" in text,
-        "ui redesign artifact": "UI-Redesign-QA" in text,
-        "field equipment artifact": "Field-Equipment-QA" in text,
-        "selection reroll artifact": "Selection-Reroll-QA" in text,
-        "experience balance artifact": "Experience-Balance-Report" in text,
-        "persistent drop artifact": "Persistent-Drop-QA" in text,
-        "global gem collection artifact": "Global-Gem-Collection-QA" in text,
-        "character evolution artifact": "Character-Evolution-QA" in text,
-        "knockback artifact": "Knockback-QA" in text,
-        "phase4 artifact": "Phase4-iOS-Environment-QA" in text,
-        "phase4 title audit": "tools/audit_ios_title_layout.py" in text,
-        "phase4 environment asset validation": "tools/environment/validate_environment_assets.py" in text,
-        "phase4 environment report": "tools/environment/generate_environment_report.py" in text,
-        "phase4 environment autoplay": "auto_play_environment_10min.gd" in text,
-        "phase4 item placement environment autoplay": "auto_play_item_placement_environment_30min.gd" in text,
-        "phase5 contrast audit": "tools/environment/measure_environment_contrast.py" in text,
-        "phase5 collectible audit": "tools/environment/audit_collectible_confusion.py" in text,
-        "phase5 readability audit": "tools/environment/audit_environment_readability.py" in text,
-        "phase5 grayscale contact sheet": "tools/environment/generate_grayscale_contact_sheet.py" in text,
-        "phase5 colorblind contact sheet": "tools/environment/generate_colorblind_contact_sheet.py" in text,
-        "phase5 enemy parity autoplay": "auto_play_phase5_enemy_parity.gd" in text,
-        "phase5 iOS 60sec autoplay": "auto_play_phase5_ios_60sec.gd" in text,
-        "phase5 long density autoplay": "auto_play_phase5_density_60min.gd" in text,
-        "phase5 artifact": "Phase5-Performance-QA" in text,
-        "phase6 targeted tests": "test_phase6_runner.gd" in text,
-        "phase6 benchmark": "auto_play_phase6_renderer_compare.gd" in text,
-        "phase6 artifact": "Phase6-Renderer-Frame-QA" in text,
-        "Windows SHA256": "SHA256SUMS-Windows.txt" in text,
-        "iOS SHA256": "SHA256SUMS-iOS.txt" in text,
-        "IPA structure verification": 'unzip -t builds/ios/GemSurvivor-unsigned.ipa' in text,
-        "full test matrix": "full-tests:" in text and "runs-on: ubuntu-latest" in text and "fail-fast: false" in text and "timeout-minutes: 360" in text,
-        "full Linux Godot": "Godot_v${env:GODOT_VERSION}_linux.x86_64.zip" in text,
-        "full shard import": text.count("& $godot --headless --editor --path . --quit-after 1000") >= 2,
-        "full shard prerequisites": "prepare_full_test_shard.gd" in text,
-        "full core shard": "shard: core-long" in text,
-        "full density shard": all(f"shard: density-{minutes}" in text for minutes in (30, 45, 60)),
-        "full iOS performance shards": all(f"shard: ios-perf-{minutes}" in text for minutes in (10, 20, 30)),
-        "full shard artifacts": "Full-Test-${{ matrix.shard }}" in text,
-    }
-    failures = [name for name, passed in checks.items() if not passed]
+    failures: list[str] = []
+    missing = [name for name in REQUIRED if not (WORKFLOW_DIR / name).is_file()]
+    failures.extend(f"missing workflow: {name}" for name in missing)
     if failures:
-        for name in failures:
-            print(f"ERROR: missing {name}", file=sys.stderr)
+        for failure in failures:
+            print(f"ERROR: {failure}", file=sys.stderr)
         return 1
 
+    texts = {
+        name: (WORKFLOW_DIR / name).read_text(encoding="utf-8")
+        for name in REQUIRED
+    }
+    combined = "\n".join(texts.values())
+    fast = texts["ci-fast.yml"]
+    perf = texts["ci-ios-perf.yml"]
+    release = texts["build-release.yml"]
+    nightly = texts["nightly-full.yml"]
+    checks = {
+        "Godot 4.7": combined.count('GODOT_VERSION: "4.7-stable"') == 4,
+        "actions/cache v4": all("actions/cache@v4" in text for text in texts.values()),
+        "OS-specific cache keys": "${{ runner.os }}" in combined,
+        "import cache": ".godot/imported" in combined,
+        "Fast Gate pull request": "pull_request:" in fast,
+        "Fast Gate concurrency": "cancel-in-progress: true" in fast,
+        "changed-file routing": "select_test_manifest.py" in fast,
+        "batch runner": "batch_test_runner.gd" in fast and "fast_gate.json" in fast,
+        "Phase 7 stress": "auto_play_ios_effect_budget_snapshot.gd" in fast,
+        "Phase 7 parity": "auto_play_ios_visual_simulation_parity.gd" in fast,
+        "Fast Gate target": "timeout-minutes: 15" in fast,
+        "Phase 7 perf dispatch": "workflow_dispatch:" in perf,
+        "Phase 7 perf target": "timeout-minutes: 20" in perf,
+        "Phase 7 perf artifact": "phase7-performance-summary" in perf,
+        "release dispatch": "workflow_dispatch:" in release,
+        "Windows runner": "runs-on: windows-latest" in release,
+        "macos-26 runner": "runs-on: macos-26" in release,
+        "release target": release.count("timeout-minutes: 25") == 2,
+        "Windows artifact": "ChronoMergeTactics-Windows" in release,
+        "iOS artifact": "GemSurvivor-iOS-unsigned-IPA" in release,
+        "unsigned iOS": "CODE_SIGNING_ALLOWED=NO" in release,
+        "arm64 inspection": 'grep -q "arm64"' in release,
+        "PCK inspection": 'test -f "${APP_DIR}/GemSurvivor.pck"' in release,
+        "icon inspection": 'test -f "${APP_DIR}/Assets.car"' in release,
+        "SHA256 Windows": "SHA256SUMS-Windows.txt" in release,
+        "SHA256 iOS": "SHA256SUMS-iOS.txt" in release,
+        "nightly schedule": "schedule:" in nightly,
+        "nightly dispatch": "workflow_dispatch:" in nightly,
+        "nightly full assertions": "test_runner.gd" in nightly,
+        "nightly density 30": "auto_play_phase5_density_30min.gd" in nightly,
+        "nightly density 45": "auto_play_phase5_density_45min.gd" in nightly,
+        "nightly density 60": "auto_play_phase5_density_60min.gd" in nightly,
+        "nightly all shard artifact": "Full-Test-${{ matrix.shard }}" in nightly,
+        "timing output": "timing.ndjson" in nightly and "fast_gate_timing.json" in fast,
+        "consolidated Fast artifact": "fast-qa-summary" in fast,
+        "failure artifact": "failure-logs" in fast,
+    }
+    failures.extend(name for name, passed in checks.items() if not passed)
+    if failures:
+        for failure in failures:
+            print(f"ERROR: missing {failure}", file=sys.stderr)
+        return 1
     print(f"GitHub Actions validation passed: {len(checks)} checks")
     return 0
 

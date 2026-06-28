@@ -12,6 +12,8 @@ const ItemPlacementSystemScript = preload("res://scripts/systems/ItemPlacementSy
 const ItemPlacementTelemetryScript = preload("res://scripts/systems/ItemPlacementTelemetry.gd")
 const PoolManagerScript = preload("res://scripts/systems/PoolManager.gd")
 const UnlockSystemScript = preload("res://scripts/systems/UnlockSystem.gd")
+const VisualEffectCommandBufferScript = preload("res://scripts/systems/VisualEffectCommandBuffer.gd")
+const WeaponRenderStyleCacheScript = preload("res://scripts/systems/WeaponRenderStyleCache.gd")
 const SurvivorEnemyScript = preload("res://scripts/core/SurvivorEnemy.gd")
 const ProjectileScript = preload("res://scripts/core/Projectile.gd")
 const ExpGemScript = preload("res://scripts/core/ExpGem.gd")
@@ -19,6 +21,8 @@ const DEFAULT_FIELD_SIZE = Vector2(6600, 6600)
 
 var field_size: Vector2 = DEFAULT_FIELD_SIZE
 var pool_manager = PoolManagerScript.new()
+var visual_effect_command_buffer = VisualEffectCommandBufferScript.new()
+var weapon_render_style_cache = WeaponRenderStyleCacheScript.new()
 var player_position: Vector2 = DEFAULT_FIELD_SIZE * 0.5
 var camera_position: Vector2 = DEFAULT_FIELD_SIZE * 0.5
 var player_velocity: Vector2 = Vector2.ZERO
@@ -114,10 +118,10 @@ func release_runtime(type_id: String, value) -> void:
 	pool_manager.release(type_id, value)
 
 func add_hit_flash(data: Dictionary) -> void:
-	hit_flashes.append(pool_manager.acquire("hit_flash", [data]))
+	visual_effect_command_buffer.append(hit_flashes, "hit_flash", data, pool_manager, elapsed_seconds)
 
 func add_effect_line(data: Dictionary) -> void:
-	effect_lines.append(pool_manager.acquire("effect_line", [data]))
+	visual_effect_command_buffer.append(effect_lines, "effect_line", data, pool_manager, elapsed_seconds)
 
 func _reset_pool_dictionary(value: Dictionary, args: Array) -> void:
 	value.clear()
@@ -676,6 +680,12 @@ func _load_definitions() -> void:
 	field_event_defs = _json_dict("res://data/field_events.json", {"events": []})
 	rune_contract_defs = _json_dict("res://data/rune_contracts.json", {})
 	weapon_effect_defs = _json_dict("res://data/weapon_effects.json", {})
+	weapon_render_style_cache.configure(
+		weapon_defs,
+		weapon_effect_defs,
+		performance_profile_id,
+		RenderingServer.get_current_rendering_method()
+	)
 	v2_momentum_defs = _json_dict("res://data/v2_momentum.json", {"enabled": false})
 	build_synergy_defs = _json_dict("res://data/build_synergies.json", {})
 	field_drop_defs = _json_dict("res://data/field_drops.json", {})
@@ -772,13 +782,13 @@ func max_enemies() -> int:
 	return int(balance_data.get("max_enemies", 550))
 
 func max_gems() -> int:
-	return int(balance_data.get("max_gems", 900))
+	return int(balance_data.get("max_simulation_gems", balance_data.get("max_gems", 900)))
 
 func max_projectiles() -> int:
-	return int(balance_data.get("max_projectiles", 420))
+	return int(balance_data.get("max_simulation_projectiles", balance_data.get("max_projectiles", 420)))
 
 func max_enemy_projectiles() -> int:
-	return int(balance_data.get("max_enemy_projectiles", 260))
+	return int(balance_data.get("max_simulation_enemy_projectiles", balance_data.get("max_enemy_projectiles", 260)))
 
 func max_effects() -> int:
 	return int(balance_data.get("max_effects", 200))
@@ -1398,17 +1408,21 @@ func passive_name(id: String) -> String:
 	return String(passive_defs.get(id, {}).get("name_ja", id))
 
 func weapon_effect(weapon_id: String) -> Dictionary:
-	var definition: Dictionary = weapon_defs.get(weapon_id, {})
-	var effect_id = String(definition.get("effect_id", weapon_id))
-	var data: Dictionary = weapon_effect_defs.get(effect_id, {})
-	if data.is_empty():
-		return {}
-	var effect: Dictionary = data.get("evolved", {}) if is_weapon_evolved(weapon_id) else data.get("normal", {})
-	var result = effect.duplicate(true)
-	for key in ["effect_type", "primary_color", "secondary_color", "hit_effect", "evolved_effect_type", "screen_priority", "opacity", "lifetime", "max_effect_count", "melee_arc", "lightning_line", "shock_icon"]:
-		if data.has(key) and not result.has(key):
-			result[key] = data[key]
-	return result
+	return weapon_render_style_cache.resolve(weapon_id, is_weapon_evolved(weapon_id))
+
+func configure_render_profile(profile_id: String, qa_metrics_enabled: bool = false) -> void:
+	performance_profile_id = profile_id
+	weapon_render_style_cache.configure(
+		weapon_defs,
+		weapon_effect_defs,
+		profile_id,
+		RenderingServer.get_current_rendering_method()
+	)
+	visual_effect_command_buffer.configure({
+		"hit_flash": 220,
+		"effect_line": 220,
+		"damage_text": 100,
+	}, qa_metrics_enabled)
 
 func active_synergy_label() -> String:
 	if active_synergies.is_empty():
@@ -1457,25 +1471,18 @@ func record_damage_taken(amount: int) -> void:
 
 func add_floating_text(text: String, pos: Vector2, color: Color) -> void:
 	damage_number_spawn_count += 1
-	floating_texts.append(pool_manager.acquire("damage_text", [{"text": text, "pos": pos, "life": 1.0, "color": color}]))
-	while floating_texts.size() > max_texts():
-		release_runtime("damage_text", floating_texts.pop_front())
+	visual_effect_command_buffer.append(floating_texts, "damage_text", {
+		"text": text,
+		"pos": pos,
+		"life": 1.0,
+		"color": color,
+		"effect_kind": "damage_number",
+	}, pool_manager, elapsed_seconds)
 
 func trim_runtime_arrays() -> void:
-	while projectiles.size() > max_projectiles():
-		release_runtime("projectile", projectiles.pop_front())
-	while enemy_projectiles.size() > max_enemy_projectiles():
-		enemy_projectiles.pop_front()
-	while enemy_attack_warnings.size() > 80:
-		enemy_attack_warnings.pop_front()
-	while gems.size() > max_gems():
-		release_runtime("gem", gems.pop_front())
-	while hit_flashes.size() > max_effects():
-		release_runtime("hit_flash", hit_flashes.pop_front())
-	while effect_lines.size() > max_effects():
-		release_runtime("effect_line", effect_lines.pop_front())
-	while floating_texts.size() > max_texts():
-		release_runtime("damage_text", floating_texts.pop_front())
+	# Visual quality must never remove simulation projectiles, gems, warnings,
+	# or enemy attacks. Visual-only buffers reject low-priority commands on append.
+	pass
 
 func _exp_needed_for_level(value: int) -> int:
 	var required = 20.0 + floor(12.0 * pow(float(value), 1.55)) + floor(float(value * value) * 0.28)

@@ -251,6 +251,16 @@ func _initialize() -> void:
 		,"res://tests/test_phase6_ui_dirty_refresh_contract.gd"
 		,"res://tests/test_phase6_arena_cache_contract.gd"
 		,"res://tests/test_phase6_release_telemetry_contract.gd"
+		,"res://tests/test_visual_effect_budget_system.gd"
+		,"res://tests/test_visual_effect_priority.gd"
+		,"res://tests/test_visual_effect_coalescing.gd"
+		,"res://tests/test_weapon_render_style_cache.gd"
+		,"res://tests/test_no_simulation_projectile_culling.gd"
+		,"res://tests/test_no_simulation_gem_culling.gd"
+		,"res://tests/test_ios_visual_simulation_parity.gd"
+		,"res://tests/test_minimap_render_cache.gd"
+		,"res://tests/test_adaptive_arc_segments.gd"
+		,"res://tests/test_phase7_release_telemetry_disabled.gd"
 	]
 	for suite_path in suites:
 		print("Running ", suite_path)

@@ -11,6 +11,9 @@
   "field_pickup_can_exceed_cap": true,
   "field_over_cap_max_bonus": 3,
   "max_enemies": 600,
+  "max_simulation_gems": 1000,
+  "max_simulation_projectiles": 500,
+  "max_simulation_enemy_projectiles": 260,
   "max_gems": 1000,
   "max_projectiles": 500,
   "max_enemy_projectiles": 260,
@@ -63,57 +66,57 @@
   "performance_profiles": {
     "desktop_low": {
       "max_enemies": 600,
-      "max_gems": 760,
-      "max_projectiles": 340,
-      "max_enemy_projectiles": 180,
-      "max_effects": 130,
-      "max_texts": 56,
-      "max_background_particles": 210
+      "max_rendered_gems": 760,
+      "max_rendered_projectiles": 340,
+      "max_rendered_enemy_projectiles": 180,
+      "max_rendered_effects": 130,
+      "max_rendered_damage_numbers": 56,
+      "max_rendered_background_particles": 210
     },
     "desktop_standard": {
       "max_enemies": 600,
-      "max_gems": 1000,
-      "max_projectiles": 500,
-      "max_enemy_projectiles": 260,
-      "max_effects": 200,
-      "max_texts": 80,
-      "max_background_particles": 300
+      "max_rendered_gems": 1000,
+      "max_rendered_projectiles": 500,
+      "max_rendered_enemy_projectiles": 260,
+      "max_rendered_effects": 200,
+      "max_rendered_damage_numbers": 80,
+      "max_rendered_background_particles": 300
     },
     "desktop_high": {
       "max_enemies": 600,
-      "max_gems": 1150,
-      "max_projectiles": 580,
-      "max_enemy_projectiles": 300,
-      "max_effects": 240,
-      "max_texts": 96,
-      "max_background_particles": 360
+      "max_rendered_gems": 1150,
+      "max_rendered_projectiles": 580,
+      "max_rendered_enemy_projectiles": 300,
+      "max_rendered_effects": 240,
+      "max_rendered_damage_numbers": 96,
+      "max_rendered_background_particles": 360
     },
     "ios_low": {
       "max_enemies": 600,
-      "max_gems": 460,
-      "max_projectiles": 200,
-      "max_enemy_projectiles": 110,
-      "max_effects": 80,
-      "max_texts": 38,
-      "max_background_particles": 120
+      "max_rendered_gems": 260,
+      "max_rendered_projectiles": 120,
+      "max_rendered_enemy_projectiles": 110,
+      "max_rendered_effects": 64,
+      "max_rendered_damage_numbers": 24,
+      "max_rendered_background_particles": 48
     },
     "ios_standard": {
       "max_enemies": 600,
-      "max_gems": 650,
-      "max_projectiles": 280,
-      "max_enemy_projectiles": 160,
-      "max_effects": 120,
-      "max_texts": 54,
-      "max_background_particles": 180
+      "max_rendered_gems": 420,
+      "max_rendered_projectiles": 190,
+      "max_rendered_enemy_projectiles": 160,
+      "max_rendered_effects": 96,
+      "max_rendered_damage_numbers": 36,
+      "max_rendered_background_particles": 90
     },
     "ios_high": {
       "max_enemies": 600,
-      "max_gems": 820,
-      "max_projectiles": 380,
-      "max_enemy_projectiles": 210,
-      "max_effects": 170,
-      "max_texts": 68,
-      "max_background_particles": 240
+      "max_rendered_gems": 620,
+      "max_rendered_projectiles": 280,
+      "max_rendered_enemy_projectiles": 210,
+      "max_rendered_effects": 140,
+      "max_rendered_damage_numbers": 54,
+      "max_rendered_background_particles": 150
     }
   }
 }

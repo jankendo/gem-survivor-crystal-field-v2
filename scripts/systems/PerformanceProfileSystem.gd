@@ -2,12 +2,12 @@ extends RefCounted
 class_name PerformanceProfileSystem
 
 const VISUAL_CAP_KEYS := [
-	"max_gems",
-	"max_projectiles",
-	"max_enemy_projectiles",
-	"max_effects",
-	"max_texts",
-	"max_background_particles"
+	"max_rendered_gems",
+	"max_rendered_projectiles",
+	"max_rendered_enemy_projectiles",
+	"max_rendered_effects",
+	"max_rendered_damage_numbers",
+	"max_rendered_background_particles"
 ]
 
 func apply_to_state(state, settings: Dictionary, platform: String = OS.get_name()) -> String:
@@ -18,10 +18,10 @@ func apply_to_state(state, settings: Dictionary, platform: String = OS.get_name(
 	var profile_id = "%s_%s" % [family, quality]
 	var profiles: Dictionary = state.balance_data.get("performance_profiles", {})
 	var profile: Dictionary = profiles.get(profile_id, profiles.get("%s_standard" % family, {}))
-	for key in VISUAL_CAP_KEYS:
-		if profile.has(key):
-			state.balance_data[key] = int(profile[key])
-	state.performance_profile_id = profile_id
+	if state.has_method("configure_render_profile"):
+		state.configure_render_profile(profile_id, bool(settings.get("qa_telemetry_enabled", false)) or bool(settings.get("phase7_benchmark", false)))
+	else:
+		state.performance_profile_id = profile_id
 	return profile_id
 
 func ui_limits(settings: Dictionary, platform: String = OS.get_name()) -> Dictionary:
@@ -35,7 +35,11 @@ func ui_limits(settings: Dictionary, platform: String = OS.get_name()) -> Dictio
 		"max_damage_numbers": 18 if ios and low else (28 if ios else 54),
 		"notification_lines": 2 if ios and low else (3 if ios else 5),
 		"ui_animation_scale": animation_multiplier * (0.8 if ios and low else 1.0),
-		"max_effects": 120 if ios and low else (180 if ios else 300),
+		"max_rendered_projectiles": 120 if ios and low else (190 if ios else 500),
+		"max_rendered_gems": 260 if ios and low else (420 if ios else 1000),
+		"max_rendered_effects": 64 if ios and low else (96 if ios else 200),
+		"max_rendered_damage_numbers": 24 if ios and low else (36 if ios else 80),
+		"max_rendered_background_particles": 48 if ios and low else (90 if ios else 300),
 		"minimap_update_hz": 4 if bool(settings.get("battery_saver", settings.get("low_power_mode", false))) else int(settings.get("minimap_update_hz", 8)),
 		"background_particles_enabled": bool(settings.get("background_particles", true))
 	}

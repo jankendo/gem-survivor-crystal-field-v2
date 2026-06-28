@@ -1,0 +1,19 @@
+{
+  "name": "fast_gate",
+  "tasks": [
+    {"id": "phase6-renderer", "path": "res://tests/test_phase6_renderer_contract.gd"},
+    {"id": "phase6-ui", "path": "res://tests/test_phase6_ui_dirty_refresh_contract.gd"},
+    {"id": "phase6-arena", "path": "res://tests/test_phase6_arena_cache_contract.gd"},
+    {"id": "visual-budget", "path": "res://tests/test_visual_effect_budget_system.gd"},
+    {"id": "visual-priority", "path": "res://tests/test_visual_effect_priority.gd"},
+    {"id": "visual-coalescing", "path": "res://tests/test_visual_effect_coalescing.gd"},
+    {"id": "style-cache", "path": "res://tests/test_weapon_render_style_cache.gd"},
+    {"id": "projectile-parity", "path": "res://tests/test_no_simulation_projectile_culling.gd"},
+    {"id": "gem-parity", "path": "res://tests/test_no_simulation_gem_culling.gd"},
+    {"id": "profile-parity", "path": "res://tests/test_ios_visual_simulation_parity.gd"},
+    {"id": "minimap-cache", "path": "res://tests/test_minimap_render_cache.gd"},
+    {"id": "adaptive-arcs", "path": "res://tests/test_adaptive_arc_segments.gd"},
+    {"id": "release-telemetry", "path": "res://tests/test_phase7_release_telemetry_disabled.gd"}
+  ]
+}
+

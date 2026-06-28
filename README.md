@@ -2,11 +2,17 @@
 
 Godot 4.7 + GDScript、Compatibility rendererで作る、2D探索型サバイバー / bullet-heavenアクションゲームです。
 
+## Phase 7 iOS Effect Budget / Fast CI
+
+Phase 7では、iOS品質設定をsimulationから完全に分離し、弾・ジェム・敵・DPS・報酬・RNGを維持したまま表示対象だけを決定的に選択します。進化武器の命中、爆発、雷線、ダメージ数字はpriority付きcommand bufferで統合し、武器描画styleはweapon/evolution/quality/renderer単位でcacheします。
+
+通常push/PRは15分枠のFast Gate、iOS effect性能は20分枠、Windows/iOS成果物はRelease workflow、既存長時間テストはNightlyへ分離しました。詳細は[docs/v2_phase7_ios_effect_budget_fast_ci.md](docs/v2_phase7_ios_effect_budget_fast_ci.md)を参照してください。
+
 ## Phase 6 Renderer / Frame Architecture
 
 v2 Phase 6では、Windows/iOSを`gl_compatibility`へ統一し、毎フレームのHUD全更新をdirty/cadence更新へ変更しました。静的terrainはcamera tile単位のprecomputed draw cacheへ分離し、Release標準では詳細performance/energy計測を集計段階から停止します。
 
-Godot 4.7移行後も敵密度、難易度、報酬、RNG、セーブ、Safe Areaを維持しています。4.7の全4,790 assertions、敵パリティ335/335、Windows exportを確認済みです。iOS未署名IPAはGitHub Actions macOS runnerで生成・検査します。詳細は[docs/v2_phase6_renderer_frame_architecture.md](docs/v2_phase6_renderer_frame_architecture.md)を参照してください。
+Godot 4.7移行後も敵密度、難易度、報酬、RNG、セーブ、Safe Areaを維持しています。Phase 7時点の全4,830 assertions、敵パリティ335/335、Windows exportを確認済みです。iOS未署名IPAはGitHub Actions macOS runnerで生成・検査します。詳細は[docs/v2_phase6_renderer_frame_architecture.md](docs/v2_phase6_renderer_frame_architecture.md)を参照してください。
 
 ## Phase 5 Extreme iOS Performance / Combat Readability
 
@@ -92,6 +98,9 @@ $GODOT = ".tools/godot-4.7/editor/Godot_v4.7-stable_win64_console.exe"
 & $GODOT --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_rng.gd
 & $GODOT --headless --path . --script res://tests/test_runner.gd
 & $GODOT --headless --path . --script res://tests/test_phase6_runner.gd
+& $GODOT --headless --path . --script res://tests/test_phase7_runner.gd
+& $GODOT --headless --path . --script res://tests/batch_test_runner.gd -- --manifest=res://tests/manifests/fast_gate.json
+& $GODOT --headless --path . --script res://tests/auto_play_ios_evolved_effect_stress.gd
 & $GODOT --headless --path . --script res://tests/auto_play_phase6_renderer_compare.gd -- --stem=res://test-output/phase6/local_4_7 --label=local_4_7
 & $GODOT --headless --path . --script res://tests/auto_play_60sec.gd
 & $GODOT --headless --path . --script res://tests/auto_play_v2_momentum_10min.gd
@@ -127,6 +136,11 @@ iOS unsigned IPA:
 ## v2正本文書
 
 - [docs/current_gameplay_spec.md](docs/current_gameplay_spec.md)
+- [docs/v2_phase7_ios_effect_budget_fast_ci.md](docs/v2_phase7_ios_effect_budget_fast_ci.md)
+- [docs/performance/phase7_visual_budget_architecture.md](docs/performance/phase7_visual_budget_architecture.md)
+- [docs/performance/phase7_before_after.md](docs/performance/phase7_before_after.md)
+- [docs/performance/phase7_ci_timing_after.md](docs/performance/phase7_ci_timing_after.md)
+- [docs/qa/phase7_ios_real_device_checklist.md](docs/qa/phase7_ios_real_device_checklist.md)
 - [docs/v2_phase6_renderer_frame_architecture.md](docs/v2_phase6_renderer_frame_architecture.md)
 - [docs/performance/renderer_selection_report.md](docs/performance/renderer_selection_report.md)
 - [docs/performance/ui_refresh_architecture.md](docs/performance/ui_refresh_architecture.md)

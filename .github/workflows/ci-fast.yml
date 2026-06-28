@@ -1,0 +1,133 @@
+name: Phase 7 Fast Gate
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - "release/**"
+
+concurrency:
+  group: phase7-fast-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7-stable"
+
+jobs:
+  fast-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: actions/cache@v4
+        with:
+          path: .tools/godot
+          key: godot-editor-${{ runner.os }}-${{ env.GODOT_VERSION }}
+
+      - uses: actions/cache@v4
+        with:
+          path: .godot/imported
+          key: godot-imported-${{ runner.os }}-${{ env.GODOT_VERSION }}-${{ hashFiles('project.godot', 'assets/**', 'data/**') }}
+          restore-keys: |
+            godot-imported-${{ runner.os }}-${{ env.GODOT_VERSION }}-
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('tools/**/*.py') }}
+          restore-keys: pip-${{ runner.os }}-
+
+      - name: Install Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -x ".tools/godot/Godot_v${GODOT_VERSION}_linux.x86_64" ]; then
+            mkdir -p .tools/godot
+            curl -fL "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip" -o /tmp/godot.zip
+            unzip -q /tmp/godot.zip -d .tools/godot
+            chmod +x ".tools/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
+          fi
+
+      - name: Route changed files
+        id: route
+        shell: bash
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          if [ -z "${BASE}" ]; then BASE="HEAD~1"; fi
+          python tools/ci/select_test_manifest.py --base "${BASE}" --head HEAD --github-output "${GITHUB_OUTPUT}"
+
+      - name: Import project
+        if: steps.route.outputs.docs_only != 'true'
+        shell: bash
+        run: |
+          GODOT=".tools/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
+          "${GODOT}" --headless --editor --path . --quit-after 1000
+
+      - name: Parser and check-only
+        if: steps.route.outputs.run_fast_gate == 'true'
+        shell: bash
+        run: |
+          GODOT=".tools/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
+          "${GODOT}" --headless --path . --check-only --script res://tests/test_runner.gd
+
+      - name: Fast batch tests
+        if: steps.route.outputs.run_fast_gate == 'true'
+        shell: bash
+        run: |
+          GODOT=".tools/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
+          "${GODOT}" --headless --path . --script res://tests/batch_test_runner.gd -- \
+            --manifest=res://tests/manifests/fast_gate.json \
+            --output=res://test-output/ci/fast_gate_timing.json
+
+      - name: Phase 7 stress and parity
+        if: steps.route.outputs.run_phase7_perf == 'true'
+        shell: bash
+        run: |
+          GODOT=".tools/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
+          "${GODOT}" --headless --path . --script res://tests/auto_play_ios_effect_budget_snapshot.gd
+          "${GODOT}" --headless --path . --script res://tests/auto_play_ios_visual_simulation_parity.gd
+
+      - name: Workflow validators
+        shell: bash
+        run: |
+          python tools/validate_github_actions.py
+          python tools/validate_ios_workflow.py
+          python tools/validate_v2_asset_manifest.py
+
+      - name: Step summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Phase 7 Fast Gate"
+            echo "- routing: ${{ steps.route.outputs.reason }}"
+            echo "- Godot: ${GODOT_VERSION}"
+            echo "- timing artifact: test-output/ci/fast_gate_timing.json"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload fast QA summary
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fast-qa-summary
+          path: |
+            test-output/ci/
+            test-output/phase7/*.json
+            test-output/phase7/*.md
+          if-no-files-found: warn
+          compression-level: 1
+
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-logs
+          path: |
+            test-output/
+            .godot/editor/editor_log.txt
+          if-no-files-found: warn
+          compression-level: 1
+

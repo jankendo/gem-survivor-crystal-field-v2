@@ -428,7 +428,11 @@ func _process_gem_turret(state, events: Array) -> void:
 	state.weapon_cooldowns["gem_turret"] = maxf(0.46, (1.18 - float(level) * 0.035) * state.get_cooldown_multiplier_for_weapon("gem_turret") * (0.72 if evolved else 1.0))
 
 func _process_projectiles(state, delta: float, events: Array) -> void:
-	for projectile in state.projectiles.duplicate():
+	var original_count: int = state.projectiles.size()
+	var write_index := 0
+	for read_index in range(original_count):
+		var projectile = state.projectiles[read_index]
+		var keep := true
 		projectile.lifetime -= delta
 		if projectile.kind == "magic_bolt" and state.has_overclock("magic_bolt", "comet_orbit"):
 			var homing_target = _nearest_enemy(state, projectile.position, 360.0)
@@ -437,42 +441,47 @@ func _process_projectiles(state, delta: float, events: Array) -> void:
 		projectile.position += projectile.velocity * delta
 		field_gimmick_system.reflect_projectile_if_needed(state, projectile, events)
 		if projectile.kind in ["mirror_shard", "wall_bounce_blaster", "void_mirror", "compass_star"]:
-			_process_mirror_bounce(state, projectile, events)
-			if not state.projectiles.has(projectile):
-				continue
+			keep = _process_mirror_bounce(state, projectile, events)
 		if projectile.lifetime <= 0.0:
-			state.projectiles.erase(projectile)
-			state.release_runtime("projectile", projectile)
-			continue
-		if projectile.kind in ["black_hole", "gravity_anchor"]:
+			keep = false
+		elif keep and projectile.kind in ["black_hole", "gravity_anchor"]:
 			_process_black_hole_projectile(state, projectile, delta, events)
-			continue
-		if projectile.kind in ["rune_gate", "burning_afterglow", "comet_crater", "mine_lantern", "shrine_beam", "thorn_seed", "frost_wall", "magma_core", "guardian_wall"]:
+		elif keep and projectile.kind in ["rune_gate", "burning_afterglow", "comet_crater", "mine_lantern", "shrine_beam", "thorn_seed", "frost_wall", "magma_core", "guardian_wall"]:
 			_process_rune_gate_projectile(state, projectile, delta, events)
-			continue
-		var wall_hits = field_system.damage_walls_in_radius(state, projectile.position, projectile.radius, projectile.damage, events, projectile.kind)
-		var gimmick_hits = field_gimmick_system.damage_gimmicks_in_radius(state, projectile.position, projectile.radius, projectile.damage, events, projectile.kind)
-		if wall_hits > 0 or gimmick_hits > 0:
-			if projectile.pierce_left > 0:
-				projectile.pierce_left -= 1
-			else:
-				state.projectiles.erase(projectile)
-				state.release_runtime("projectile", projectile)
-				continue
-		for enemy in enemy_grid.query_radius(projectile.position, projectile.radius + 80.0):
-			if projectile.hit_targets.has(enemy):
-				continue
-			if enemy.position.distance_to(projectile.position) <= enemy.radius + projectile.radius:
-				projectile.hit_targets.append(enemy)
-				_damage_enemy(state, enemy, projectile.damage, events, projectile.kind, projectile.position)
-				if projectile.splash_radius > 0.0:
-					_explode(state, projectile.position, projectile.splash_radius, max(1, int(projectile.damage * 0.55)), events, "bolt_blast")
+		elif keep:
+			var wall_hits = field_system.damage_walls_in_radius(state, projectile.position, projectile.radius, projectile.damage, events, projectile.kind)
+			var gimmick_hits = field_gimmick_system.damage_gimmicks_in_radius(state, projectile.position, projectile.radius, projectile.damage, events, projectile.kind)
+			if wall_hits > 0 or gimmick_hits > 0:
 				if projectile.pierce_left > 0:
 					projectile.pierce_left -= 1
 				else:
-					state.projectiles.erase(projectile)
-					state.release_runtime("projectile", projectile)
-					break
+					keep = false
+			if keep:
+				for enemy in enemy_grid.query_radius(projectile.position, projectile.radius + 80.0):
+					var enemy_id: int = enemy.get_instance_id()
+					if projectile.hit_target_ids.has(enemy_id):
+						continue
+					if enemy.position.distance_to(projectile.position) <= enemy.radius + projectile.radius:
+						projectile.hit_targets.append(enemy)
+						projectile.hit_target_ids[enemy_id] = true
+						_damage_enemy(state, enemy, projectile.damage, events, projectile.kind, projectile.position)
+						if projectile.splash_radius > 0.0:
+							_explode(state, projectile.position, projectile.splash_radius, max(1, int(projectile.damage * 0.55)), events, "bolt_blast")
+						if projectile.pierce_left > 0:
+							projectile.pierce_left -= 1
+						else:
+							keep = false
+							break
+		if keep:
+			state.projectiles[write_index] = projectile
+			write_index += 1
+		else:
+			state.release_runtime("projectile", projectile)
+	var appended_count: int = state.projectiles.size() - original_count
+	for appended_index in range(appended_count):
+		state.projectiles[write_index] = state.projectiles[original_count + appended_index]
+		write_index += 1
+	state.projectiles.resize(write_index)
 
 func _process_rune_gate_projectile(state, projectile, delta: float, events: Array) -> void:
 	var periodic_interval := 0.50 if projectile.kind == "rune_gate" else (0.46 if projectile.kind in ["mine_lantern", "frost_wall"] else 0.38)
@@ -484,7 +493,7 @@ func _process_rune_gate_projectile(state, projectile, delta: float, events: Arra
 	field_system.damage_walls_in_radius(state, projectile.position, projectile.splash_radius, max(1, int(projectile.damage * 0.40)), events, projectile.kind)
 	field_gimmick_system.damage_gimmicks_in_radius(state, projectile.position, projectile.splash_radius, max(1, int(projectile.damage * 0.40)), events, projectile.kind)
 
-func _process_mirror_bounce(state, projectile, events: Array) -> void:
+func _process_mirror_bounce(state, projectile, events: Array) -> bool:
 	var bounced = false
 	if projectile.position.x < 0.0 or projectile.position.x > state.field_size.x:
 		projectile.velocity.x *= -1.0
@@ -502,8 +511,8 @@ func _process_mirror_bounce(state, projectile, events: Array) -> void:
 			p.bounce_left = projectile.bounce_left
 			state.projectiles.append(p)
 		if projectile.bounce_left < 0:
-			state.projectiles.erase(projectile)
-			state.release_runtime("projectile", projectile)
+			return false
+	return true
 
 func _process_black_hole_projectile(state, projectile, delta: float, events: Array) -> void:
 	var periodic_interval := 0.52 if projectile.kind == "gravity_anchor" else 0.48
@@ -523,10 +532,11 @@ func _process_black_hole_projectile(state, projectile, delta: float, events: Arr
 	field_gimmick_system.damage_gimmicks_in_radius(state, projectile.position, projectile.splash_radius, max(1, int(projectile.damage * 0.45)), events, projectile.kind)
 
 func _process_bombs(state, delta: float, events: Array) -> void:
-	for bomb in state.bombs.duplicate():
+	var write_index := 0
+	for read_index in range(state.bombs.size()):
+		var bomb = state.bombs[read_index]
 		bomb.lifetime -= delta
 		if bomb.lifetime <= 0.0:
-			state.bombs.erase(bomb)
 			state.release_runtime("projectile", bomb)
 			_explode(state, bomb.position, bomb.splash_radius, bomb.damage, events, "final_fireworks" if bomb.evolved else bomb.kind)
 			if bomb.evolved:
@@ -543,6 +553,10 @@ func _process_bombs(state, delta: float, events: Array) -> void:
 					events.append({"type": "player_damage", "damage": self_damage, "hp": state.hp, "enemy": "花火過積載"})
 			elif bomb.kind == "comet_staff" and state.has_overclock("comet_staff", "crater_bonus"):
 				state.projectiles.append(_projectile(state, "comet_crater", bomb.position, Vector2.ZERO, max(1, int(bomb.damage * 0.24)), 99, 1.8, 12.0, bomb.splash_radius * 0.62, true))
+		else:
+			state.bombs[write_index] = bomb
+			write_index += 1
+	state.bombs.resize(write_index)
 
 func _explode(state, pos: Vector2, radius: float, damage: int, events: Array, source: String) -> void:
 	events.append({"type": "explosion", "pos": pos, "radius": radius, "source": source})
@@ -554,7 +568,7 @@ func _explode(state, pos: Vector2, radius: float, damage: int, events: Array, so
 			_damage_enemy(state, enemy, damage, events, source, pos)
 
 func _damage_enemy(state, enemy, damage: int, events: Array, source: String, hit_pos: Vector2) -> void:
-	if not state.enemies.has(enemy) or damage <= 0:
+	if enemy == null or enemy.hp <= 0 or damage <= 0:
 		return
 	var actual_damage = _adjust_damage_for_enemy(state, enemy, damage, source)
 	enemy.hp -= actual_damage

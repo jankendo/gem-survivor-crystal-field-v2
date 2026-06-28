@@ -7,7 +7,7 @@ const EnemySpawnerScript = preload("res://scripts/systems/EnemySpawner.gd")
 
 func run(t) -> void:
 	test_balance_caps_exist(t)
-	test_runtime_arrays_trim_to_caps(t)
+	test_runtime_arrays_preserve_simulation(t)
 	test_spawner_respects_enemy_cap(t)
 
 func test_balance_caps_exist(t) -> void:
@@ -17,21 +17,15 @@ func test_balance_caps_exist(t) -> void:
 	t.assert_true(state.max_gems() > 0, "gem cap should be defined")
 	t.assert_true(state.max_projectiles() > 0, "projectile cap should be defined")
 
-func test_runtime_arrays_trim_to_caps(t) -> void:
+func test_runtime_arrays_preserve_simulation(t) -> void:
 	var state = SurvivorStateScript.new()
 	state.start_new_run(612)
-	state.balance_data["max_projectiles"] = 5
-	state.balance_data["max_gems"] = 6
-	state.balance_data["max_texts"] = 4
-	state.balance_data["max_effects"] = 4
 	for i in range(10):
 		state.projectiles.append(ProjectileScript.new())
 		state.gems.append(ExpGemScript.new())
-		state.hit_flashes.append({"pos": Vector2.ZERO, "life": 1.0})
 	state.trim_runtime_arrays()
-	t.assert_true(state.projectiles.size() <= 5, "projectiles should trim to cap")
-	t.assert_true(state.gems.size() <= 6, "gems should trim to cap")
-	t.assert_true(state.hit_flashes.size() <= 4, "hit flashes should trim to cap")
+	t.assert_eq(state.projectiles.size(), 10, "visual budgets must not trim simulation projectiles")
+	t.assert_eq(state.gems.size(), 10, "visual budgets must not trim simulation gems")
 
 func test_spawner_respects_enemy_cap(t) -> void:
 	var state = SurvivorStateScript.new()

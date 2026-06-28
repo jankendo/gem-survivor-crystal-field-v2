@@ -130,6 +130,7 @@ var v2_momentum_telemetry
 var v2_feedback_director
 var v2_hud_presenter
 var phase6_metrics = null
+var phase7_qa_metrics_enabled := false
 var v2_theme
 var arena_view
 var audio_manager: AudioManager
@@ -290,7 +291,12 @@ func _ready() -> void:
 	var touch_debug_enabled: bool = bool(settings.get("touch_hit_test_debug", false)) and debug_overlay_system.can_create_overlay_node()
 	add_child(touch_hit_test_debug_system)
 	touch_hit_test_debug_system.configure(self, touch_debug_enabled, not input_mode.is_ios_touch())
-	var qa_telemetry_enabled := bool(settings.get("qa_telemetry_enabled", false)) or bool(settings.get("phase6_benchmark", false))
+	var qa_telemetry_enabled := (
+		bool(settings.get("qa_telemetry_enabled", false))
+		or bool(settings.get("phase6_benchmark", false))
+		or bool(settings.get("phase7_benchmark", false))
+	)
+	phase7_qa_metrics_enabled = qa_telemetry_enabled
 	ios_performance_log_system.configure(input_mode.is_ios_touch() and qa_telemetry_enabled)
 	ios_energy_log_system.configure(input_mode.is_ios_touch() and qa_telemetry_enabled)
 	ios_frame_pacing_system.apply(ios_energy_optimizer.budget, input_mode.is_ios_touch())
@@ -305,12 +311,6 @@ func _ready() -> void:
 	})
 	performance_profile_system.apply_to_state(state, settings)
 	runtime_ui_limits = performance_profile_system.ui_limits(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
-	state.balance_data["max_effects"] = mini(state.max_effects(), int(runtime_ui_limits.get("max_effects", state.max_effects())))
-	state.balance_data["max_texts"] = int(runtime_ui_limits.get("max_damage_numbers", state.max_texts())) if bool(runtime_ui_limits.get("damage_numbers_enabled", true)) else 0
-	if not bool(runtime_ui_limits.get("background_particles_enabled", true)):
-		state.background_particles.clear()
-	elif state.background_particles.size() > state.max_background_particles():
-		state.background_particles.resize(state.max_background_particles())
 	state.effect_density = String(settings.get("effect_density", "normal"))
 	meta_system.apply_to_state(state, initial_character_id, initial_blessing_id, save_data)
 	state.debug_exp_multiplier = clampf(float(settings.get("debug_exp_multiplier", 1.0)), 0.25, 20.0)
@@ -337,6 +337,10 @@ func _exit_tree() -> void:
 
 func _process(delta: float) -> void:
 	_phase6_metric("process_calls")
+	if input_mode.is_ios_touch() and arena_view != null:
+		var adaptive_target: int = arena_view.update_adaptive_visual_quality(delta * 1000.0, delta)
+		if Engine.max_fps != adaptive_target:
+			Engine.max_fps = adaptive_target
 	ui_dirty_flag_system.tick(delta)
 	ios_energy_optimizer.tick(delta)
 	ios_energy_optimizer.haptic_count = touch_control_system.haptic_count
@@ -498,6 +502,7 @@ func _build_ui() -> void:
 	arena_view.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(arena_view)
 	arena_view.bind_state(state)
+	arena_view.configure_visual_profile(state.performance_profile_id, runtime_ui_limits, phase7_qa_metrics_enabled)
 	if phase6_metrics != null:
 		arena_view.set_phase6_metrics(phase6_metrics)
 	if input_mode.is_touch_mode():
@@ -1504,47 +1509,28 @@ func _reward_signature(options: Array) -> String:
 func _tick_flashes(delta: float) -> void:
 	state.field_scan_timer = maxf(0.0, state.field_scan_timer - delta)
 	state.goal_change_timer = maxf(0.0, state.goal_change_timer - delta)
-	for flash in state.hit_flashes.duplicate():
-		flash["life"] = float(flash.get("life", 0.0)) - delta
-		if float(flash.get("life", 0.0)) <= 0.0:
-			state.hit_flashes.erase(flash)
-			state.release_runtime("hit_flash", flash)
-	for line in state.effect_lines.duplicate():
-		line["life"] = float(line.get("life", 0.0)) - delta
-		if float(line.get("life", 0.0)) <= 0.0:
-			state.effect_lines.erase(line)
-			state.release_runtime("effect_line", line)
-	for text_data in state.floating_texts.duplicate():
-		text_data["life"] = float(text_data.get("life", 0.0)) - delta
-		if float(text_data.get("life", 0.0)) <= 0.0:
-			state.floating_texts.erase(text_data)
-			state.release_runtime("damage_text", text_data)
-	for ring in state.gem_ring_effects.duplicate():
-		if state.elapsed_seconds - float(ring.get("start_time", state.elapsed_seconds)) >= float(ring.get("duration", 0.78)):
-			state.gem_ring_effects.erase(ring)
-	if input_mode.is_ios_touch() and arena_view != null:
-		var visible_world: Vector2 = arena_view.size / maxf(arena_view.camera_zoom, 0.01)
-		var visible_flashes: Array = effect_batch_system.visible_items(state.hit_flashes, state.camera_position, visible_world, 128.0)
-		var visible_lines: Array = effect_batch_system.visible_items(state.effect_lines, state.camera_position, visible_world, 128.0)
-		var visible_texts: Array = effect_batch_system.merge_damage_numbers(
-			effect_batch_system.visible_items(state.floating_texts, state.camera_position, visible_world, 128.0)
-		)
-		_release_removed_effects("hit_flash", state.hit_flashes, visible_flashes)
-		_release_removed_effects("effect_line", state.effect_lines, visible_lines)
-		_release_removed_effects("damage_text", state.floating_texts, visible_texts)
-		state.hit_flashes = visible_flashes
-		state.effect_lines = visible_lines
-		state.floating_texts = visible_texts
+	_compact_timed_visuals(state.hit_flashes, "hit_flash", delta)
+	_compact_timed_visuals(state.effect_lines, "effect_line", delta)
+	_compact_timed_visuals(state.floating_texts, "damage_text", delta)
+	var write_index := 0
+	for read_index in range(state.gem_ring_effects.size()):
+		var ring: Dictionary = state.gem_ring_effects[read_index]
+		if state.elapsed_seconds - float(ring.get("start_time", state.elapsed_seconds)) < float(ring.get("duration", 0.78)):
+			state.gem_ring_effects[write_index] = ring
+			write_index += 1
+	state.gem_ring_effects.resize(write_index)
 
-func _release_removed_effects(type_id: String, previous: Array, current: Array) -> void:
-	for value in previous:
-		var retained := false
-		for candidate in current:
-			if is_same(value, candidate):
-				retained = true
-				break
-		if not retained:
-			state.release_runtime(type_id, value)
+func _compact_timed_visuals(items: Array, pool_type: String, delta: float) -> void:
+	var write_index := 0
+	for read_index in range(items.size()):
+		var item: Dictionary = items[read_index]
+		item["life"] = float(item.get("life", 0.0)) - delta
+		if float(item.get("life", 0.0)) > 0.0:
+			items[write_index] = item
+			write_index += 1
+		else:
+			state.release_runtime(pool_type, item)
+	items.resize(write_index)
 
 func _finish_game(events: Array) -> void:
 	pending_finish = true
