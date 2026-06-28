@@ -1,7 +1,14 @@
 extends RefCounted
 class_name IosPerfAutoplayHarness
 
-func run(tree: SceneTree, minutes: int, output_path: String, simulation_step_seconds: float = 1.0) -> Array:
+func run(
+	tree: SceneTree,
+	minutes: int,
+	output_path: String,
+	simulation_step_seconds: float = 1.0,
+	start_elapsed_seconds: float = 0.0,
+	prefill_enemy_count: int = 0
+) -> Array:
 	var failures: Array = []
 	var old_settings: Dictionary = SaveSystem.new().load_data().get("settings", {}).duplicate(true)
 	SaveSystem.new().update_settings({
@@ -20,15 +27,31 @@ func run(tree: SceneTree, minutes: int, output_path: String, simulation_step_sec
 		failures.append("iOS performance autoplay could not start a run")
 		return failures
 	game.state.start_new_run(9100 + minutes)
+	game.state.elapsed_seconds = maxf(0.0, start_elapsed_seconds)
+	for minute in range(5, int(floor(game.state.elapsed_seconds / 60.0)) + 1, 5):
+		game.state.boss_spawned_minutes.append(minute)
+		game.state.boss_warned_minutes.append(minute)
 	game.state.max_hp = 999999
 	game.state.hp = 999999
 	game.state.weapons["magic_bolt"] = 6
 	game.state.weapons["ice_orbit"] = 5
+	var prefill_count := mini(prefill_enemy_count, game.state.max_enemies())
+	for enemy_index in range(prefill_count):
+		var angle := TAU * float(enemy_index % 120) / 120.0
+		var radius := 260.0 + float(enemy_index / 120) * 72.0
+		var enemy = game.state.acquire_enemy([
+			"slime",
+			game.state.enemy_defs.get("slime", {}),
+			game.state.player_position + Vector2.RIGHT.rotated(angle) * radius,
+			0,
+			1.0,
+		])
+		game.state.enemies.append(enemy)
 	var frame_ms: Array = []
 	var rows: Array = []
 	var target_seconds := float(minutes * 60)
 	var simulation_step := maxf(1.0, simulation_step_seconds)
-	var max_iterations := int(ceil(target_seconds / simulation_step)) + 180
+	var max_iterations := int(ceil(maxf(0.0, target_seconds - game.state.elapsed_seconds) / simulation_step)) + 180
 	var sample_interval := maxi(1, int(round(5.0 / simulation_step)))
 	var render_interval := maxi(1, int(round(60.0 / simulation_step)))
 	var i := 0
