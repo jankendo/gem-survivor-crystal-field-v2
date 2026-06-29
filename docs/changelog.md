@@ -24,6 +24,7 @@
 * Phase 7 targeted 34 assertions、Fast manifest 68 assertions、全4,830 assertions成功。
 * 600 enemies、500 projectiles、1,000 gemsでsimulation hash完全一致。
 * visual command 7,240から1,880、74.03%削減、Critical欠落0。
+* GitHub Actions Fast 36秒、Phase 7 performance 33秒、Release Windows 76秒/iOS 155秒、Nightly 17/17を30.8分で成功。
 
 ### Notes
 
