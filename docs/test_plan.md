@@ -103,9 +103,9 @@ python tools/validate_ios_workflow.py
 
 Phase 7 stressはseed 70707を基準に、5 scenarioを各20秒相当、敵600、simulation弾500、gem 1000で実行する。visual command数、coalesce、Critical欠落、p50/p95/p99、100ms超過、pool、simulation hashを記録する。2Hzの決定的snapshotであり、実時間20秒待機や実iPhone GPU計測ではない。
 
-CIの正本は`ci-fast.yml`、`ci-ios-perf.yml`、`build-release.yml`、`nightly-full.yml`。既存長時間scriptは削除せずNightlyへ保持する。密度検証は0～30分を連続実行し、30～60分を5分区間の敵600 snapshotへ分割する。各区間は該当時刻のspawn/difficulty curveを使用し、敵、弾、報酬、DPSを下げず、並列化だけでwall timeを短縮する。
+CIの正本は`ci-fast.yml`、`ci-ios-perf.yml`、`build-release.yml`、`nightly-full.yml`。既存長時間scriptは削除しない。密度検証は`auto_play_ios_perf_30min.gd`を0～30分連続実行の正本とし、同一`IosPerfAutoplayHarness.run(self, 30, ...)`を呼ぶ`auto_play_phase5_density_30min.gd`は互換aliasとして残すがNightlyで二重実行しない。30～60分は5分区間の敵600 snapshotへ分割する。各区間は該当時刻のspawn/difficulty curveを使用し、敵、弾、報酬、DPSを下げず、重複排除と並列化だけでwall timeを短縮する。
 
-`workflow_dispatch full_test=true`は既存44本の長時間scriptを削除せず、通常群に加えてiOS perf 10/20/30分、energy、density 30/45/60分を個別化した13 Ubuntu shardで並列実行する。Windows固有契約はstandard Windows jobで別途検証する。高密度runner差を吸収するため各shard timeoutはGitHub Actionsの最大枠360分とする。各shardは個別artifactを残し、1件でも失敗すればworkflowを失敗させる。
+`nightly-full.yml`は既存長時間scriptを削除せず、通常群に加えてiOS perf 10/20/30分、energy、後半密度35/40/45/50/55/60分を17 Ubuntu shardで並列実行する。Windows固有契約はRelease Windows jobで別途検証する。高密度runner差を吸収するため各shard timeoutは360分とする。各shardは個別artifactを残し、1件でも失敗すればworkflowを失敗させる。
 
 full shardの共通save準備では初回ヘルプだけを既読化し、`qa_telemetry_enabled=false`を維持する。各performance/energy harnessが必要なloggerを直接有効化するため、GameScreenのRelease標準loggerを重ねて動かさない。
 

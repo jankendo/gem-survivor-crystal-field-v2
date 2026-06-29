@@ -28,7 +28,10 @@ caches include OS and Godot version in their keys.
 ## Remaining Timing Risk
 
 The Phase 6 baseline density-45 and density-60 jobs took 161.73 and 148.27
-minutes. Phase 7 keeps 0-30 minutes continuous, then covers 30-60 minutes with
-six parallel five-minute snapshots at 600 enemies and the corresponding
-spawn/difficulty curve. The 90-minute result remains unproven until the
-segmented Nightly run completes.
+minutes. Phase 7 keeps 0-30 minutes continuous in the canonical
+`auto_play_ios_perf_30min.gd` shard, then covers 30-60 minutes with six parallel
+five-minute snapshots at 600 enemies and the corresponding spawn/difficulty
+curve. `auto_play_phase5_density_30min.gd` is an exact wrapper-level duplicate
+of the canonical 30-minute harness call, so the file remains available but is
+not executed twice in Nightly. The final 17-shard wall time is recorded after
+the deduplicated run completes.

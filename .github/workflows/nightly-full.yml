@@ -45,8 +45,6 @@ jobs:
             scripts: auto_play_camping_vs_exploration_20min.gd,auto_play_exp_curve_30min.gd,auto_play_global_collection_ios_stress_20min.gd,auto_play_all_character_evolution_conditions.gd,auto_play_exp_balance_10min.gd,auto_play_resonance_magnet_balance_15min.gd,auto_play_global_gem_collection_balance_20min.gd,auto_play_random_field_equipment_balance_20min.gd
           - shard: environment
             scripts: auto_play_environment_windows_high_10min.gd,auto_play_item_placement_environment_30min.gd,auto_play_phase5_ios_10min.gd
-          - shard: density-30
-            scripts: auto_play_phase5_density_30min.gd
           - shard: density-35
             scripts: auto_play_phase7_density_35min.gd
           - shard: density-40

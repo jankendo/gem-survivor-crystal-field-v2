@@ -17,6 +17,7 @@
 * background gridを複数line drawからrepeat textureへ変更。
 * minimapのstate全走査を4-8Hz command cacheへ変更。
 * 円弧segmentを画面半径とqualityから8-48で決定。
+* Nightlyの同一30分harness二重実行を正本1本へ統合し、既存aliasを残したままCI wall timeを短縮。
 
 ### Validation
 
