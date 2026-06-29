@@ -8,7 +8,7 @@ func _initialize() -> void:
 		60,
 		"res://test-output/phase5/density_60min.csv",
 		1.0,
-		45.0 * 60.0,
+		55.0 * 60.0,
 		600
 	)
 	if failures.is_empty():

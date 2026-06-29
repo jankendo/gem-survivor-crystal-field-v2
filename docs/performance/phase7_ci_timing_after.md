@@ -28,6 +28,7 @@ caches include OS and Godot version in their keys.
 ## Remaining Timing Risk
 
 The Phase 6 baseline density-45 and density-60 jobs took 161.73 and 148.27
-minutes. They remain in nightly coverage, so the 90-minute nightly target is
-not yet proven and may remain unmet until those simulations gain validated
-snapshot/resume acceleration without changing their test horizon.
+minutes. Phase 7 keeps 0-30 minutes continuous, then covers 30-60 minutes with
+six parallel five-minute snapshots at 600 enemies and the corresponding
+spawn/difficulty curve. The 90-minute result remains unproven until the
+segmented Nightly run completes.

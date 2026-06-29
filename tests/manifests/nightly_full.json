@@ -17,8 +17,11 @@
     "auto_play_ios_perf_30min.gd",
     "auto_play_ios_lightweight_energy_20min.gd",
     "auto_play_phase5_density_30min.gd",
+    "auto_play_phase7_density_35min.gd",
+    "auto_play_phase7_density_40min.gd",
     "auto_play_phase5_density_45min.gd",
+    "auto_play_phase7_density_50min.gd",
+    "auto_play_phase7_density_55min.gd",
     "auto_play_phase5_density_60min.gd"
   ]
 }
-
