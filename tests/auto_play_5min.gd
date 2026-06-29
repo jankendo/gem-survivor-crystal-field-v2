@@ -1,6 +1,7 @@
 extends SceneTree
 
 const PlayerScript = preload("res://scripts/systems/Player.gd")
+const IosPerformanceBudgetScript = preload("res://scripts/systems/IosPerformanceBudgetSystem.gd")
 
 var failures: Array = []
 
@@ -56,7 +57,11 @@ func _run() -> void:
 	_assert(game.state.kills > 0, "5min autoplay should kill enemies")
 	_assert(game.state.gems_collected > 0, "5min autoplay should collect gems")
 	_assert(game.state.boss_spawned_minutes.has(5), "5min boss should spawn")
-	_assert(game.state.enemies.size() <= game.state.max_enemies(), "enemy cap should hold during 5min autoplay")
+	var hard_enemy_budget := IosPerformanceBudgetScript.new().get_int("max_enemies_total", 700)
+	_assert(
+		game.state.enemies.size() <= hard_enemy_budget,
+		"enemy hard safety budget should hold while protected boss/minion/split spawns may exceed the soft cap, enemies=%d hard_budget=%d" % [game.state.enemies.size(), hard_enemy_budget]
+	)
 	game.state.hp = 0
 	game.state.game_over = true
 	game.state.game_over_reason = "5分検証終了"
