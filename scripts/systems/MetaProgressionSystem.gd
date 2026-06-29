@@ -322,6 +322,7 @@ func _update_stats(save_data: Dictionary, summary: Dictionary) -> void:
 	_merge_number_dictionary(stats, "terrain_kills", summary.get("terrain_kills", {}))
 	_merge_number_dictionary(stats, "kills_in_terrain_type", summary.get("terrain_kills", {}))
 	_merge_number_dictionary(stats, "terrain_crystals", summary.get("terrain_crystals", {}))
+	_merge_number_dictionary(stats, "terrain_boss_defeats", summary.get("terrain_boss_defeats", {}))
 	_merge_number_dictionary(stats, "weapon_pick_count", summary.get("weapon_pick_count_by_id", {}))
 	_merge_number_dictionary(stats, "passive_pick_count", summary.get("passive_pick_count_by_id", {}))
 	_merge_number_dictionary(stats, "kills_by_weapon_id", summary.get("weapon_kill_counts", {}))
@@ -499,6 +500,8 @@ func _condition_met(save_data: Dictionary, condition: Dictionary) -> bool:
 			return int(stats.get("field_drops_collected", 0)) >= int(condition.get("count", condition.get("value", 0)))
 		"total_gems_collected":
 			return int(stats.get("total_gems_collected", 0)) >= int(condition.get("count", condition.get("value", 0)))
+		"terrain_boss_defeat":
+			return int(stats.get("terrain_boss_defeats", {}).get(String(condition.get("terrain", "")), 0)) > 0
 		"gimmick_count":
 			return int(stats.get("field_gimmicks_triggered", 0)) >= int(condition.get("count", condition.get("value", 0)))
 		"secret_void_mapper":

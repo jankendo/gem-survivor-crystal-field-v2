@@ -1,6 +1,7 @@
 extends RefCounted
 class_name MinimapRenderCache
 
+var availability = preload("res://scripts/systems/FieldObjectAvailabilitySystem.gd").new()
 var commands: Array = []
 var cache_key := ""
 var rebuild_count := 0
@@ -67,23 +68,23 @@ func rebuild(state, rect: Rect2, expanded: bool) -> Array:
 		var pos: Vector2 = rect.position + chest.position * scale
 		commands.append({"kind": "chest", "pos": pos, "rarity": String(chest.rarity)})
 	for drop in state.field_drops:
-		if not bool(drop.get("collected", false)):
+		if availability.is_available_now(state, drop, "collected"):
 			commands.append({
-				"kind": "circle",
+				"kind": _drop_kind(drop),
 				"pos": rect.position + (drop.get("position", Vector2.ZERO) as Vector2) * scale,
 				"radius": 0.45,
 				"icon_scale": true,
 				"color": _data_color(drop, Color.WHITE),
 			})
 	for equipment in state.field_equipment:
-		if not bool(equipment.get("collected", false)):
+		if availability.is_available_now(state, equipment, "collected"):
 			commands.append({
 				"kind": "equipment",
 				"pos": rect.position + (equipment.get("position", Vector2.ZERO) as Vector2) * scale,
 				"color": _data_color(equipment, Color(0.72, 0.92, 1.0)),
 			})
 	for gimmick in state.field_gimmicks:
-		if not bool(gimmick.get("destroyed", false)):
+		if availability.is_available_now(state, gimmick, "destroyed"):
 			commands.append({
 				"kind": "gimmick",
 				"pos": rect.position + (gimmick.get("position", Vector2.ZERO) as Vector2) * scale,
@@ -102,7 +103,7 @@ func invalidate() -> void:
 	commands.clear()
 
 func _key(state, rect: Rect2, expanded: bool) -> String:
-	return "%s|%s|%d|%d|%d|%d|%d|%d|%d" % [
+	return "%s|%s|%d|%d|%d|%d|%d|%d|%d|%d" % [
 		str(rect),
 		str(expanded),
 		state.explored_room_ids.hash(),
@@ -112,7 +113,26 @@ func _key(state, rect: Rect2, expanded: bool) -> String:
 		state.field_drops.size(),
 		state.field_equipment.size(),
 		state.field_gimmicks.size(),
+		_availability_signature(state),
 	]
+
+func _availability_signature(state) -> int:
+	var rows: Array = []
+	for drop in state.field_drops:
+		rows.append("%s:%s" % [drop.get("runtime_id", drop.get("id", "")), availability.is_available_now(state, drop, "collected")])
+	for equipment in state.field_equipment:
+		rows.append("%s:%s" % [equipment.get("runtime_id", equipment.get("id", "")), availability.is_available_now(state, equipment, "collected")])
+	for gimmick in state.field_gimmicks:
+		rows.append("%s:%s" % [gimmick.get("runtime_id", gimmick.get("id", "")), availability.is_available_now(state, gimmick, "destroyed")])
+	return rows.hash()
+
+func _drop_kind(drop: Dictionary) -> String:
+	match String(drop.get("id", "")):
+		"weapon_core":
+			return "weapon_core"
+		"passive_core":
+			return "passive_core"
+	return "circle"
 
 func _data_color(data: Dictionary, fallback: Color) -> Color:
 	var raw = data.get("color", data.get("fallback_color", []))

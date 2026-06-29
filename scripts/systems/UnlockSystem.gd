@@ -64,6 +64,8 @@ func _condition_met(save_data: Dictionary, condition: Dictionary) -> bool:
 			return int(stats.get("total_currency_earned", 0)) >= int(condition.get("value", 0))
 		"total_gems_collected":
 			return int(stats.get("total_gems_collected", 0)) >= int(condition.get("value", 0))
+		"terrain_boss_defeat":
+			return int(stats.get("terrain_boss_defeats", {}).get(String(condition.get("terrain", "")), 0)) > 0
 		"survive_seconds":
 			return float(stats.get("best_survival", 0.0)) >= float(condition.get("value", 0.0))
 		"survive_runs":

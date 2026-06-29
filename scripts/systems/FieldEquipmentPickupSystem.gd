@@ -3,12 +3,13 @@ class_name FieldEquipmentPickupSystem
 
 var capacity = preload("res://scripts/systems/EquipmentCapacitySystem.gd").new()
 var over_cap = preload("res://scripts/systems/EquipmentOverCapSystem.gd").new()
+var availability = preload("res://scripts/systems/FieldObjectAvailabilitySystem.gd").new()
 
 func process(state, delta: float, events: Array) -> void:
 	if not state.pending_field_equipment_choice.is_empty():
 		return
 	for equipment in state.field_equipment:
-		if bool(equipment.get("collected", false)) or bool(equipment.get("pending", false)):
+		if not availability.is_available_now(state, equipment, "collected"):
 			continue
 		var pos: Vector2 = equipment.get("position", Vector2.ZERO)
 		if pos.distance_to(state.player_position) <= float(equipment.get("radius", 34.0)) + 22.0:

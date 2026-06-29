@@ -60,7 +60,7 @@ func _run() -> void:
 	var title := _find_button(game.pause_overlay, "タイトルへ戻る")
 	await _tap(title, "pause", "title_confirm")
 	_assert(game.pause_dialog_layer.visible, "real title tap must open confirmation")
-	var cancel := _find_button(game.pause_confirm_dialog, "キャンセル")
+	var cancel := _find_button(game.pause_confirm_dialog, "ゲームへ戻る")
 	await _tap(cancel, "pause_confirm", "cancel")
 	_assert(not game.pause_dialog_layer.visible, "real cancel tap must close confirmation")
 	var resume := _find_button(game.pause_overlay, "ゲームへ戻る")

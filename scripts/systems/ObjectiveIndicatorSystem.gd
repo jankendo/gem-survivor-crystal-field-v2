@@ -1,6 +1,7 @@
 extends RefCounted
 class_name ObjectiveIndicatorSystem
 
+var availability = preload("res://scripts/systems/FieldObjectAvailabilitySystem.gd").new()
 var cached_targets: Array = []
 var next_refresh_time := 0.0
 
@@ -44,7 +45,7 @@ func _add_goals(state, targets: Array) -> void:
 
 func _add_drops(state, targets: Array) -> void:
 	for drop in state.field_drops:
-		if bool(drop.get("collected", false)) or state.elapsed_seconds < float(drop.get("unlock_seconds", 0.0)):
+		if not availability.is_available_now(state, drop, "collected"):
 			continue
 		var id = String(drop.get("id", ""))
 		var priority = int(drop.get("priority", 8))
@@ -54,7 +55,7 @@ func _add_drops(state, targets: Array) -> void:
 
 func _add_field_equipment(state, targets: Array) -> void:
 	for equipment in state.field_equipment:
-		if bool(equipment.get("collected", false)):
+		if not availability.is_available_now(state, equipment, "collected"):
 			continue
 		var priority = maxi(int(equipment.get("priority", 4)), 4)
 		targets.append(_target(String(equipment.get("name_ja", equipment.get("id", "装備"))), equipment.get("position", Vector2.ZERO), _color(equipment), priority, state))
@@ -71,7 +72,7 @@ func _add_boss(state, targets: Array) -> void:
 
 func _add_gimmicks(state, targets: Array) -> void:
 	for gimmick in state.field_gimmicks:
-		if bool(gimmick.get("destroyed", false)) or state.elapsed_seconds < float(gimmick.get("unlock_seconds", 0.0)):
+		if not availability.is_available_now(state, gimmick, "destroyed"):
 			continue
 		var id = String(gimmick.get("id", ""))
 		if id in ["healing_spring", "spawn_rift", "sealed_chest_pillar"]:
@@ -108,7 +109,12 @@ func _add_danger_zone(state, targets: Array) -> void:
 
 func _add_field_event_candidate(state, targets: Array) -> void:
 	if state.navigation_targets.has("field_event"):
-		targets.append(_target("イベント候補", state.navigation_targets["field_event"], Color(0.72, 0.46, 1.0), 3, state))
+		var raw_event_nav = state.navigation_targets["field_event"]
+		if not raw_event_nav is Dictionary:
+			return
+		var event_nav: Dictionary = raw_event_nav
+		if bool(event_nav.get("enabled", false)):
+			targets.append(_target(String(event_nav.get("label", "イベント")), event_nav.get("position", state.player_position), Color(0.72, 0.46, 1.0), 0, state))
 
 func _target(label: String, pos: Vector2, color: Color, priority: int, state) -> Dictionary:
 	return {"label": label, "pos": pos, "color": color, "priority": priority, "distance": pos.distance_to(state.player_position)}

@@ -52,6 +52,10 @@ func resolve(weapon_id: String, evolved: bool) -> Dictionary:
 	resolved["evolved"] = evolved
 	resolved["quality_profile"] = quality_profile
 	resolved["renderer"] = renderer
+	resolved["minimal"] = quality_profile.contains("minimal")
+	if bool(resolved["minimal"]):
+		resolved["trail_enabled"] = false
+		resolved["glow_enabled"] = false
 	resolved["arc_segments"] = _base_arc_segments(resolved)
 	resolved["glow_size"] = _glow_size(resolved)
 	resolved["line_width"] = 4.0 if bool(resolved.get("thick_line", false)) else 2.0
@@ -68,7 +72,9 @@ func stats() -> Dictionary:
 
 func _base_arc_segments(style: Dictionary) -> int:
 	var base := 24
-	if quality_profile.contains("low"):
+	if quality_profile.contains("minimal"):
+		base = 10
+	elif quality_profile.contains("low"):
 		base = 16
 	elif quality_profile.contains("high"):
 		base = 32
@@ -77,6 +83,8 @@ func _base_arc_segments(style: Dictionary) -> int:
 	return base
 
 func _glow_size(style: Dictionary) -> float:
+	if quality_profile.contains("minimal"):
+		return 0.0
 	if quality_profile.contains("low"):
 		return 0.65
 	if quality_profile.contains("high"):
@@ -90,4 +98,3 @@ func _priority(style: Dictionary) -> int:
 	if screen_priority <= 2:
 		return 3
 	return 2
-

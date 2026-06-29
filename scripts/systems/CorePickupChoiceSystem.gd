@@ -9,6 +9,7 @@ func open_choice(state, kind: String, drop: Dictionary, events: Array, count: in
 	if options.is_empty():
 		var fallback_score := 900 if kind == "weapon" else 700
 		state.add_score(fallback_score, drop.get("position", state.player_position))
+		state.message = "現在選べる候補がないため、スコア+%dに変換しました" % fallback_score
 		events.append({"type": "core_choice_empty", "kind": kind, "score": fallback_score})
 		return false
 	var source_id = String(drop.get("runtime_id", drop.get("id", "%s_core" % kind)))
@@ -56,6 +57,9 @@ func _options(state, kind: String, count: int) -> Array:
 	var owned: Dictionary = state.weapons if kind == "weapon" else state.passives
 	for raw_id in defs.keys():
 		var id := String(raw_id)
+		var offerable: bool = state.can_offer_weapon(id) if kind == "weapon" else state.can_offer_passive(id)
+		if not offerable:
+			continue
 		if not capacity.can_take(state, kind, id, true):
 			continue
 		var weight := 6.0 if owned.has(id) else 2.4
@@ -73,6 +77,8 @@ func _options(state, kind: String, count: int) -> Array:
 		used.append(id)
 		options.append(_make_option(state, kind, id))
 		_remove_weighted(weighted, id)
+	if options.is_empty():
+		return options
 	options.append({
 		"uid": "core_decline:%s" % kind,
 		"kind": "decline",

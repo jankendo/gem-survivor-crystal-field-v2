@@ -23,5 +23,6 @@
     "auto_play_phase7_density_50min.gd",
     "auto_play_phase7_density_55min.gd",
     "auto_play_phase5_density_60min.gd"
+    ,"auto_play_ios_phase8_extreme_late_game_stress.gd"
   ]
 }

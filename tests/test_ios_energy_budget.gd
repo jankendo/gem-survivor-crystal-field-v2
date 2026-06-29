@@ -10,9 +10,9 @@ func run(t) -> void:
 	var standard: Dictionary = budget.profile("standard")
 	var saver: Dictionary = budget.profile("battery_saver")
 	t.assert_eq(int(standard.get("target_fps", 0)), 60, "standard profile should target 60 fps")
-	t.assert_eq(int(saver.get("target_fps", 0)), 45, "battery saver should target 45 fps")
+	t.assert_eq(int(saver.get("target_fps", 0)), 30, "battery saver should target 30 fps")
 	t.assert_true(budget.preserves_quality("standard"), "standard profile must preserve quality")
-	t.assert_true(budget.preserves_quality("battery_saver"), "battery saver must preserve weapons, enemies, effects, and UI")
+	t.assert_true(not budget.preserves_quality("battery_saver"), "battery saver should reduce rendered quality without changing simulation")
 	t.assert_true(float(saver.get("minimap_update_interval", 0.0)) > float(standard.get("minimap_update_interval", 0.0)), "battery saver should reduce update frequency")
 
 	var optimizer = OptimizerScript.new()

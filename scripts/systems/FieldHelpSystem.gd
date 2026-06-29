@@ -1,6 +1,8 @@
 extends RefCounted
 class_name FieldHelpSystem
 
+var availability = preload("res://scripts/systems/FieldObjectAvailabilitySystem.gd").new()
+
 func process(state, events: Array, proximity: float = 230.0) -> Dictionary:
 	var target = nearest_target(state, proximity)
 	if target.is_empty():
@@ -35,7 +37,7 @@ func nearest_target(state, max_distance: float = 230.0) -> Dictionary:
 	var best: Dictionary = {}
 	var best_distance = max_distance
 	for drop in state.field_drops:
-		if bool(drop.get("collected", false)) or state.elapsed_seconds < float(drop.get("unlock_seconds", 0.0)):
+		if not availability.is_available_now(state, drop, "collected"):
 			continue
 		var distance = (drop.get("position", Vector2.ZERO) as Vector2).distance_to(state.player_position)
 		if distance <= best_distance:
@@ -46,7 +48,7 @@ func nearest_target(state, max_distance: float = 230.0) -> Dictionary:
 			best["position"] = drop.get("position", Vector2.ZERO)
 			best["distance"] = distance
 	for equipment in state.field_equipment:
-		if bool(equipment.get("collected", false)):
+		if not availability.is_available_now(state, equipment, "collected"):
 			continue
 		var equipment_distance = (equipment.get("position", Vector2.ZERO) as Vector2).distance_to(state.player_position)
 		if equipment_distance <= best_distance:
@@ -61,7 +63,7 @@ func nearest_target(state, max_distance: float = 230.0) -> Dictionary:
 				"distance": equipment_distance
 			}
 	for gimmick in state.field_gimmicks:
-		if bool(gimmick.get("destroyed", false)) or state.elapsed_seconds < float(gimmick.get("unlock_seconds", 0.0)):
+		if not availability.is_available_now(state, gimmick, "destroyed"):
 			continue
 		var distance = (gimmick.get("position", Vector2.ZERO) as Vector2).distance_to(state.player_position)
 		if distance <= best_distance:

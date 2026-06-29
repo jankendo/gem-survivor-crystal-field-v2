@@ -9,6 +9,10 @@ const CrystalCardScript := preload("res://scripts/ui/components/CrystalCard.gd")
 const CharacterCardScript := preload("res://scripts/ui/components/CharacterCard.gd")
 const ToggleOptionScript := preload("res://scripts/ui/components/ToggleOption.gd")
 const SettingsSliderScript := preload("res://scripts/ui/components/SettingsSlider.gd")
+const SettingsChoiceOptionScript := preload("res://scripts/ui/components/SettingsChoiceOption.gd")
+const SettingsScrollStateScript := preload("res://scripts/ui/settings/SettingsScrollState.gd")
+const EffectiveSettingsResolverScript := preload("res://scripts/systems/EffectiveSettingsResolver.gd")
+const ShopUnlockPresentationSystemScript := preload("res://scripts/systems/ShopUnlockPresentationSystem.gd")
 const AchievementCardScript := preload("res://scripts/ui/components/AchievementCard.gd")
 const CollectionCardScript := preload("res://scripts/ui/components/CollectionCard.gd")
 const UiLayoutFixSystemScript := preload("res://scripts/systems/UiLayoutFixSystem.gd")
@@ -82,8 +86,14 @@ var ios_title_layout = IosTitleLayoutSystemScript.new()
 var mobile_scroll_system
 var settings_scroll: ScrollContainer
 var settings_section_nodes: Dictionary = {}
+var settings_bindings: Dictionary = {}
+var settings_scroll_state = SettingsScrollStateScript.new()
+var effective_settings_resolver = EffectiveSettingsResolverScript.new()
+var settings_option_labels: Dictionary = {}
+var shop_unlock_presenter = ShopUnlockPresentationSystemScript.new()
 
 func _ready() -> void:
+	settings_option_labels = _json_dict("res://data/settings_option_labels.json")
 	collection_tabs = collection_controller.tabs.duplicate(true)
 	collection_tab_names = collection_controller.tab_names.duplicate(true)
 	_sync_from_save()
@@ -186,10 +196,8 @@ func _handle_settings_key(keycode: int) -> void:
 	match keycode:
 		KEY_I:
 			_toggle_auto_infinite()
-			show_settings()
 		KEY_D:
 			_update_setting("auto_recall_drone", not auto_recall_enabled)
-			show_settings()
 		KEY_R:
 			show_reset()
 		KEY_ESCAPE, KEY_S:
@@ -716,6 +724,18 @@ func show_shop() -> void:
 			var cost = currency_sink_system.cost_for(sink_id, current)
 			var condition_ok = currency_sink_system.condition_met(save_data, sink_id)
 			var condition_text = currency_sink_system.progress_text(save_data, sink_id)
+			if current_category in ["weapon_license", "passive_license"]:
+				var kind := "weapon" if current_category == "weapon_license" else "passive"
+				var target_id := String(item.get("target", ""))
+				var definitions := _json_dict("res://data/weapons.json" if kind == "weapon" else "res://data/passives.json")
+				var item_definition: Dictionary = definitions.get(target_id, item)
+				var presentation := shop_unlock_presenter.card(save_data, kind, target_id, item_definition, cost)
+				var unlock_button = CrystalButtonScript.new()
+				unlock_button.setup(String(presentation.get("text", "")), Color(0.52, 1.0, 0.76) if bool(presentation.get("available", false)) else Color(0.58, 0.62, 0.72), Vector2(0, 250 if input_mode.is_touch_mode() else 220))
+				unlock_button.disabled = bool(presentation.get("purchased", false)) or not bool(presentation.get("available", false)) or not bool(presentation.get("currency_ok", false))
+				unlock_button.pressed.connect(_purchase_currency_sink.bind(sink_id))
+				body.add_child(unlock_button)
+				continue
 			var blessing_detail := ""
 			if current_category == "blessings":
 				blessing_detail = "\n%s" % meta_system.blessing_detail_text(String(item.get("target", "")), save_data)
@@ -1025,6 +1045,8 @@ func show_quests() -> void:
 		body.add_child(card)
 
 func show_settings() -> void:
+	if screen_mode == "settings" and settings_scroll != null and not settings_scroll_state.valid:
+		settings_scroll_state.capture(settings_scroll)
 	_sync_from_save()
 	_clear()
 	screen_mode = "settings"
@@ -1036,6 +1058,7 @@ func show_settings() -> void:
 	_add_top_bar(root, "設定", "各項目をタップして変更。シード空欄ならランダム。", show_title)
 	var settings: Dictionary = save_data.get("settings", {})
 	settings_section_nodes.clear()
+	settings_bindings.clear()
 	if input_mode.is_touch_mode():
 		var category_row := _horizontal_chip_container(root, "SettingsCategoryChips")
 		for category in ["操作", "表示", "UIサイズ", "マップ", "性能", "開発者", "音", "データ"]:
@@ -1090,11 +1113,12 @@ func show_settings() -> void:
 	_add_toggle(row, "マップタップ拡大", "map_tap_expand", bool(settings.get("map_tap_expand", true)))
 	_add_choice(row, "カメラ表示サイズ", "camera_view_size", String(settings.get("camera_view_size", "standard")), ["near", "standard", "wide"])
 	settings_section_nodes["性能"] = _add_label(row, "パフォーマンス", 24, Color(0.52, 1.0, 0.86), HORIZONTAL_ALIGNMENT_LEFT)
-	_add_choice(row, "エフェクト量", "effect_density", String(settings.get("effect_density", "normal")), ["low", "normal", "high"])
+	_add_choice(row, "エフェクト量", "effect_density", String(settings.get("effect_density", "normal")), ["minimal", "low", "normal", "high"])
 	_add_choice(row, "描画品質", "render_quality", String(settings.get("render_quality", "standard")), ["low", "standard", "high"])
 	_add_choice(row, "ミニマップ更新頻度", "minimap_update_hz", int(settings.get("minimap_update_hz", 8)), [4, 8, 12])
 	_add_toggle(row, "背景粒子", "background_particles", bool(settings.get("background_particles", true)))
-	_add_toggle(row, "省電力モード（45fps・品質維持）", "battery_saver", bool(settings.get("battery_saver", settings.get("low_power_mode", false))))
+	_add_toggle(row, "省電力モード（30fps・極限軽量）", "battery_saver", bool(settings.get("battery_saver", settings.get("low_power_mode", false))))
+	_add_label(row, effective_settings_resolver.battery_description(), 15, Color(1.0, 0.86, 0.42), HORIZONTAL_ALIGNMENT_LEFT)
 	settings_section_nodes["開発者"] = _add_label(row, "開発者", 24, Color(1.0, 0.78, 0.38), HORIZONTAL_ALIGNMENT_LEFT)
 	_add_choice(row, "経験値倍率", "debug_exp_multiplier", float(settings.get("debug_exp_multiplier", 1.0)), [0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 5.0, 10.0, 20.0])
 	_add_toggle(row, "デバッグ倍率中も実績・解放を保存する", "allow_debug_progress", bool(settings.get("allow_debug_progress", false)))
@@ -1125,6 +1149,10 @@ func show_settings() -> void:
 	seed_row.add_child(seed_input)
 	_add_menu_button(seed_row, "保存", func(): _set_seed_text(seed_input.text), Color(0.52, 1.0, 1.0))
 	_add_menu_button(settings_body, "セーブ初期化へ", show_reset, Color(1.0, 0.34, 0.42), true)
+	call_deferred("_restore_settings_scroll")
+
+func _restore_settings_scroll() -> void:
+	settings_scroll_state.restore(settings_scroll, settings_bindings)
 
 func _scroll_to_settings_section(section: String) -> void:
 	await get_tree().process_frame
@@ -1177,7 +1205,6 @@ func start_game() -> void:
 		(game as GameScreen).initial_seed_text = String(save_data.get("settings", {}).get("seed_text", ""))
 	add_child(game)
 	game.game_finished.connect(_on_game_finished)
-	game.title_requested.connect(show_title)
 
 func _on_game_finished(summary: Dictionary) -> void:
 	var meta_result: Dictionary = {}
@@ -1431,25 +1458,34 @@ func _add_title_key_visual(parent: Control, min_size: Vector2 = Vector2(360, 150
 func _add_toggle(parent: Control, title: String, key: String, value: bool) -> void:
 	var toggle = ToggleOptionScript.new()
 	toggle.setup(title, value)
-	toggle.toggled_value.connect(func(v): _update_setting(key, v))
+	toggle.toggled_value.connect(func(v):
+		_update_setting(key, v)
+		if key == "battery_saver":
+			settings_scroll_state.capture(settings_scroll, key)
+			show_settings()
+	)
+	settings_bindings[key] = toggle
 	parent.add_child(toggle)
 
 func _add_slider(parent: Control, title: String, key: String, value: float, min_value: float = 0.0, max_value: float = 1.0) -> void:
 	var slider = SettingsSliderScript.new()
 	slider.setup(title, value, min_value, max_value)
 	slider.value_changed.connect(func(v): _update_setting(key, v))
+	settings_bindings[key] = slider
 	parent.add_child(slider)
 
 func _add_choice(parent: Control, title: String, key: String, value, choices: Array) -> void:
-	var button = CrystalButtonScript.new()
-	button.setup("%s: %s" % [title, str(value)], Color(0.42, 0.82, 1.0), Vector2(0, 60 if input_mode.is_touch_mode() else 48))
-	button.pressed.connect(func():
-		var index = choices.find(value)
-		var next_value = choices[(index + 1) % choices.size()]
-		_update_setting(key, next_value)
-		show_settings()
-	)
-	parent.add_child(button)
+	var settings: Dictionary = save_data.get("settings", {})
+	var labels: Dictionary = settings_option_labels.get(key, {})
+	var effective_text := effective_settings_resolver.effective_value_text(key, settings, settings_option_labels)
+	var choice = SettingsChoiceOptionScript.new()
+	choice.setup(title, key, value, choices, labels, effective_text)
+	choice.choice_selected.connect(_on_setting_choice_selected)
+	settings_bindings[key] = choice.option_button
+	parent.add_child(choice)
+
+func _on_setting_choice_selected(key: String, value) -> void:
+	_update_setting(key, value)
 
 func _draw_neon_background() -> void:
 	for i in range(5):

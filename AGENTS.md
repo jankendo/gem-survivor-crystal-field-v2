@@ -61,6 +61,14 @@ v2では以下の3本柱を同時に満たす。
 * iOS品質は`data/visual_effect_profiles.json`のrendered上限だけを変更し、damage、collision、DPS、RNG、報酬へ影響させない。
 * Critical visualはsoft budgetで欠落させない。Signature、Combat、Decorativeの順に決定的な表示選択を行う。
 * 通常CIはFast Gate、性能はPhase 7 perf、成果物はRelease、全長時間検証はNightlyを正本とする。
+* 省電力モードは保存設定を破壊せず、実効設定だけを最軽量化する。
+* minimal表示でもsimulation、敵数、攻撃、報酬、RNGを変更しない。
+* ゲーム中のタイトル復帰は必ずリザルト清算を通す。
+* 通常の設定変更で画面全体を再構築しない。
+* コア候補は解放済み・ON・未封印・未最大・容量内の項目だけにする。
+* unlock前のフィールドオブジェクトを描画、ミニマップ、誘導、スキャンへ出さない。
+* イベントナビは生成された実対象へ向け、対象消滅時に解除する。
+* ショップ解放条件は具体的な日本語、現在値、目標、不足値、購入不可理由を表示する。
 
 ## 禁止事項
 
@@ -100,6 +108,11 @@ v2では以下の3本柱を同時に満たす。
 * Phase 7 Before/After: `docs/performance/phase7_before_after.md`
 * Phase 7 CI時間: `docs/performance/phase7_ci_timing_baseline.md` / `docs/performance/phase7_ci_timing_after.md`
 * Phase 7 iOS実機: `docs/qa/phase7_ios_real_device_checklist.md`
+* Phase 8 iOS極限軽量/UX: `docs/v2_phase8_ios_extreme_lite_gameplay_ux.md`
+* Phase 8性能監査: `docs/performance/phase8_ios_extreme_lite_audit.md`
+* Phase 8 Before/After: `docs/performance/phase8_before_after.md`
+* Phase 8 UX監査: `docs/qa/phase8_gameplay_ux_audit.md`
+* Phase 8 iOS実機: `docs/qa/phase8_ios_real_device_checklist.md`
 * iOSタイトル仕様: `docs/ios_responsive_title_spec.md`
 * 環境アート方向性: `docs/environment_art_direction.md`
 * 環境描画パイプライン: `docs/environment_rendering_pipeline.md`

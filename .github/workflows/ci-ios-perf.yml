@@ -1,10 +1,11 @@
-name: Phase 7 iOS Performance
+name: Phase 8 iOS Performance
 
 on:
   workflow_dispatch:
   push:
     branches:
       - "phase7/**"
+      - "phase8/**"
     paths:
       - "scripts/core/SurvivorState.gd"
       - "scripts/systems/WeaponSystem.gd"
@@ -28,14 +29,14 @@ on:
       - "tests/Phase7EffectStressHarness.gd"
 
 concurrency:
-  group: phase7-perf-${{ github.workflow }}-${{ github.ref }}
+  group: phase8-perf-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   GODOT_VERSION: "4.7-stable"
 
 jobs:
-  phase7-performance:
+  phase8-performance:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -74,6 +75,12 @@ jobs:
             --manifest=res://tests/manifests/phase7_perf.json \
             --output=res://test-output/ci/phase7_perf_timing.json
 
+      - name: Run Phase 8 standard low minimal battery comparison
+        shell: bash
+        run: |
+          GODOT=".tools/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
+          "${GODOT}" --headless --path . --script res://tests/auto_play_ios_phase8_extreme_late_game_stress.gd | tee test-output/ci/phase8_perf.log
+
       - name: Performance summary
         if: always()
         shell: bash
@@ -87,9 +94,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase7-performance-summary
+          name: phase8-performance-summary
           path: |
             test-output/phase7/
             test-output/ci/phase7_perf_timing.json
+            test-output/ci/phase8_perf.log
           if-no-files-found: error
           compression-level: 1

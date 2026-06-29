@@ -3,6 +3,9 @@ class_name FieldEventSystem
 
 const CrystalWallScript = preload("res://scripts/core/CrystalWall.gd")
 const ChestScript = preload("res://scripts/core/Chest.gd")
+const FieldEventNavigationSystemScript = preload("res://scripts/systems/FieldEventNavigationSystem.gd")
+
+var navigation = FieldEventNavigationSystemScript.new()
 
 func process(state, delta: float, events: Array) -> void:
 	if state.game_over or state.level_up_pending or state.chest_pending:
@@ -10,6 +13,7 @@ func process(state, delta: float, events: Array) -> void:
 	if not state.active_field_event.is_empty():
 		state.field_event_timer = maxf(0.0, state.field_event_timer - delta)
 		_tick_active_event(state, delta, events)
+		navigation.update(state)
 		if state.field_event_timer <= 0.0:
 			_finish_event(state, events)
 		return
@@ -43,6 +47,8 @@ func _start_event(state, events: Array, forced_id: String = "") -> void:
 	else:
 		event = state.rng.choice(event_defs)
 	state.active_field_event = event.duplicate(true)
+	var instance_id := "field_event_%d" % (state.field_event_count + 1)
+	state.active_field_event["instance_id"] = instance_id
 	state.active_field_event["start_crystals"] = state.crystals_destroyed
 	state.active_field_event["start_chests"] = state.chests_opened
 	state.active_field_event["start_danger_time"] = state.danger_time
@@ -52,12 +58,19 @@ func _start_event(state, events: Array, forced_id: String = "") -> void:
 	events.append({"type": "field_event_start", "id": event.get("id", ""), "name": event.get("name_ja", ""), "duration": state.field_event_timer, "risk": event.get("risk", ""), "reward": event.get("reward", "")})
 	match String(event.get("id", "")):
 		"crystal_surge":
+			state.active_field_event["target_kind"] = "crystal_wall"
 			_spawn_event_crystals(state, events)
 		"elite_hunt":
+			state.active_field_event["target_kind"] = "elite"
+			state.active_field_event["target_runtime_id"] = instance_id
 			state.event_elite_reward_pending = true
+			_spawn_event_elite(state, instance_id, events)
 			events.append({"type": "field_event_reward_pending", "id": "elite_hunt"})
 		"danger_bloom":
-			state.danger_zones.append({"id": "event_danger_%d" % state.field_event_count, "position": state.random_walkable_position(state.player_position, 120.0, 360.0), "radius": 420.0, "biome": state.current_biome_id})
+			var danger_id := "%s_danger" % instance_id
+			state.active_field_event["target_kind"] = "danger_zone"
+			state.active_field_event["target_runtime_id"] = danger_id
+			state.danger_zones.append({"id": danger_id, "runtime_id": danger_id, "position": state.random_walkable_position(state.player_position, 120.0, 360.0), "radius": 420.0, "biome": state.current_biome_id})
 		"cursed_treasure":
 			var resolved: Dictionary = state.resolve_pickup_position({
 				"pickup_type": "chest",
@@ -69,9 +82,13 @@ func _start_event(state, events: Array, forced_id: String = "") -> void:
 			})
 			if bool(resolved.get("ok", false)):
 				var chest = ChestScript.new(resolved.get("position", state.player_position), "cursed", "field_event")
+				chest.runtime_id = "%s_chest" % instance_id
+				state.active_field_event["target_kind"] = "chest"
+				state.active_field_event["target_runtime_id"] = chest.runtime_id
 				state.add_chest(chest)
 				events.append({"type": "chest_drop", "pos": chest.position, "rarity": chest.rarity, "source": "field_event"})
 	state.next_field_event_time = 0.0
+	navigation.update(state)
 
 func _tick_active_event(state, delta: float, events: Array) -> void:
 	var id = String(state.active_field_event.get("id", ""))
@@ -89,7 +106,10 @@ func _finish_event(state, events: Array) -> void:
 	var success = _event_succeeded(state)
 	if success:
 		_apply_success_reward(state, id, events)
+	if id == "elite_hunt":
+		state.event_elite_reward_pending = false
 	state.active_field_event = {}
+	navigation.clear(state)
 	state.field_event_timer = 0.0
 	state.field_event_pulse = 0.0
 	_schedule_next_event(state)
@@ -132,9 +152,20 @@ func _event_succeeded(state) -> bool:
 	return not state.game_over
 
 func _spawn_event_crystals(state, events: Array) -> void:
+	var instance_id := String(state.active_field_event.get("instance_id", "field_event"))
 	for i in range(3):
 		var pos = state.random_walkable_position(state.player_position, 180.0, 520.0)
-		var wall = CrystalWallScript.new("event_crystal_%d_%d" % [state.field_event_count, i], pos, Vector2(115, 70), 72, true, "event", "rich_crystal", state.current_biome_id)
+		var wall = CrystalWallScript.new("%s_wall_%d" % [instance_id, i], pos, Vector2(115, 70), 72, true, "event", "rich_crystal", state.current_biome_id)
 		wall.rescale_hp(state.crystal_hp_multiplier_for_position(pos) * 0.8)
 		state.crystal_walls.append(wall)
 		events.append({"type": "crystal_summon", "pos": pos, "source": "field_event"})
+
+func _spawn_event_elite(state, instance_id: String, events: Array) -> void:
+	var pos: Vector2 = state.random_walkable_position(state.player_position, 220.0, 420.0)
+	var data: Dictionary = state.enemy_defs.get("elite", {}).duplicate(true)
+	data["event_instance_id"] = instance_id
+	data["guaranteed_chest"] = true
+	var enemy = state.acquire_enemy(["elite", data, pos, int(8.0 * state.enemy_hp_multiplier()), state.enemy_speed_multiplier()])
+	enemy.damage = int(round(float(enemy.damage) * state.enemy_damage_multiplier()))
+	state.enemies.append(enemy)
+	events.append({"type": "event_elite_spawn", "runtime_id": instance_id, "pos": pos})

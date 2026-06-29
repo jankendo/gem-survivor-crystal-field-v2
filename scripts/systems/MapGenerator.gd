@@ -267,6 +267,7 @@ func _generate_field_drops(state, map_data: Dictionary, rng) -> Array:
 			if pos == Vector2.INF:
 				continue
 			drops.append({
+				"runtime_id": "map_drop_%s_%d" % [id, i],
 				"id": id,
 				"name_ja": String(def.get("name_ja", id)),
 				"position": pos,
@@ -275,7 +276,8 @@ func _generate_field_drops(state, map_data: Dictionary, rng) -> Array:
 				"collected": false,
 				"value": int(def.get("value", 1)),
 				"priority": int(def.get("priority", 9)),
-				"color": def.get("color", [1.0, 1.0, 1.0])
+				"color": def.get("color", [1.0, 1.0, 1.0]),
+				"generated_icon": String(def.get("generated_icon", "")),
 			})
 	return drops
 
@@ -291,6 +293,7 @@ func _generate_field_gimmicks(state, map_data: Dictionary, rng) -> Array:
 			if pos == Vector2.INF:
 				continue
 			gimmicks.append({
+				"runtime_id": "map_gimmick_%s_%d" % [id, i],
 				"id": id,
 				"name_ja": String(def.get("name_ja", id)),
 				"position": pos,
@@ -303,7 +306,8 @@ func _generate_field_gimmicks(state, map_data: Dictionary, rng) -> Array:
 				"opened": false,
 				"priority": int(def.get("priority", 9)),
 				"biome": _biome_for_quadrant(pos, state.field_size),
-				"color": def.get("color", [1.0, 1.0, 1.0])
+				"color": def.get("color", [1.0, 1.0, 1.0]),
+				"generated_icon": String(def.get("generated_icon", "")),
 			})
 	return gimmicks
 

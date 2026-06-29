@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-06-29 Phase 8
+
+### Added
+
+* `ios_minimal` / `desktop_minimal`、保存値非破壊の省電力実効設定、30fps描画契約。
+* タッチ倍速固定、手動ラン終了の一度限り清算、日本語OptionButton設定。
+* 共通フィールド解放判定、実対象イベント誘導、武器/パッシブコア識別。
+* 詳細ショップ解放条件と、不足していた累計ジェム・地形ボス統計接続。
+* Phase 8専用27 suite、189 assertions、全5,015 assertions、600敵の決定的終盤比較。
+
+### Validation
+
+* `ios_minimal` visual commandsは`ios_low`比55.86%削減、背景粒子0、ダメージ数字0、Critical欠落0。
+* simulation、damage、kill、EXP、score、RNG hash一致。
+* 実iPhoneのMetal、thermal、battery、30分継続性能は未検証。
+
 ## 2026-06-29 Phase 7
 
 ### Added

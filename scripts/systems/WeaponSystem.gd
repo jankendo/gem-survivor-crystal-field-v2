@@ -615,6 +615,7 @@ func _damage_enemy(state, enemy, damage: int, events: Array, source: String, hit
 			events.append({"type": "player_heal", "amount": heal, "source": "soul_scythe", "hp": state.hp})
 	if enemy.boss:
 		var boss_id = String(enemy.type)
+		state.terrain_boss_defeats[state.current_terrain_id] = int(state.terrain_boss_defeats.get(state.current_terrain_id, 0)) + 1
 		if not state.boss_defeated_ids.has(boss_id):
 			state.boss_defeated_ids.append(boss_id)
 		chest_system.drop_chest(state, death_pos, events, "normal", "boss")
@@ -623,10 +624,14 @@ func _damage_enemy(state, enemy, damage: int, events: Array, source: String, hit
 			state.add_score(25000, death_pos)
 		rune_contract_system.offer_after_boss(state, events)
 	elif enemy.guaranteed_chest or enemy.elite or enemy.type == "elite":
-		if state.event_elite_reward_pending or state.can_drop_elite_chest():
+		var event_instance_id := String(enemy.data.get("event_instance_id", ""))
+		var active_event_instance_id := String(state.active_field_event.get("target_runtime_id", ""))
+		var is_target_event_elite: bool = state.event_elite_reward_pending and event_instance_id != "" and event_instance_id == active_event_instance_id
+		if is_target_event_elite or state.can_drop_elite_chest():
 			chest_system.drop_chest(state, death_pos, events, "normal", "elite")
 			state.reset_elite_chest_cooldown()
-			state.event_elite_reward_pending = false
+			if is_target_event_elite:
+				state.event_elite_reward_pending = false
 	if source == "magic_bolt" and state.is_weapon_evolved("magic_bolt"):
 		_explode(state, death_pos, 76.0 * state.get_area_multiplier_for_weapon("magic_bolt"), max(1, int(actual_damage * 0.45)), events, "star_fragment")
 	events.append({"type": "enemy_die", "enemy": enemy.type, "pos": death_pos, "kills": state.kills})

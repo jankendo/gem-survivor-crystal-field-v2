@@ -58,4 +58,4 @@ func test_legacy_navigation_targets_are_preserved(t) -> void:
 	for target in targets:
 		labels.append(String(target.get("label", "")))
 	t.assert_true(labels.has("危険地帯"), "danger zone target should be preserved")
-	t.assert_true(labels.has("イベント候補"), "field event target should be preserved")
+	t.assert_true(not labels.has("イベント候補"), "legacy field-event coordinates must not create a fake event arrow")

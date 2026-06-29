@@ -51,6 +51,12 @@ func rendered_limit(kind: String, fallback: int) -> int:
 				return maxi(1, int(round(base * 0.48)))
 	return base
 
+func is_minimal() -> bool:
+	return bool(profile.get("minimal", false))
+
+func feature_enabled(feature: String, fallback: bool = true) -> bool:
+	return bool(profile.get("%s_enabled" % feature, fallback))
+
 func select_visual_items(
 		items: Array,
 		camera_position: Vector2,
@@ -79,7 +85,7 @@ func select_visual_items(
 
 func adaptive_arc_segments(radius_screen_pixels: float, critical: bool = false) -> int:
 	if critical:
-		return 48
+		return 28 if is_minimal() else 48
 	var scale := float(profile.get("arc_segment_scale", 1.0))
 	var radius := maxf(0.0, radius_screen_pixels)
 	var segments := 10
@@ -91,7 +97,7 @@ func adaptive_arc_segments(radius_screen_pixels: float, critical: bool = false) 
 		scale *= 0.75
 	elif thermal_level == "critical":
 		scale *= 0.58
-	return clampi(int(round(float(segments) * scale)), 8, 32)
+	return clampi(int(round(float(segments) * scale)), 8, 12 if is_minimal() else 32)
 
 func update_frame_pressure(frame_time_ms: float, delta: float) -> String:
 	if frame_time_ms >= 33.0:

@@ -8,6 +8,20 @@
 .\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe --headless --path . --script res://tests/run_single_suite.gd -- --suite=res://tests/test_rng.gd
 ```
 
+## Phase 8 targeted tests
+
+```powershell
+$GODOT = ".\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe"
+& $GODOT --headless --path . --check-only --script res://tests/test_runner.gd
+& $GODOT --headless --path . --script res://tests/phase8_test_runner.gd
+& $GODOT --headless --path . --script res://tests/auto_play_ios_phase8_extreme_late_game_stress.gd
+& $GODOT --headless --path . --script res://tests/batch_test_runner.gd -- --manifest=res://tests/manifests/fast_gate.json --output=res://test-output/ci/fast_gate_timing.json
+python tools/validate_github_actions.py
+python tools/validate_ios_workflow.py
+```
+
+Phase 8 stressはseed 60606、敵600、弾720、ジェム1,200、ボス、分裂敵、進化、過充電、イベントを固定し、standard/low/minimal/batteryのsimulation hashを一致させる。実iPhone項目は`docs/qa/phase8_ios_real_device_checklist.md`で別管理する。
+
 ## v2 targeted tests
 
 ```powershell

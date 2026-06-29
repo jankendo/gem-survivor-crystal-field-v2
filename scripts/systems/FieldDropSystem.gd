@@ -9,12 +9,11 @@ var overclock_system = preload("res://scripts/systems/OverclockSystem.gd").new()
 var core_choice_system = preload("res://scripts/systems/CorePickupChoiceSystem.gd").new()
 var global_collection_system = preload("res://scripts/systems/GlobalGemCollectionSystem.gd").new()
 var character_evolution_system = preload("res://scripts/systems/CharacterEvolutionSystem.gd").new()
+var availability = preload("res://scripts/systems/FieldObjectAvailabilitySystem.gd").new()
 
 func process(state, delta: float, events: Array) -> void:
 	for drop in state.field_drops:
-		if bool(drop.get("collected", false)):
-			continue
-		if state.elapsed_seconds < float(drop.get("unlock_seconds", 0.0)):
+		if not availability.is_available_now(state, drop, "collected"):
 			continue
 		var pos: Vector2 = drop.get("position", Vector2.ZERO)
 		if pos.distance_to(state.player_position) <= float(drop.get("radius", 24.0)) + 22.0:

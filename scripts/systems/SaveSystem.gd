@@ -346,6 +346,7 @@ func _with_defaults(raw: Dictionary) -> Dictionary:
 		"terrain_time": {},
 		"terrain_kills": {},
 		"terrain_crystals": {}
+		,"terrain_boss_defeats": {}
 		,"field_drops_collected": 0,
 		"field_gimmicks_triggered": 0
 		,"kills_by_weapon_tag": {}

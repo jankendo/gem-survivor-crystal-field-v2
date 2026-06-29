@@ -22,6 +22,8 @@ func progress_for_condition(save_data: Dictionary, condition: Dictionary) -> Dic
 			current = float(stats.get("total_currency_earned", 0))
 		"total_kills":
 			current = float(stats.get("total_kills", 0))
+		"total_gems_collected":
+			current = float(stats.get("total_gems_collected", 0))
 		"total_crystals", "cursed_walls":
 			current = float(stats.get("total_crystals", 0))
 		"total_chests":
@@ -76,6 +78,9 @@ func progress_for_condition(save_data: Dictionary, condition: Dictionary) -> Dic
 			current = float(stats.get("terrain_kills", {}).get(String(condition.get("terrain", "")), 0))
 		"terrain_crystals":
 			current = float(stats.get("terrain_crystals", {}).get(String(condition.get("terrain", "")), 0))
+		"terrain_boss_defeat":
+			current = float(stats.get("terrain_boss_defeats", {}).get(String(condition.get("terrain", "")), 0))
+			target = 1.0
 		"exploration_chain":
 			current = float(stats.get("max_exploration_chain", 0))
 		"exploration_rank":
@@ -132,6 +137,7 @@ func progress_text(save_data: Dictionary, condition: Dictionary) -> String:
 func _label_for(type: String, condition: Dictionary) -> String:
 	match type:
 		"total_kills": return "敵撃破"
+		"total_gems_collected": return "ジェム取得"
 		"total_crystals", "cursed_walls": return "結晶壁破壊"
 		"total_chests": return "宝箱開封"
 		"total_contracts": return "ルーン契約"
@@ -156,6 +162,7 @@ func _label_for(type: String, condition: Dictionary) -> String:
 		"terrain_time": return "地形内生存"
 		"terrain_kills": return "地形内撃破"
 		"terrain_crystals": return "地形内結晶破壊"
+		"terrain_boss_defeat": return "指定地形でボス撃破"
 		"exploration_rank": return "探索ランク"
 		"exploration_chain": return "探索チェーン"
 		"oasis_healing": return "回復泉の回復量"

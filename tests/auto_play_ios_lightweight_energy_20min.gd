@@ -16,7 +16,7 @@ func _initialize() -> void:
 	state.enemies.resize(80)
 	state.projectiles.resize(40)
 	state.hit_flashes.resize(12)
-	_assert(int(optimizer.budget.get("target_fps", 0)) == 45, "iOS lightweight should use 45 fps budget")
+	_assert(int(optimizer.budget.get("target_fps", 0)) == 30, "iOS lightweight should use 30 fps budget")
 	_assert(bool(settings.get("battery_saver", false)), "iOS lightweight should keep battery saver on")
 	_assert(optimizer.estimated_power_risk(optimizer.energy_score(state, null)) != "high", "20min equivalent lightweight estimate should avoid high risk")
 	await process_frame

@@ -37,8 +37,8 @@ func run(t) -> void:
 	if title != null:
 		title.pressed.emit()
 		t.assert_true(game.pause_dialog_layer.visible and game.pause_confirm_dialog.visible, "title action must open the modal confirmation layer")
-		var cancel := _find_button(game.pause_confirm_dialog, "キャンセル")
-		var confirm := _find_button(game.pause_confirm_dialog, "タイトルへ")
+		var cancel := _find_button(game.pause_confirm_dialog, "ゲームへ戻る")
+		var confirm := _find_button(game.pause_confirm_dialog, "ランを終了して清算")
 		t.assert_true(cancel != null and cancel.custom_minimum_size.y >= 64.0, "cancel must be a large touch target")
 		t.assert_true(confirm != null and confirm.custom_minimum_size.y >= 64.0, "confirm must be a large touch target")
 		if cancel != null:

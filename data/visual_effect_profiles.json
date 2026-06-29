@@ -1,5 +1,20 @@
 {
   "profiles": {
+    "desktop_minimal": {
+      "max_rendered_projectiles": 96,
+      "max_rendered_gems": 180,
+      "max_rendered_effects": 28,
+      "max_rendered_damage_numbers": 0,
+      "max_rendered_background_particles": 0,
+      "arc_segment_scale": 0.45,
+      "persistent_area_animation_hz": 6,
+      "minimap_animation": false,
+      "trails_enabled": false,
+      "glow_enabled": false,
+      "decorative_enabled": false,
+      "duplicate_visuals_enabled": false,
+      "minimal": true
+    },
     "desktop_low": {
       "max_rendered_projectiles": 340,
       "max_rendered_gems": 760,
@@ -31,6 +46,21 @@
       "max_rendered_damage_numbers": 24,
       "max_rendered_background_particles": 48,
       "arc_segment_scale": 0.62
+    },
+    "ios_minimal": {
+      "max_rendered_projectiles": 56,
+      "max_rendered_gems": 120,
+      "max_rendered_effects": 20,
+      "max_rendered_damage_numbers": 0,
+      "max_rendered_background_particles": 0,
+      "arc_segment_scale": 0.35,
+      "persistent_area_animation_hz": 6,
+      "minimap_animation": false,
+      "trails_enabled": false,
+      "glow_enabled": false,
+      "decorative_enabled": false,
+      "duplicate_visuals_enabled": false,
+      "minimal": true
     },
     "ios_standard": {
       "max_rendered_projectiles": 190,

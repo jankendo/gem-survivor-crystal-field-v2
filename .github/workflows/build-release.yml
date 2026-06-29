@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - "phase7/**"
+      - "phase8/**"
     tags: ["v*"]
     paths:
       - "project.godot"

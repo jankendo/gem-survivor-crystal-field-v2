@@ -17,19 +17,19 @@
     "offscreen_ai_update_interval": 0.45
   },
   "battery_saver": {
-    "target_fps": 45,
-    "force_quality_reduction": false,
+    "target_fps": 30,
+    "force_quality_reduction": true,
     "max_ui_rebuild_per_second": 4,
     "max_label_updates_per_second": 20,
-    "minimap_update_interval": 0.40,
-    "goal_update_interval": 0.35,
-    "equipment_hud_update_interval": 0.35,
-    "notification_update_interval": 0.30,
-    "hud_update_interval": 0.25,
+    "minimap_update_interval": 0.333,
+    "goal_update_interval": 0.25,
+    "equipment_hud_update_interval": 0.25,
+    "notification_update_interval": 0.25,
+    "hud_update_interval": 0.10,
     "pause_update_interval": 0.35,
-    "max_haptic_per_minute": 8,
+    "max_haptic_per_minute": 0,
     "max_log_write_interval": 10.0,
-    "background_particle_update_interval": 0.25,
+    "background_particle_update_interval": 999.0,
     "far_enemy_ai_update_interval": 0.32,
     "offscreen_ai_update_interval": 0.60
   }

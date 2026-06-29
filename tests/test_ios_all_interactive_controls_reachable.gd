@@ -46,8 +46,8 @@ func run(t) -> void:
 		_assert_button(t, game.pause_overlay, "ゲームへ戻る", "pause")
 		_assert_button(t, game.pause_overlay, "タイトルへ戻る", "pause")
 		game._show_title_confirm()
-		_assert_button(t, game.pause_confirm_dialog, "キャンセル", "pause_confirm")
-		_assert_button(t, game.pause_confirm_dialog, "タイトルへ", "pause_confirm")
+		_assert_button(t, game.pause_confirm_dialog, "ゲームへ戻る", "pause_confirm")
+		_assert_button(t, game.pause_confirm_dialog, "ランを終了して清算", "pause_confirm")
 	main.free()
 	SaveSystem.new().update_settings(old_settings)
 

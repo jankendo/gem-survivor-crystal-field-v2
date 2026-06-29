@@ -3,14 +3,13 @@ class_name FieldGimmickSystem
 
 const ChestScript = preload("res://scripts/core/Chest.gd")
 const EnemyScript = preload("res://scripts/core/SurvivorEnemy.gd")
+var availability = preload("res://scripts/systems/FieldObjectAvailabilitySystem.gd").new()
 
 func process(state, delta: float, events: Array) -> void:
 	for gimmick in state.field_gimmicks:
-		if bool(gimmick.get("destroyed", false)):
+		if not availability.is_available_now(state, gimmick, "destroyed"):
 			continue
 		gimmick["cooldown"] = maxf(0.0, float(gimmick.get("cooldown", 0.0)) - delta)
-		if state.elapsed_seconds < float(gimmick.get("unlock_seconds", 0.0)):
-			continue
 		match String(gimmick.get("id", "")):
 			"healing_spring":
 				_process_healing_spring(state, gimmick, events)
@@ -22,7 +21,7 @@ func process(state, delta: float, events: Array) -> void:
 func damage_gimmicks_in_radius(state, pos: Vector2, radius: float, damage: int, events: Array, source: String) -> int:
 	var hits = 0
 	for gimmick in state.field_gimmicks:
-		if bool(gimmick.get("destroyed", false)):
+		if not availability.is_available_now(state, gimmick, "destroyed"):
 			continue
 		var gpos: Vector2 = gimmick.get("position", Vector2.ZERO)
 		if gpos.distance_to(pos) > radius + float(gimmick.get("radius", 36.0)):
@@ -35,7 +34,7 @@ func reflect_projectile_if_needed(state, projectile, events: Array) -> bool:
 	if projectile.velocity.length() <= 0.1:
 		return false
 	for gimmick in state.field_gimmicks:
-		if String(gimmick.get("id", "")) != "reflect_crystal" or bool(gimmick.get("destroyed", false)):
+		if String(gimmick.get("id", "")) != "reflect_crystal" or not availability.is_available_now(state, gimmick, "destroyed"):
 			continue
 		var gpos: Vector2 = gimmick.get("position", Vector2.ZERO)
 		if projectile.position.distance_to(gpos) <= float(gimmick.get("radius", 36.0)) + projectile.radius:

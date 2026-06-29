@@ -8,6 +8,7 @@ var rarity: String = "normal"
 var source: String = ""
 var age: float = 0.0
 var ttl: float = 300.0
+var runtime_id: String = ""
 
 func _init(pos: Vector2 = Vector2.ZERO, chest_rarity: String = "normal", chest_source: String = "") -> void:
 	position = pos

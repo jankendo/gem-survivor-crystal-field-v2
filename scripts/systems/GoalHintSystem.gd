@@ -1,6 +1,8 @@
 extends RefCounted
 class_name GoalHintSystem
 
+var availability = preload("res://scripts/systems/FieldObjectAvailabilitySystem.gd").new()
+
 func process(state, events: Array) -> Array:
 	var goals = goals_for_state(state)
 	var next_id = String(goals[0].get("id", "")) if not goals.is_empty() else ""
@@ -23,7 +25,8 @@ func goals_for_state(state) -> Array:
 		if not evolution.is_empty():
 			goals.append(_goal("evolution", "進化報酬を回収", "進化条件を満たした武器があります", evolution, 2, state))
 	if not state.active_field_event.is_empty():
-		var event_pos = state.navigation_targets.get("field_event", state.player_position)
+		var event_nav: Dictionary = state.navigation_targets.get("field_event", {})
+		var event_pos: Vector2 = event_nav.get("position", state.player_position) if bool(event_nav.get("enabled", false)) else state.player_position
 		goals.append(_goal("event", String(state.active_field_event.get("objective_ja", "イベントを達成")), "期間限定イベントが進行中", {"position": event_pos, "name_ja": state.active_field_event.get("name_ja", "イベント")}, 3, state))
 	var boss = state.active_boss()
 	if boss != null:
@@ -70,12 +73,12 @@ func _nearest_lategame_target(state) -> Dictionary:
 func _nearest_drop_or_gimmick(state, drop_ids: Array, gimmick_ids: Array) -> Dictionary:
 	var best: Dictionary = {}
 	for drop in state.field_drops:
-		if bool(drop.get("collected", false)) or state.elapsed_seconds < float(drop.get("unlock_seconds", 0.0)):
+		if not availability.is_available_now(state, drop, "collected"):
 			continue
 		if drop_ids.has(String(drop.get("id", ""))):
 			best = _nearer(state, best, {"position": drop.get("position", Vector2.ZERO), "name_ja": drop.get("name_ja", "")})
 	for gimmick in state.field_gimmicks:
-		if bool(gimmick.get("destroyed", false)) or state.elapsed_seconds < float(gimmick.get("unlock_seconds", 0.0)):
+		if not availability.is_available_now(state, gimmick, "destroyed"):
 			continue
 		if gimmick_ids.has(String(gimmick.get("id", ""))):
 			best = _nearer(state, best, {"position": gimmick.get("position", Vector2.ZERO), "name_ja": gimmick.get("name_ja", "")})
@@ -84,7 +87,7 @@ func _nearest_drop_or_gimmick(state, drop_ids: Array, gimmick_ids: Array) -> Dic
 func _nearest_field_equipment(state) -> Dictionary:
 	var best: Dictionary = {}
 	for equipment in state.field_equipment:
-		if bool(equipment.get("collected", false)):
+		if not availability.is_available_now(state, equipment, "collected"):
 			continue
 		best = _nearer(state, best, {"position": equipment.get("position", Vector2.ZERO), "name_ja": equipment.get("name_ja", "フィールド装備")})
 	return best

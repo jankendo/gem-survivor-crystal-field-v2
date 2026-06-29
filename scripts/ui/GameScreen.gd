@@ -32,6 +32,9 @@ const ExplorationChainSystemScript = preload("res://scripts/systems/ExplorationC
 const TooltipSystemScript = preload("res://scripts/systems/TooltipSystem.gd")
 const UiLayoutFixSystemScript = preload("res://scripts/systems/UiLayoutFixSystem.gd")
 const SpeedHoldSystemScript = preload("res://scripts/systems/SpeedHoldSystem.gd")
+const SpeedLockSystemScript = preload("res://scripts/systems/SpeedLockSystem.gd")
+const EffectiveSettingsResolverScript = preload("res://scripts/systems/EffectiveSettingsResolver.gd")
+const RunSettlementSystemScript = preload("res://scripts/systems/RunSettlementSystem.gd")
 const NotificationLogSystemScript = preload("res://scripts/systems/NotificationLogSystem.gd")
 const BossAlertSystemScript = preload("res://scripts/systems/BossAlertSystem.gd")
 const EquipmentHudSystemScript = preload("res://scripts/systems/EquipmentHudSystem.gd")
@@ -101,6 +104,9 @@ var exploration_chain_system
 var tooltip_system
 var ui_layout_fix_system
 var speed_hold_system
+var speed_lock_system
+var effective_settings_resolver
+var run_settlement_system
 var notification_log_system
 var boss_alert_system
 var equipment_hud_system
@@ -200,6 +206,7 @@ var touch_chest_button
 var goal_panel: PanelContainer
 var help_panel: PanelContainer
 var runtime_settings: Dictionary = {}
+var stored_settings: Dictionary = {}
 var last_reward_signature := ""
 var touch_rerolls_remaining := 0
 var touch_banishes_remaining := 0
@@ -239,6 +246,9 @@ func _ready() -> void:
 	tooltip_system = TooltipSystemScript.new()
 	ui_layout_fix_system = UiLayoutFixSystemScript.new()
 	speed_hold_system = SpeedHoldSystemScript.new()
+	speed_lock_system = SpeedLockSystemScript.new()
+	effective_settings_resolver = EffectiveSettingsResolverScript.new()
+	run_settlement_system = RunSettlementSystemScript.new()
 	notification_log_system = NotificationLogSystemScript.new()
 	boss_alert_system = BossAlertSystemScript.new()
 	equipment_hud_system = EquipmentHudSystemScript.new()
@@ -271,18 +281,22 @@ func _ready() -> void:
 	state.start_new_run(0, initial_seed_text)
 	var save_data = initial_save_data if not initial_save_data.is_empty() else SaveSystem.new().load_data()
 	var settings: Dictionary = save_data.get("settings", {})
-	runtime_settings = settings.duplicate(true)
-	v2_momentum_telemetry.configure(bool(settings.get("v2_momentum_telemetry", false)))
-	ios_energy_optimizer.configure(settings)
-	input_mode.configure(settings)
+	stored_settings = settings.duplicate(true)
+	runtime_settings = effective_settings_resolver.resolve(stored_settings)
+	v2_momentum_telemetry.configure(bool(runtime_settings.get("v2_momentum_telemetry", false)))
+	ios_energy_optimizer.configure(runtime_settings)
+	input_mode.configure(runtime_settings)
 	add_child(mobile_scroll_system)
 	mobile_scroll_system.configure(input_mode.is_touch_mode(), input_mode.is_touch_mode() and not input_mode.is_ios_touch())
-	speed_hold_system.configure(settings)
-	notification_log_system.configure(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
-	equipment_hud_system.configure(settings)
-	touch_control_system.configure(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
+	speed_hold_system.configure(runtime_settings)
+	speed_lock_system.configure(float(runtime_settings.get("speed_multiplier", 2.0)))
+	speed_lock_system.reset_run()
+	run_settlement_system.reset_run()
+	notification_log_system.configure(runtime_settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
+	equipment_hud_system.configure(runtime_settings)
+	touch_control_system.configure(runtime_settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
 	debug_overlay_system.configure(
-		settings,
+		runtime_settings,
 		"iOS" if input_mode.is_ios_touch() else OS.get_name(),
 		OS.has_feature("release"),
 		input_mode.is_touch_mode(),
@@ -292,9 +306,9 @@ func _ready() -> void:
 	add_child(touch_hit_test_debug_system)
 	touch_hit_test_debug_system.configure(self, touch_debug_enabled, not input_mode.is_ios_touch())
 	var qa_telemetry_enabled := (
-		bool(settings.get("qa_telemetry_enabled", false))
-		or bool(settings.get("phase6_benchmark", false))
-		or bool(settings.get("phase7_benchmark", false))
+		bool(runtime_settings.get("qa_telemetry_enabled", false))
+		or bool(runtime_settings.get("phase6_benchmark", false))
+		or bool(runtime_settings.get("phase7_benchmark", false))
 	)
 	phase7_qa_metrics_enabled = qa_telemetry_enabled
 	ios_performance_log_system.configure(input_mode.is_ios_touch() and qa_telemetry_enabled)
@@ -309,12 +323,12 @@ func _ready() -> void:
 		"touch_controls": 0.10,
 		"debug_overlay": 0.25
 	})
-	performance_profile_system.apply_to_state(state, settings)
-	runtime_ui_limits = performance_profile_system.ui_limits(settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
-	state.effect_density = String(settings.get("effect_density", "normal"))
+	performance_profile_system.apply_to_state(state, runtime_settings)
+	runtime_ui_limits = performance_profile_system.ui_limits(runtime_settings, "iOS" if input_mode.is_ios_touch() else OS.get_name())
+	state.effect_density = String(runtime_settings.get("effect_density", "normal"))
 	meta_system.apply_to_state(state, initial_character_id, initial_blessing_id, save_data)
-	state.debug_exp_multiplier = clampf(float(settings.get("debug_exp_multiplier", 1.0)), 0.25, 20.0)
-	state.allow_debug_progress = bool(settings.get("allow_debug_progress", false))
+	state.debug_exp_multiplier = clampf(float(stored_settings.get("debug_exp_multiplier", 1.0)), 0.25, 20.0)
+	state.allow_debug_progress = bool(stored_settings.get("allow_debug_progress", false))
 	var unlocked_evolutions: Dictionary = save_data.get("character_evolutions_unlocked", {"noah": true})
 	state.character_evolution_unlocked_ids = []
 	for id in unlocked_evolutions.keys():
@@ -337,8 +351,12 @@ func _exit_tree() -> void:
 
 func _process(delta: float) -> void:
 	_phase6_metric("process_calls")
+	speed_lock_system.tick(delta)
+	if speed_lock_system.consume_lock_feedback():
+		touch_control_system.feedback_light()
 	if input_mode.is_ios_touch() and arena_view != null:
 		var adaptive_target: int = arena_view.update_adaptive_visual_quality(delta * 1000.0, delta)
+		adaptive_target = mini(adaptive_target, int(runtime_settings.get("target_render_fps", adaptive_target)))
 		if Engine.max_fps != adaptive_target:
 			Engine.max_fps = adaptive_target
 	ui_dirty_flag_system.tick(delta)
@@ -356,6 +374,8 @@ func _process(delta: float) -> void:
 		speed_active = false
 		return
 	map_pause_system.refresh_modal_reasons(state, map_expanded)
+	if _speed_modal_blocked() and speed_lock_system.pressed:
+		speed_lock_system.cancel_press()
 	if state.paused:
 		speed_active = false
 		_refresh_pause_ui()
@@ -378,9 +398,10 @@ func _process(delta: float) -> void:
 		_tick_flashes(delta)
 		_refresh()
 		return
-	var speed_blocked = state.paused or state.level_up_pending or state.chest_pending or state.rune_contract_pending or boss_alert_system.warning_timer > 0.0
-	var speed_pressed = speed_hold_system.is_pressed() or touch_control_system.speed_pressed
-	var time_scale = speed_hold_system.simulation_multiplier(speed_pressed, speed_blocked)
+	var speed_blocked := _speed_modal_blocked()
+	var keyboard_multiplier: float = speed_hold_system.simulation_multiplier(speed_hold_system.is_pressed(), speed_blocked)
+	var touch_multiplier: float = speed_lock_system.simulation_multiplier(speed_blocked) if touch_control_system.should_show() and bool(runtime_settings.get("speed_hold_enabled", true)) else 1.0
+	var time_scale: float = maxf(keyboard_multiplier, touch_multiplier)
 	speed_active = time_scale > 1.0
 	var sim_delta = delta * time_scale
 	state.elapsed_seconds += sim_delta
@@ -1532,13 +1553,25 @@ func _compact_timed_visuals(items: Array, pool_type: String, delta: float) -> vo
 			state.release_runtime(pool_type, item)
 	items.resize(write_index)
 
-func _finish_game(events: Array) -> void:
+func _finish_game(events: Array, manual_exit: bool = false) -> void:
+	if not run_settlement_system.begin(manual_exit):
+		return
 	pending_finish = true
 	state.update_best_score(events, state.progress_saving_allowed())
 	balance_log_system.flush(state)
 	_handle_events(events)
 	_play_sfx("gameover")
-	game_finished.emit(_summary())
+	game_finished.emit(run_settlement_system.decorate_summary(_summary(), state))
+
+func _request_manual_run_exit() -> void:
+	_hide_title_confirm()
+	if pending_finish:
+		return
+	state.paused = false
+	state.game_over = true
+	state.game_over_reason = "manual_exit"
+	var events: Array = [{"type": "manual_run_exit"}]
+	_finish_game(events, true)
 
 func _summary() -> Dictionary:
 	var best: int = maxi(state.best_score, state.score)
@@ -1634,6 +1667,7 @@ func _summary() -> Dictionary:
 		"terrain_time": state.terrain_time.duplicate(true),
 		"terrain_kills": state.terrain_kills.duplicate(true),
 		"terrain_crystals": state.terrain_crystals.duplicate(true),
+		"terrain_boss_defeats": state.terrain_boss_defeats.duplicate(true),
 		"shortcut_walls_broken": state.shortcut_walls_broken,
 		"oasis_healing": state.oasis_healing,
 		"cursed_relics": state.cursed_relic_count,
@@ -1841,8 +1875,14 @@ func _build_pause_ui() -> void:
 	pause_confirm_dialog.offset_right = 250
 	pause_confirm_dialog.offset_top = -120
 	pause_confirm_dialog.offset_bottom = 120
-	pause_confirm_dialog.setup("タイトルへ戻りますか？", "現在のランは終了します。誤操作防止のため確認してください。", "タイトルへ", "キャンセル", input_mode.is_touch_mode())
-	pause_confirm_dialog.confirmed.connect(func(): title_requested.emit())
+	pause_confirm_dialog.setup(
+		"ランを終了しますか？",
+		"ここまでのスコア、通貨、実績進捗、解放進捗を清算し、リザルト画面へ進みます。",
+		"ランを終了して清算",
+		"ゲームへ戻る",
+		input_mode.is_touch_mode()
+	)
+	pause_confirm_dialog.confirmed.connect(_request_manual_run_exit)
 	pause_confirm_dialog.canceled.connect(_hide_title_confirm)
 	pause_dialog_layer.add_child(pause_confirm_dialog)
 
@@ -1963,10 +2003,10 @@ func _refresh_touch_controls() -> void:
 	virtual_joystick.set_enabled(virtual_joystick.visible)
 	touch_scan_button.visible = not action_blocked
 	touch_drone_button.visible = not action_blocked
-	touch_speed_button.visible = not action_blocked
+	touch_speed_button.visible = not action_blocked and bool(runtime_settings.get("speed_hold_enabled", true))
 	touch_drone_button.set_ready_state(state.recall_drone_ready)
 	touch_scan_button.set_active_state(not state.nearby_field_help.is_empty())
-	touch_speed_button.text = "×%.1f" % speed_hold_system.speed_multiplier if speed_active else "倍速\n長押し"
+	touch_speed_button.text = speed_lock_system.display_text()
 	touch_pause_button.text = "再開" if state.paused else "ポーズ"
 	touch_map_button.text = "閉じる" if map_expanded else "マップ"
 	touch_log_button.visible = not state.game_over
@@ -1988,7 +2028,10 @@ func _on_touch_action_started(action: String) -> void:
 		"action_drone":
 			_activate_recall_drone()
 		"action_speed_hold":
+			if not bool(runtime_settings.get("speed_hold_enabled", true)):
+				return
 			touch_control_system.set_speed_pressed(true)
+			speed_lock_system.begin_press()
 		"action_pause":
 			_toggle_pause()
 		"action_open_log":
@@ -2007,6 +2050,18 @@ func _on_touch_action_ended(action: String) -> void:
 	touch_control_system.set_action_pressed(action, false, false)
 	if action == "action_speed_hold":
 		touch_control_system.set_speed_pressed(false)
+		speed_lock_system.end_press()
+
+func _speed_modal_blocked() -> bool:
+	return (
+		map_expanded
+		or state.paused
+		or state.level_up_pending
+		or state.chest_pending
+		or state.rune_contract_pending
+		or state.game_over
+		or boss_alert_system.warning_timer > 0.0
+	)
 
 func _toggle_expanded_map() -> void:
 	if not bool(mobile_layout.get("map_tap_expand", true)):

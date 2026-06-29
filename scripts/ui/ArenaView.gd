@@ -6,6 +6,7 @@ const EnvironmentVisualSystemScript = preload("res://scripts/systems/Environment
 const VisualEffectBudgetSystemScript = preload("res://scripts/systems/VisualEffectBudgetSystem.gd")
 const ProjectileRenderSelectionSystemScript = preload("res://scripts/systems/ProjectileRenderSelectionSystem.gd")
 const MinimapRenderCacheScript = preload("res://scripts/systems/MinimapRenderCache.gd")
+const FieldObjectAvailabilitySystemScript = preload("res://scripts/systems/FieldObjectAvailabilitySystem.gd")
 
 signal minimap_tapped
 
@@ -15,6 +16,7 @@ var environment_visual_system = EnvironmentVisualSystemScript.new()
 var visual_effect_budget_system = VisualEffectBudgetSystemScript.new()
 var projectile_render_selection_system = ProjectileRenderSelectionSystemScript.new()
 var minimap_render_cache = MinimapRenderCacheScript.new()
+var field_object_availability = FieldObjectAvailabilitySystemScript.new()
 var visual_limits: Dictionary = {}
 var camera_zoom := 1.0
 var minimap_rect := Rect2()
@@ -158,6 +160,8 @@ func _draw_background() -> void:
 	var grid = environment_visual_system.grid_color(biome_id, state.biome_system.grid_color(biome))
 	var accent = environment_visual_system.accent_color(biome_id, state.biome_system.accent_color(biome))
 	draw_rect(Rect2(Vector2.ZERO, size), bg, true)
+	if visual_effect_budget_system.is_minimal():
+		return
 	var camera = _camera_origin()
 	var spacing = 48.0
 	var start_x = -fmod(camera.x, spacing)
@@ -273,8 +277,10 @@ func _draw_danger_zones() -> void:
 		var pos = world_to_screen(zone.get("position", Vector2.ZERO))
 		var radius = float(zone.get("radius", 0.0))
 		draw_circle(pos, radius, Color(0.76, 0.10, 0.34, 0.16))
-		draw_arc(pos, radius, 0.0, TAU, 96, Color(1.0, 0.18, 0.42, 0.48), 3.0)
-		draw_arc(pos, radius * 0.72, 0.0, TAU, 96, Color(0.62, 0.18, 0.95, 0.22), 2.0)
+		var segments := visual_effect_budget_system.adaptive_arc_segments(radius)
+		draw_arc(pos, radius, 0.0, TAU, segments, Color(1.0, 0.18, 0.42, 0.48), 3.0)
+		if not visual_effect_budget_system.is_minimal():
+			draw_arc(pos, radius * 0.72, 0.0, TAU, segments, Color(0.62, 0.18, 0.95, 0.22), 2.0)
 
 func _draw_boundary() -> void:
 	var origin = world_to_screen(Vector2.ZERO)
@@ -305,21 +311,32 @@ func _draw_crystal_walls() -> void:
 
 func _draw_field_drops() -> void:
 	for drop in state.field_drops:
-		if bool(drop.get("collected", false)):
+		if not field_object_availability.is_available_now(state, drop, "collected"):
 			continue
 		if not _is_world_visible(drop.get("position", Vector2.ZERO), 36.0):
 			continue
 		var pos = world_to_screen(drop.get("position", Vector2.ZERO))
 		var color = _data_color(drop, Color(1.0, 1.0, 1.0))
-		var locked = state.elapsed_seconds < float(drop.get("unlock_seconds", 0.0))
-		var alpha = 0.36 if locked else 0.90
+		var alpha = 0.90
 		draw_circle(pos, 22.0, Color(color.r, color.g, color.b, 0.16 + alpha * 0.18))
+		_draw_field_drop_symbol(pos, String(drop.get("id", "")), color, alpha)
+		if not visual_effect_budget_system.is_minimal():
+			draw_arc(pos, 26.0 + 3.0 * sin(state.elapsed_seconds * 3.0), 0.0, TAU, 24, Color(color.r, color.g, color.b, alpha * 0.65), 2.0)
+
+func _draw_field_drop_symbol(pos: Vector2, id: String, color: Color, alpha: float) -> void:
+	if id == "weapon_core":
+		draw_polygon(PackedVector2Array([pos + Vector2(0, -17), pos + Vector2(12, -3), pos + Vector2(0, 17), pos + Vector2(-12, -3)]), PackedColorArray([Color.WHITE, color, color.darkened(0.18), color]))
+		draw_line(pos + Vector2(-8, 8), pos + Vector2(9, -9), Color(1.0, 0.96, 0.72, alpha), 3.0)
+	elif id == "passive_core":
+		draw_circle(pos, 15.0, Color(color.r, color.g, color.b, alpha))
+		draw_circle(pos, 7.0, Color(0.08, 0.12, 0.20, 0.92))
+		draw_arc(pos, 11.0, 0.0, TAU, 8, Color.WHITE, 2.0)
+	else:
 		draw_polygon(PackedVector2Array([pos + Vector2(0, -15), pos + Vector2(14, 0), pos + Vector2(0, 15), pos + Vector2(-14, 0)]), PackedColorArray([Color.WHITE, Color(color.r, color.g, color.b, alpha), Color(color.r, color.g, color.b, alpha * 0.9), Color(color.r, color.g, color.b, alpha)]))
-		draw_arc(pos, 26.0 + 3.0 * sin(state.elapsed_seconds * 3.0), 0.0, TAU, 36, Color(color.r, color.g, color.b, alpha * 0.65), 2.0)
 
 func _draw_field_equipment() -> void:
 	for equipment in state.field_equipment:
-		if bool(equipment.get("collected", false)):
+		if not field_object_availability.is_available_now(state, equipment, "collected"):
 			continue
 		if not _is_world_visible(equipment.get("position", Vector2.ZERO), 42.0):
 			continue
@@ -333,7 +350,7 @@ func _draw_field_equipment() -> void:
 
 func _draw_field_gimmicks() -> void:
 	for gimmick in state.field_gimmicks:
-		if bool(gimmick.get("destroyed", false)):
+		if not field_object_availability.is_available_now(state, gimmick, "destroyed"):
 			continue
 		if not _is_world_visible(gimmick.get("position", Vector2.ZERO), 48.0):
 			continue
@@ -515,7 +532,8 @@ func _draw_gems() -> void:
 		var pos = world_to_screen(gem.position)
 		var color = Color(0.35, 0.86, 1.0) if gem.value < 12 else Color(0.75, 0.42, 1.0)
 		draw_polygon(PackedVector2Array([pos + Vector2(0, -8), pos + Vector2(7, 0), pos + Vector2(0, 8), pos + Vector2(-7, 0)]), PackedColorArray([Color.WHITE, color, color.darkened(0.1), color]))
-		draw_circle(pos, 12.0, Color(color.r, color.g, color.b, 0.12))
+		if not visual_effect_budget_system.is_minimal():
+			draw_circle(pos, 12.0, Color(color.r, color.g, color.b, 0.12))
 
 func _draw_gem_ring_effects() -> void:
 	for effect in state.gem_ring_effects:
@@ -523,8 +541,8 @@ func _draw_gem_ring_effects() -> void:
 		var t = clampf((state.elapsed_seconds - float(effect.get("start_time", state.elapsed_seconds))) / duration, 0.0, 1.0)
 		var collapse_start = clampf(float(effect.get("collapse_start", 0.48)), 0.05, 0.90)
 		var collapse_t = clampf((t - collapse_start) / maxf(0.01, 1.0 - collapse_start), 0.0, 1.0)
-		var ring_count = maxi(1, int(effect.get("ring_count", 1)))
-		var proxy_count = maxi(1, int(effect.get("proxy_nodes", 1)))
+		var ring_count = 1 if visual_effect_budget_system.is_minimal() else maxi(1, int(effect.get("ring_count", 1)))
+		var proxy_count = 0 if visual_effect_budget_system.is_minimal() else maxi(1, int(effect.get("proxy_nodes", 1)))
 		var center = world_to_screen(state.player_position)
 		var source = String(effect.get("source", "magnet"))
 		var color = Color(0.42, 0.95, 1.0)
@@ -573,7 +591,7 @@ func _draw_projectiles() -> void:
 		var effect: Dictionary = state.weapon_effect(projectile.kind)
 		var color = _effect_color(effect, Color(1.0, 0.88, 0.38))
 		var shape = String(effect.get("shape", "orb"))
-		if bool(effect.get("trail", false)) and projectile.velocity.length() > 0.1:
+		if visual_effect_budget_system.feature_enabled("trails") and bool(effect.get("trail", false)) and projectile.velocity.length() > 0.1:
 			var tail = -projectile.velocity.normalized() * (36.0 if projectile.evolved else 22.0)
 			draw_line(pos + tail, pos, Color(color.r, color.g, color.b, 0.34), 5.0 if projectile.evolved else 3.0)
 		if projectile.kind == "black_hole":
@@ -607,7 +625,8 @@ func _draw_enemy_projectiles() -> void:
 			color = Color(0.44, 0.90, 1.0)
 		elif String(shot.get("kind", "")) == "doom_core":
 			color = Color(1.0, 0.25, 0.95)
-		draw_circle(pos, radius + 8.0, Color(color.r, color.g, color.b, 0.20))
+		if not visual_effect_budget_system.is_minimal():
+			draw_circle(pos, radius + 8.0, Color(color.r, color.g, color.b, 0.20))
 		draw_circle(pos, radius, color)
 
 func _draw_enemy_attack_warnings() -> void:
@@ -649,8 +668,9 @@ func _draw_orbits() -> void:
 	var center = world_to_screen(state.player_position)
 	var effect: Dictionary = state.weapon_effect("ice_orbit")
 	var color = _effect_color(effect, Color(0.32, 0.82, 1.0))
-	draw_arc(center, radius, 0.0, TAU, _arc_segments(radius), Color(color.r, color.g, color.b, 0.20), 2.0)
-	if evolved:
+	if not visual_effect_budget_system.is_minimal():
+		draw_arc(center, radius, 0.0, TAU, _arc_segments(radius), Color(color.r, color.g, color.b, 0.20), 2.0)
+	if evolved and not visual_effect_budget_system.is_minimal():
 		draw_arc(center, radius * 0.72, 0.0, TAU, _arc_segments(radius * 0.72), Color(0.78, 0.94, 1.0, 0.24), 3.0)
 		draw_arc(center, radius * 1.28, 0.0, TAU, _arc_segments(radius * 1.28), Color(color.r, color.g, color.b, 0.18), 3.0)
 	for i in range(count):
@@ -673,7 +693,9 @@ func _draw_hit_flashes() -> void:
 		var effect = state.weapon_effect(String(flash.get("source", "")))
 		var color = _effect_color(effect, Color(1.0, 0.92, 0.44))
 		var radius = float(flash.get("radius", 22.0 * life * 5.0))
-		if String(flash.get("source", "")) in ["soul_scythe", "blade_fan"]:
+		if visual_effect_budget_system.is_minimal():
+			draw_circle(pos, maxf(4.0, radius * 0.55), Color(color.r, color.g, color.b, clampf(life * 2.0, 0.0, 0.9)))
+		elif String(flash.get("source", "")) in ["soul_scythe", "blade_fan"]:
 			var direction: Vector2 = flash.get("direction", Vector2.RIGHT)
 			draw_arc(pos, radius * 0.55, direction.angle() - 0.95, direction.angle() + 0.95, 28, Color(color.r, color.g, color.b, 0.56), 6.0)
 			draw_arc(pos, radius * 0.72, direction.angle() - 0.65, direction.angle() + 0.65, 24, Color(1.0, 1.0, 1.0, 0.42), 3.0)
@@ -682,7 +704,7 @@ func _draw_hit_flashes() -> void:
 			draw_circle(pos, 12.0 * life * 5.0, Color(1.0, 1.0, 1.0, life))
 		else:
 			draw_circle(pos, radius, Color(color.r, color.g, color.b, life * 2.4))
-		if bool(effect.get("trail", false)):
+		if visual_effect_budget_system.feature_enabled("trails") and bool(effect.get("trail", false)):
 			var trail_radius: float = 28.0 * life * 5.0
 			draw_arc(pos, trail_radius, 0.0, TAU, _arc_segments(trail_radius), Color(color.r, color.g, color.b, life), 2.0)
 
@@ -703,7 +725,9 @@ func _draw_effect_lines() -> void:
 		var effect = state.weapon_effect(source)
 		var color = _effect_color(effect, Color(0.78, 0.70, 1.0))
 		var width = 7.0 if bool(line.get("evolved", false)) else 4.0
-		if source == "thunder_chain":
+		if visual_effect_budget_system.is_minimal():
+			draw_line(start, end, Color(color.r, color.g, color.b, clampf(life * 5.0, 0.0, 0.95)), maxf(2.0, width * 0.7))
+		elif source == "thunder_chain":
 			var segments = 5
 			var prev = start
 			for i in range(1, segments + 1):
@@ -883,6 +907,14 @@ func _draw_minimap_content(rect: Rect2, show_legend: bool) -> void:
 				if bool(command.get("icon_scale", false)):
 					radius *= minimap_icon_size
 				draw_circle(command.get("pos", Vector2.ZERO), radius, command.get("color", Color.WHITE))
+			"weapon_core":
+				var pos: Vector2 = command.get("pos", Vector2.ZERO)
+				var color: Color = command.get("color", Color.WHITE)
+				draw_polygon(PackedVector2Array([pos + Vector2(0, -minimap_icon_size * 0.7), pos + Vector2(minimap_icon_size * 0.55, 0), pos + Vector2(0, minimap_icon_size * 0.7), pos + Vector2(-minimap_icon_size * 0.55, 0)]), PackedColorArray([color, color, color, color]))
+			"passive_core":
+				var pos: Vector2 = command.get("pos", Vector2.ZERO)
+				draw_circle(pos, minimap_icon_size * 0.55, command.get("color", Color.WHITE))
+				draw_circle(pos, minimap_icon_size * 0.22, Color(0.04, 0.06, 0.10))
 			"chest":
 				var pos: Vector2 = command.get("pos", Vector2.ZERO)
 				draw_rect(Rect2(pos - Vector2.ONE * minimap_icon_size * 0.5, Vector2.ONE * minimap_icon_size), _chest_color(String(command.get("rarity", "normal"))), true)
@@ -924,6 +956,14 @@ func _cell_world_rect(key: String, tile_size: float) -> Rect2:
 	return Rect2(Vector2(int(parts[0]), int(parts[1])) * tile_size, Vector2(tile_size, tile_size))
 
 func _draw_projectile_shape(pos: Vector2, radius: float, color: Color, shape: String, evolved: bool) -> void:
+	if visual_effect_budget_system.is_minimal():
+		if shape in ["fan_slash", "chain_slash_wave", "scythe_arc", "death_scythe_arc"]:
+			draw_arc(pos, radius + 8.0, -0.8, 0.8, 8, color, 3.0)
+		elif shape in ["thin_laser", "aurora_laser"]:
+			draw_rect(Rect2(pos - Vector2(radius * 1.2, radius * 0.35), Vector2(radius * 2.4, radius * 0.7)), color, true)
+		else:
+			draw_circle(pos, radius, color)
+		return
 	var glow = Color(color.r, color.g, color.b, 0.18 if not evolved else 0.28)
 	match shape:
 		"meteor_bolt":

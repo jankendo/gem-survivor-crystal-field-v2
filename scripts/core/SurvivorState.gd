@@ -94,6 +94,7 @@ var rooms_discovered: int = 0
 var terrain_time: Dictionary = {}
 var terrain_kills: Dictionary = {}
 var terrain_crystals: Dictionary = {}
+var terrain_boss_defeats: Dictionary = {}
 var shortcut_walls_broken: int = 0
 var oasis_healing: int = 0
 
@@ -457,6 +458,7 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	terrain_time = {}
 	terrain_kills = {}
 	terrain_crystals = {}
+	terrain_boss_defeats = {}
 	shortcut_walls_broken = 0
 	oasis_healing = 0
 	terrain_heal_meter = 0.0

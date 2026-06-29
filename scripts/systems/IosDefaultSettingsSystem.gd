@@ -8,7 +8,7 @@ func defaults_for_platform(platform: String = OS.get_name()) -> Dictionary:
 		"battery_saver": true,
 		"low_power_mode": true,
 		"render_quality": "low",
-		"target_fps": 45,
+		"target_fps": 30,
 		"damage_numbers": true,
 		"damage_number_mode": "aggregate_low",
 		"screen_shake": false,

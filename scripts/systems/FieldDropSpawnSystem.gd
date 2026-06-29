@@ -61,6 +61,7 @@ func _spawn_drop(state, id: String, candidate: Dictionary, events: Array) -> Dic
 		return {}
 	var distance = pos.distance_to(state.player_position)
 	var drop = {
+		"runtime_id": "dynamic_drop_%s_%d" % [id, state.dynamic_drops_spawned],
 		"id": id,
 		"name_ja": String(def.get("name_ja", id)),
 		"position": pos,
@@ -70,6 +71,7 @@ func _spawn_drop(state, id: String, candidate: Dictionary, events: Array) -> Dic
 		"value": int(def.get("value", 1)),
 		"priority": int(def.get("priority", 9)),
 		"color": def.get("color", [1.0, 1.0, 1.0]),
+		"generated_icon": String(def.get("generated_icon", "")),
 		"dynamic": true,
 		"persistent": true,
 		"spawn_time": state.elapsed_seconds,
