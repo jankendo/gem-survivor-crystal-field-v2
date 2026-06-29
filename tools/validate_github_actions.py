@@ -30,9 +30,8 @@ def main() -> int:
     perf = texts["ci-ios-perf.yml"]
     release = texts["build-release.yml"]
     nightly = texts["nightly-full.yml"]
+    ios_perf_25 = (ROOT / "tests" / "auto_play_ios_perf_25min.gd").read_text(encoding="utf-8")
     ios_perf_30 = (ROOT / "tests" / "auto_play_ios_perf_30min.gd").read_text(encoding="utf-8")
-    density_30_alias = (ROOT / "tests" / "auto_play_phase5_density_30min.gd").read_text(encoding="utf-8")
-    canonical_30_call = "Harness.new().run(self, 30,"
     checks = {
         "Godot 4.7": combined.count('GODOT_VERSION: "4.7-stable"') == 4,
         "actions/cache v4": all("actions/cache@v4" in text for text in texts.values()),
@@ -65,11 +64,15 @@ def main() -> int:
         "nightly schedule": "schedule:" in nightly,
         "nightly dispatch": "workflow_dispatch:" in nightly,
         "nightly full assertions": "test_runner.gd" in nightly,
-        "nightly canonical density 30": (
-            "auto_play_ios_perf_30min.gd" in nightly
+        "nightly segmented density 30": (
+            "auto_play_ios_perf_20min.gd" in nightly
+            and "auto_play_ios_perf_25min.gd" in nightly
+            and "auto_play_ios_perf_30min.gd" in nightly
             and "auto_play_phase5_density_30min.gd" not in nightly
-            and canonical_30_call in ios_perf_30
-            and canonical_30_call in density_30_alias
+            and "20.0 * 60.0" in ios_perf_25
+            and "25.0 * 60.0" in ios_perf_30
+            and "100000" in ios_perf_25
+            and "100000" in ios_perf_30
         ),
         "nightly density 45": "auto_play_phase5_density_45min.gd" in nightly,
         "nightly density 60": "auto_play_phase5_density_60min.gd" in nightly,

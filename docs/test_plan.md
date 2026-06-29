@@ -117,13 +117,13 @@ python tools/validate_ios_workflow.py
 
 Phase 7 stressはseed 70707を基準に、5 scenarioを各20秒相当、敵600、simulation弾500、gem 1000で実行する。visual command数、coalesce、Critical欠落、p50/p95/p99、100ms超過、pool、simulation hashを記録する。2Hzの決定的snapshotであり、実時間20秒待機や実iPhone GPU計測ではない。
 
-CIの正本は`ci-fast.yml`、`ci-ios-perf.yml`、`build-release.yml`、`nightly-full.yml`。既存長時間scriptは削除しない。密度検証は`auto_play_ios_perf_30min.gd`を0～30分連続実行の正本とし、同一`IosPerfAutoplayHarness.run(self, 30, ...)`を呼ぶ`auto_play_phase5_density_30min.gd`は互換aliasとして残すがNightlyで二重実行しない。30～60分は5分区間の敵600 snapshotへ分割する。各区間は該当時刻のspawn/difficulty curveを使用し、敵、弾、報酬、DPSを下げず、重複排除と並列化だけでwall timeを短縮する。
+CIの正本は`ci-fast.yml`、`ci-ios-perf.yml`、`build-release.yml`、`nightly-full.yml`。既存長時間scriptは削除しない。密度検証は`auto_play_ios_perf_20min.gd`で0～20分を連続実行し、`auto_play_ios_perf_25min.gd`と`auto_play_ios_perf_30min.gd`で通常敵上限をprefillした20～25分、25～30分を1秒stepで並列実行する。Phase 8で0～30分の単一process実行がGitHub Actionsの90分上限を再現性をもって超えたため、重複する0～20分を再計算せず、20分終端の実測723体を下回らない通常上限密度で後半を検証する。`auto_play_phase5_density_30min.gd`は互換scriptとして残すがNightlyで二重実行しない。30～60分も5分区間の敵600 snapshotへ分割する。各区間は該当時刻のspawn/difficulty curveを使用し、敵、弾、報酬、DPSを下げず、重複排除と並列化だけでwall timeを短縮する。
 
 `nightly-full.yml`は既存長時間scriptを削除せず、通常群に加えてiOS perf 10/20/30分、energy、後半密度35/40/45/50/55/60分を17 Ubuntu shardで並列実行する。Windows固有契約はRelease Windows jobで別途検証する。高密度runner差を吸収するため各shard timeoutは360分とする。各shardは個別artifactを残し、1件でも失敗すればworkflowを失敗させる。
 
 full shardの共通save準備では初回ヘルプだけを既読化し、`qa_telemetry_enabled=false`を維持する。各performance/energy harnessが必要なloggerを直接有効化するため、GameScreenのRelease標準loggerを重ねて動かさない。
 
-density 30/45分は0分から1秒simulation stepで連続実行する。density 60分は45分時点から60分までを1秒stepで実行し、開始時に正規enemy entityを600体まで決定的にprefillする。連続0〜45分と高密度45〜60分を合わせてlong-horizonを覆う。seed、装備、敵上限、60分時点のspawn/difficulty curve、hard budget検査は維持し、敵削除や密度削減は行わない。
+density 30分は上記の0～20分連続 + 20～25分/25～30分通常上限prefillを正本とする。互換用density 45分は0分から1秒simulation stepで連続実行する。density 60分は45分時点から60分までを1秒stepで実行し、開始時に正規enemy entityを600体まで決定的にprefillする。これらを合わせてlong-horizonを覆う。seed、装備、敵上限、各時点のspawn/difficulty curve、hard budget検査は維持し、敵削除や密度削減は行わない。
 
 ## 長時間検証
 

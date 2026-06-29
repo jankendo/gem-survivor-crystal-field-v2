@@ -38,6 +38,8 @@ jobs:
             scripts: auto_play_ios_perf_10min.gd
           - shard: ios-perf-20
             scripts: auto_play_ios_perf_20min.gd
+          - shard: ios-perf-25
+            scripts: auto_play_ios_perf_25min.gd
           - shard: ios-perf-30
             scripts: auto_play_ios_perf_30min.gd
           - shard: ios-energy

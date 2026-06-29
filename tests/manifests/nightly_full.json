@@ -14,6 +14,7 @@
     "auto_play_ios_touch_5min.gd",
     "auto_play_ios_perf_10min.gd",
     "auto_play_ios_perf_20min.gd",
+    "auto_play_ios_perf_25min.gd",
     "auto_play_ios_perf_30min.gd",
     "auto_play_ios_lightweight_energy_20min.gd",
     "auto_play_phase5_density_30min.gd",

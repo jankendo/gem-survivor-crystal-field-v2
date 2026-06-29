@@ -1,5 +1,11 @@
 # Changelog
 
+## Phase 8 Nightly 30-minute shard correction
+
+* `auto_play_ios_perf_25min.gd` and `auto_play_ios_perf_30min.gd` no longer repeat the 0-20 minute interval already covered by the parallel 20-minute shard.
+* The 20-25 and 25-30 minute intervals start at the normal enemy cap with the same seed, one-second simulation step, spawn curve, difficulty, weapons, rewards, and simulation systems.
+* This corrects a reproducible 90-minute GitHub Actions timeout without deleting a test or reducing game-side enemy, combat, reward, or RNG behavior.
+
 ## 2026-06-29 Phase 8
 
 ### Added
