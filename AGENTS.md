@@ -69,6 +69,19 @@ v2では以下の3本柱を同時に満たす。
 * unlock前のフィールドオブジェクトを描画、ミニマップ、誘導、スキャンへ出さない。
 * イベントナビは生成された実対象へ向け、対象消滅時に解除する。
 * ショップ解放条件は具体的な日本語、現在値、目標、不足値、購入不可理由を表示する。
+* 再抽選、スキップ、封印、候補除外は通常EXPレベルアップ専用とし、LEVEL_UP以外で表示、入力、charge消費をしない。
+* 敵visual品質はsimulationを変更しない。極限省電力でも敵数、敵挙動、攻撃結果、DPS、EXP、報酬、RNGを変えない。
+* 敵のrender position、snapshot command、補間値をsimulation、collision、AI、攻撃判定へ使用しない。
+* ジェム収集visualは取得、EXP、レベルアップ、報酬処理から分離する。
+* 大量回収で個別ジェムvisual、個別Tween、個別Node、個別floating textを生成しない。
+* ジェム表示上限や代表表示のためにsimulation gemを削除、統合、近似しない。
+* damage numberを再導入しない。
+* touch hapticを再導入しない。
+* シードはポーズ中に確認、コピー可能にする。
+* リザルトは武器別総ダメージと割合を表示する。
+* スキャンは永久解放、ショップ購入、`unlock_seconds`、イベント達成条件を回避しない。
+* スキャン発見報酬は初回だけとし、ラン内限定の探査共鳴として扱う。
+* 市場事例の成功をスキャン機能の因果的証明として扱わない。
 
 ## 禁止事項
 
@@ -113,6 +126,16 @@ v2では以下の3本柱を同時に満たす。
 * Phase 8 Before/After: `docs/performance/phase8_before_after.md`
 * Phase 8 UX監査: `docs/qa/phase8_gameplay_ux_audit.md`
 * Phase 8 iOS実機: `docs/qa/phase8_ios_real_device_checklist.md`
+* Phase 9 scan/enemy/gem: `docs/v2_phase9_crystal_survey_enemy_gem_ultralite.md`
+* Phase 9市場調査: `docs/research/phase9_scan_market_research.md`
+* Phase 9性能監査: `docs/performance/phase9_enemy_gem_scan_audit.md`
+* Phase 9 Before/After: `docs/performance/phase9_before_after.md`
+* Phase 9敵描画: `docs/performance/phase9_enemy_render_architecture.md`
+* Phase 9ジェムbatch: `docs/performance/phase9_gem_collection_batch_architecture.md`
+* Phase 9 Crystal Survey設計: `docs/design/phase9_crystal_survey_design.md`
+* Phase 9 UI/Result監査: `docs/qa/phase9_ui_result_audit.md`
+* Phase 9 iOS実機: `docs/qa/phase9_ios_real_device_checklist.md`
+* Phase 9 scan手動評価: `docs/qa/phase9_scan_playtest_form.md`
 * iOSタイトル仕様: `docs/ios_responsive_title_spec.md`
 * 環境アート方向性: `docs/environment_art_direction.md`
 * 環境描画パイプライン: `docs/environment_rendering_pipeline.md`

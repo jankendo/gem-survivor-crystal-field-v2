@@ -8,6 +8,7 @@ const MobileSafeAreaSystemScript = preload("res://scripts/systems/MobileSafeArea
 const MobileScrollSystemScript = preload("res://scripts/systems/MobileScrollSystem.gd")
 const ProgressDisplayFormatterScript = preload("res://scripts/systems/ProgressDisplayFormatter.gd")
 const V2HudPresenterScript = preload("res://scripts/systems/V2HudPresenter.gd")
+const ResultDamageFormatterScript = preload("res://scripts/systems/ResultDamageFormatter.gd")
 
 signal retry_requested
 signal title_requested
@@ -24,6 +25,7 @@ var mobile_safe_area = MobileSafeAreaSystemScript.new()
 var mobile_scroll_system
 var progress_formatter = ProgressDisplayFormatterScript.new()
 var v2_hud_presenter = V2HudPresenterScript.new()
+var result_damage_formatter = ResultDamageFormatterScript.new()
 
 func _ready() -> void:
 	var settings: Dictionary = SaveSystem.new().load_data().get("settings", {})
@@ -157,6 +159,7 @@ func show_summary(summary: Dictionary) -> void:
 		"発動シナジー：%s" % _join_or_none(summary.get("synergy_history", summary.get("active_synergies", [])))
 	]
 	var momentum_lines := v2_hud_presenter.momentum_result_lines(summary)
+	var weapon_damage_lines := result_damage_formatter.weapon_damage_lines(summary)
 	var detail_lines := [
 		"新規解放：実績 %s / キャラ %s / 武器 %s / パッシブ %s" % [
 			_join_or_none(summary.get("quests_completed", [])),
@@ -225,6 +228,7 @@ func show_summary(summary: Dictionary) -> void:
 		"破壊クリスタル：%s" % JaText.format_int(int(summary.get("crystals_destroyed", 0))),
 		"開封宝箱：%s" % JaText.format_int(int(summary.get("chests_opened", 0))),
 		"最大ダメージ：%s" % JaText.format_int(int(summary.get("max_damage", 0))),
+		"\n".join(weapon_damage_lines),
 		"最高スコア：%s" % JaText.format_int(best),
 		"自己ベストまであと：%s" % JaText.format_int(delta),
 		"死因：%s" % String(summary.get("reason", "敵に囲まれました"))

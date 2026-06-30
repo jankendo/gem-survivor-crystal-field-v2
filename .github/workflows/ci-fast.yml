@@ -1,4 +1,4 @@
-name: Phase 8 Fast Gate
+name: Phase 9 Fast Gate
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
       - "release/**"
 
 concurrency:
-  group: phase8-fast-${{ github.workflow }}-${{ github.ref }}
+  group: phase9-fast-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -97,6 +97,13 @@ jobs:
           GODOT=".tools/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
           "${GODOT}" --headless --path . --script res://tests/auto_play_ios_phase8_extreme_late_game_stress.gd
 
+      - name: Phase 9 targeted runner
+        if: steps.route.outputs.run_fast_gate == 'true'
+        shell: bash
+        run: |
+          GODOT=".tools/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
+          "${GODOT}" --headless --path . --script res://tests/phase9_test_runner.gd
+
       - name: Workflow validators
         shell: bash
         run: |
@@ -109,7 +116,7 @@ jobs:
         shell: bash
         run: |
           {
-            echo "## Phase 8 Fast Gate"
+            echo "## Phase 9 Fast Gate"
             echo "- routing: ${{ steps.route.outputs.reason }}"
             echo "- Godot: ${GODOT_VERSION}"
             echo "- timing artifact: test-output/ci/fast_gate_timing.json"

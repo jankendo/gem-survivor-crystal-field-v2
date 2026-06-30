@@ -1,6 +1,8 @@
 extends RefCounted
 class_name SelectionActionSystem
 
+const SelectionContextSystemScript = preload("res://scripts/systems/SelectionContextSystem.gd")
+
 const DEFAULT_DEFS := {
 	"skip_base_count": 1,
 	"reroll_base_count": 1,
@@ -58,16 +60,16 @@ func max_reroll_count(save_data: Dictionary) -> int:
 	return clampi(count, 0, int(defs.get("max_reroll_count", 6)))
 
 func can_skip(state) -> bool:
-	return int(state.selection_skip_remaining) > 0
+	return SelectionContextSystemScript.is_level_up(state) and int(state.selection_skip_remaining) > 0
 
 func can_seal(state) -> bool:
-	return int(state.selection_seal_remaining) > 0
+	return SelectionContextSystemScript.is_level_up(state) and int(state.selection_seal_remaining) > 0
 
 func can_reroll(state) -> bool:
-	return int(state.selection_reroll_remaining) > 0
+	return SelectionContextSystemScript.is_level_up(state) and int(state.selection_reroll_remaining) > 0
 
 func consume_reroll(state, events: Array) -> bool:
-	if not can_reroll(state) or not state.level_up_pending:
+	if not can_reroll(state):
 		return false
 	state.selection_reroll_remaining -= 1
 	state.selection_rerolls_used += 1
@@ -75,7 +77,7 @@ func consume_reroll(state, events: Array) -> bool:
 	return true
 
 func skip_current(state, events: Array) -> bool:
-	if not can_skip(state) or not state.level_up_pending:
+	if not can_skip(state):
 		return false
 	state.selection_skip_remaining -= 1
 	var reward: Dictionary = defs.get("skip_reward", {})
@@ -89,12 +91,13 @@ func skip_current(state, events: Array) -> bool:
 	state.level_up_pending = false
 	state.rune_contract_pending = false
 	state.level_up_options = []
+	state.selection_context = SelectionContextSystemScript.NONE
 	state.message = "選択をスキップ：HP+%d / スコア+%d" % [heal, score_gain]
 	events.append({"type": "selection_skip", "score": score_gain, "heal": heal, "currency": int(reward.get("crystal_currency", 0))})
 	return true
 
 func seal_option(state, option_uid: String, events: Array) -> bool:
-	if not can_seal(state) or option_uid == "" or not state.level_up_pending:
+	if not can_seal(state) or option_uid == "":
 		return false
 	var option = _find_option(state.level_up_options, option_uid)
 	if option.is_empty():
@@ -121,16 +124,21 @@ func option_uid(kind: String, id: String) -> String:
 
 func controls_for(state, controls: Dictionary = {}) -> Dictionary:
 	var result := controls.duplicate(true)
-	result["skip_remaining"] = int(state.selection_skip_remaining)
-	result["skip_max"] = int(state.selection_skip_max)
-	result["rerolls"] = int(state.selection_reroll_remaining)
-	result["reroll_remaining"] = int(state.selection_reroll_remaining)
-	result["reroll_max"] = int(state.selection_reroll_max)
-	result["seal_remaining"] = int(state.selection_seal_remaining)
-	result["seal_max"] = int(state.selection_seal_max)
-	result["can_skip"] = bool(result.get("can_skip", false)) or can_skip(state)
-	result["can_reroll"] = can_reroll(state)
-	result["can_seal"] = can_seal(state)
+	var context: String = SelectionContextSystemScript.current_context(state)
+	var level_up_actions: bool = SelectionContextSystemScript.can_use_levelup_actions(context)
+	result["context"] = context
+	result["context_label"] = SelectionContextSystemScript.label_for(context)
+	result["level_up_actions"] = level_up_actions
+	result["skip_remaining"] = int(state.selection_skip_remaining) if level_up_actions else 0
+	result["skip_max"] = int(state.selection_skip_max) if level_up_actions else 0
+	result["rerolls"] = int(state.selection_reroll_remaining) if level_up_actions else 0
+	result["reroll_remaining"] = int(state.selection_reroll_remaining) if level_up_actions else 0
+	result["reroll_max"] = int(state.selection_reroll_max) if level_up_actions else 0
+	result["seal_remaining"] = int(state.selection_seal_remaining) if level_up_actions else 0
+	result["seal_max"] = int(state.selection_seal_max) if level_up_actions else 0
+	result["can_skip"] = level_up_actions and (bool(result.get("can_skip", false)) or can_skip(state))
+	result["can_reroll"] = level_up_actions and can_reroll(state)
+	result["can_seal"] = level_up_actions and can_seal(state)
 	var reward: Dictionary = defs.get("skip_reward", {})
 	result["skip_reward_text"] = "HP+%d / スコア+%d" % [int(reward.get("heal", 0)), int(reward.get("score", 0))]
 	return result

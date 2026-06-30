@@ -11,7 +11,7 @@
   "notification_log_amount": {"low": "少なめ", "standard": "標準"},
   "equipment_hud_mode": {"simple": "簡易", "detail": "詳細", "hidden": "非表示"},
   "boss_alert_intensity": {"normal": "標準", "strong": "強調"},
-  "ui_animation_amount": {"low": "少なめ", "standard": "標準", "high": "多め"},
+  "ui_animation_amount": {"off": "OFF", "low": "少なめ", "standard": "標準", "high": "多め"},
   "minimap_size": {"small": "小", "standard": "標準", "large": "大"},
   "minimap_opacity": {"low": "薄い", "standard": "標準", "high": "濃い"},
   "camera_view_size": {"near": "近い", "standard": "標準", "wide": "広い"},

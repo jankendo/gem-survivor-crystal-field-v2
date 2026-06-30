@@ -1,11 +1,12 @@
 {
   "global_collection": {
     "batch_size": 160,
-    "max_representative_effects": 6,
-    "max_proxy_nodes": 48,
-    "max_active_ring_effects": 4,
-    "ring_duration": 0.78,
-    "collapse_start": 0.48,
+    "visual_mode": "batch_minimal",
+    "max_representative_effects": 4,
+    "max_proxy_nodes": 4,
+    "max_active_ring_effects": 2,
+    "ring_duration": 0.30,
+    "collapse_start": 0.12,
     "notification_limit": 1
   },
   "resonance_magnet_core": {

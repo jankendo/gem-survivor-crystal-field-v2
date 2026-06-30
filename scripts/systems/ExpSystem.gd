@@ -2,6 +2,7 @@ extends RefCounted
 class_name ExpSystem
 
 const ExpGemScript = preload("res://scripts/core/ExpGem.gd")
+const SelectionContextSystemScript = preload("res://scripts/systems/SelectionContextSystem.gd")
 
 var level_up_system = preload("res://scripts/systems/LevelUpSystem.gd").new()
 
@@ -51,6 +52,7 @@ func add_exp(state, amount: int, events: Array) -> void:
 
 func _open_level_up(state, events: Array) -> void:
 	state.level_up_pending = true
+	state.selection_context = SelectionContextSystemScript.LEVEL_UP
 	state.selected_reward_index = 0
 	state.level_up_options = level_up_system.prepare_options(state, 3)
 	events.append({"type": "level_up", "level": state.level, "options": state.level_up_options})

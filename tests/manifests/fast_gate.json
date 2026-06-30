@@ -40,6 +40,18 @@
     {"id": "phase8-event-cleanup", "path": "res://tests/test_field_event_navigation_cleanup.gd"},
     {"id": "phase8-event-priority", "path": "res://tests/test_event_target_priority.gd"},
     {"id": "phase8-shop-card", "path": "res://tests/test_shop_unlock_condition_presentation.gd"},
-    {"id": "phase8-shop-japanese", "path": "res://tests/test_all_weapon_passive_conditions_have_japanese_text.gd"}
+    {"id": "phase8-shop-japanese", "path": "res://tests/test_all_weapon_passive_conditions_have_japanese_text.gd"},
+    {"id": "phase9-selection-context", "path": "res://tests/test_selection_actions_level_up_only.gd"},
+    {"id": "phase9-selection-hidden-core", "path": "res://tests/test_selection_actions_hidden_for_core.gd"},
+    {"id": "phase9-selection-hidden-chest", "path": "res://tests/test_selection_actions_hidden_for_chest.gd"},
+    {"id": "phase9-enemy-visual", "path": "res://tests/test_enemy_visual_batch.gd"},
+    {"id": "phase9-gem-batch", "path": "res://tests/test_gem_collection_batch_totals.gd"},
+    {"id": "phase9-time-format", "path": "res://tests/test_survival_time_japanese_format.gd"},
+    {"id": "phase9-removed-settings", "path": "res://tests/test_damage_numbers_removed.gd"},
+    {"id": "phase9-seed-copy", "path": "res://tests/test_pause_seed_copy.gd"},
+    {"id": "phase9-result-damage", "path": "res://tests/test_result_weapon_damage_totals.gd"},
+    {"id": "phase9-scan-basic", "path": "res://tests/test_scan_discovers_available_items.gd"},
+    {"id": "phase9-scan-extract", "path": "res://tests/test_scan_extract_core_uses_regular_choice.gd"},
+    {"id": "phase9-scan-budget", "path": "res://tests/test_scan_spatial_query_budget.gd"}
   ]
 }

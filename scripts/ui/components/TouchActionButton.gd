@@ -9,21 +9,24 @@ const UiNavigation = preload("res://scripts/ui/UiNavigation.gd")
 var action_name := ""
 var hold_action := false
 var accent_color := Color(0.42, 0.88, 1.0)
-var haptics_enabled := true
+var haptics_enabled := false
+var hold_duration := 0.55
 var hold_progress := 0.0
+var last_hold_progress := 0.0
 var holding := false
 
 func _process(delta: float) -> void:
 	if not hold_action or not holding:
 		return
-	hold_progress = minf(1.0, hold_progress + delta / 0.55)
+	hold_progress = minf(1.0, hold_progress + delta / maxf(0.10, hold_duration))
 	queue_redraw()
 
-func setup(action: String, label: String, accent: Color, extent: float, hold: bool = false, opacity: float = 0.78) -> void:
+func setup(action: String, label: String, accent: Color, extent: float, hold: bool = false, opacity: float = 0.78, hold_seconds: float = 0.55) -> void:
 	action_name = action
 	text = label
 	accent_color = Color(accent.r, accent.g, accent.b, clampf(opacity, 0.35, 1.0))
 	hold_action = hold
+	hold_duration = maxf(0.10, hold_seconds)
 	custom_minimum_size = Vector2(extent, extent)
 	focus_mode = Control.FOCUS_NONE
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -49,16 +52,16 @@ func set_active_state(active: bool, active_label: String = "") -> void:
 func _on_button_down() -> void:
 	if disabled:
 		return
-	if haptics_enabled:
-		Input.vibrate_handheld(22)
 	holding = hold_action
 	hold_progress = 0.0
+	last_hold_progress = 0.0
 	action_started.emit(action_name)
 	if not hold_action:
 		action_ended.emit(action_name)
 
 func _on_button_up() -> void:
 	if hold_action:
+		last_hold_progress = hold_progress
 		holding = false
 		hold_progress = 0.0
 		queue_redraw()

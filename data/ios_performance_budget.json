@@ -6,7 +6,7 @@
     "max_enemies_visible": 360,
     "max_enemies_total": 700,
     "max_rendered_effects": 96,
-    "max_rendered_damage_numbers": 36,
+    "max_rendered_damage_numbers": 0,
     "max_rendered_gems": 420,
     "max_rendered_projectiles": 190,
     "max_rendered_background_particles": 90,

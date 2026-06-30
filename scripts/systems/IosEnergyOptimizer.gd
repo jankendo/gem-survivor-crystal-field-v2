@@ -63,7 +63,7 @@ func mark_notification() -> void:
 	notification_spawn_count += 1
 
 func mark_haptic() -> void:
-	haptic_count += 1
+	haptic_count = 0
 
 func mark_audio() -> void:
 	audio_event_count += 1

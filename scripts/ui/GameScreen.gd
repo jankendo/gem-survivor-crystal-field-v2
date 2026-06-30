@@ -70,6 +70,8 @@ const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.g
 const ConfirmDialogScript = preload("res://scripts/ui/components/ConfirmDialog.gd")
 const VirtualJoystickScript = preload("res://scripts/ui/components/VirtualJoystick.gd")
 const TouchActionButtonScript = preload("res://scripts/ui/components/TouchActionButton.gd")
+const CrystalSurveySystemScript = preload("res://scripts/systems/CrystalSurveySystem.gd")
+const SelectionContextSystemScript = preload("res://scripts/systems/SelectionContextSystem.gd")
 
 signal game_finished(summary: Dictionary)
 signal title_requested
@@ -98,6 +100,7 @@ var field_drop_spawn_system
 var resonance_magnet_system
 var character_evolution_system
 var field_help_system
+var crystal_survey_system
 var goal_hint_system
 var exploration_mastery_system
 var exploration_chain_system
@@ -240,6 +243,7 @@ func _ready() -> void:
 	resonance_magnet_system = ResonanceMagnetSystemScript.new()
 	character_evolution_system = CharacterEvolutionSystemScript.new()
 	field_help_system = FieldHelpSystemScript.new()
+	crystal_survey_system = CrystalSurveySystemScript.new()
 	goal_hint_system = GoalHintSystemScript.new()
 	exploration_mastery_system = ExplorationMasterySystemScript.new()
 	exploration_chain_system = ExplorationChainSystemScript.new()
@@ -1243,9 +1247,12 @@ func _refresh() -> void:
 				touch_banishes_remaining = int(state.selection_seal_remaining)
 			last_reward_signature = signature
 			touch_rerolls_remaining = int(state.selection_reroll_remaining)
+			var context := SelectionContextSystemScript.current_context(state)
 			var controls: Dictionary = selection_action_system.controls_for(state, {
 				"banishes": int(state.selection_seal_remaining),
-				"can_skip": _has_contract_skip(state.level_up_options) or _has_pending_pickup_choice(),
+				"can_skip": context == SelectionContextSystemScript.LEVEL_UP,
+				"can_decline": _has_pending_pickup_choice(),
+				"decline_text": "取得しない",
 				"title": _reward_popup_title()
 			})
 			if _has_pending_pickup_choice():
@@ -1420,7 +1427,7 @@ func _on_reward_chosen(reward_id: String) -> void:
 		_refresh()
 
 func _on_touch_reroll() -> void:
-	if int(state.selection_reroll_remaining) <= 0 or not state.level_up_pending or _has_pending_pickup_choice():
+	if int(state.selection_reroll_remaining) <= 0 or not SelectionContextSystemScript.is_level_up(state):
 		return
 	var events: Array = []
 	if not selection_action_system.consume_reroll(state, events):
@@ -1436,7 +1443,7 @@ func _on_touch_reroll() -> void:
 	last_reward_signature = _reward_signature(state.level_up_options)
 	reward_popup.show_options(state.level_up_options, selection_action_system.controls_for(state, {
 		"banishes": int(state.selection_seal_remaining),
-		"can_skip": _has_contract_skip(state.level_up_options),
+		"can_skip": true,
 		"title": _reward_popup_title()
 	}), input_mode.is_touch_mode())
 	_handle_events(events)
@@ -1444,7 +1451,7 @@ func _on_touch_reroll() -> void:
 	_refresh()
 
 func _on_touch_banish(reward_id: String) -> void:
-	if not state.level_up_pending or _has_pending_pickup_choice():
+	if not SelectionContextSystemScript.is_level_up(state):
 		return
 	var events: Array = []
 	if not selection_action_system.seal_option(state, reward_id, events):
@@ -1470,7 +1477,7 @@ func _on_touch_banish(reward_id: String) -> void:
 	last_reward_signature = _reward_signature(state.level_up_options)
 	reward_popup.show_options(state.level_up_options, selection_action_system.controls_for(state, {
 		"banishes": int(state.selection_seal_remaining),
-		"can_skip": _has_contract_skip(state.level_up_options),
+		"can_skip": true,
 		"title": _reward_popup_title()
 	}), input_mode.is_touch_mode())
 	_handle_events(events)
@@ -1493,10 +1500,8 @@ func _on_touch_skip() -> void:
 			_handle_events(events)
 			_refresh()
 		return
-	for option in state.level_up_options:
-		if String(option.get("kind", "")) == "contract_skip":
-			_on_reward_chosen(String(option.get("uid", "")))
-			return
+	if not SelectionContextSystemScript.is_level_up(state):
+		return
 	if selection_action_system.skip_current(state, events):
 		level_up_system.open_queued_level_up_if_ready(state, events)
 		_handle_events(events)
@@ -1529,6 +1534,8 @@ func _reward_signature(options: Array) -> String:
 
 func _tick_flashes(delta: float) -> void:
 	state.field_scan_timer = maxf(0.0, state.field_scan_timer - delta)
+	if crystal_survey_system != null:
+		crystal_survey_system.tick(state, delta)
 	state.goal_change_timer = maxf(0.0, state.goal_change_timer - delta)
 	_compact_timed_visuals(state.hit_flashes, "hit_flash", delta)
 	_compact_timed_visuals(state.effect_lines, "effect_line", delta)
@@ -1664,6 +1671,8 @@ func _summary() -> Dictionary:
 		"field_event_successes": state.field_event_successes,
 		"field_event_failures": state.field_event_failures,
 		"rooms_discovered": state.rooms_discovered,
+		"survey_resonance": state.survey_resonance,
+		"scan_telemetry": state.scan_telemetry.duplicate(true),
 		"terrain_time": state.terrain_time.duplicate(true),
 		"terrain_kills": state.terrain_kills.duplicate(true),
 		"terrain_crystals": state.terrain_crystals.duplicate(true),
@@ -1698,11 +1707,65 @@ func _activate_recall_drone() -> void:
 func _scan_field_target() -> void:
 	if state == null or state.game_over or state.level_up_pending:
 		return
-	var target = field_help_system.scan(state)
-	if target.is_empty():
-		message_label.text = "スキャン：近くに調査対象はありません"
+	var events: Array = []
+	var result: Dictionary = crystal_survey_system.short_scan(state, events)
+	if bool(result.get("ok", false)):
+		var target: Dictionary = result.get("target", {})
+		var discovery_count := (result.get("discoveries", []) as Array).size()
+		var resonance_text := "探査共鳴 %d / %d" % [state.survey_resonance, state.survey_resonance_max]
+		message_label.text = "スキャン完了：%s　新規%d件　%s" % [
+			String(target.get("name_ja", "調査対象")),
+			discovery_count,
+			resonance_text
+		]
+		_handle_events(events)
+		_refresh_goal_hud()
+		return
+	var reason := String(result.get("reason", "no_target"))
+	if reason == "cooldown":
+		message_label.text = "スキャン再使用まで%d秒" % int(ceil(float(result.get("cooldown", state.scan_cooldown))))
 	else:
-		message_label.text = "スキャン完了：%s" % String(target.get("name_ja", "フィールド対象"))
+		var legacy_target = field_help_system.scan(state)
+		message_label.text = "スキャン：近くに調査対象はありません" if legacy_target.is_empty() else "スキャン完了：%s" % String(legacy_target.get("name_ja", "フィールド対象"))
+
+func _begin_scan_extract() -> Dictionary:
+	var events: Array = []
+	var result: Dictionary = crystal_survey_system.begin_extract(state, events)
+	_handle_events(events)
+	if not bool(result.get("ok", false)):
+		match String(result.get("reason", "")):
+			"resonance_short":
+				message_label.text = "探査共鳴が不足：%d / %d" % [state.survey_resonance, state.survey_resonance_max]
+			"cooldown":
+				message_label.text = "共鳴抽出はクールダウン中"
+			_:
+				message_label.text = "抽出できる封印対象が近くにありません"
+	return result
+
+func _complete_scan_extract() -> void:
+	if state == null or state.game_over or state.level_up_pending:
+		return
+	var begin_result := _begin_scan_extract()
+	if not bool(begin_result.get("ok", false)):
+		return
+	var events: Array = []
+	var result: Dictionary = crystal_survey_system.complete_extract(state, events)
+	if not bool(result.get("ok", false)):
+		_handle_events(events)
+		message_label.text = "抽出を中断しました"
+		return
+	var target: Dictionary = result.get("target", {})
+	var source = target.get("source", {})
+	if source is Dictionary:
+		source["position"] = state.player_position
+		source["scan_extracted"] = true
+		if String(target.get("kind", "")) == "field_equipment":
+			field_equipment_pickup_system.process(state, 0.0, events)
+		else:
+			field_drop_system.process(state, 0.0, events)
+	_handle_events(events)
+	message_label.text = "封印解除：%sを獲得" % String(target.get("name_ja", "封印対象"))
+	_refresh()
 
 func _total_overclocks() -> int:
 	var total = 0
@@ -1944,8 +2007,9 @@ func _build_touch_controls(ui_scale: float) -> void:
 	touch_root.add_child(buttons)
 
 	touch_scan_button = TouchActionButtonScript.new()
-	touch_scan_button.setup("action_scan", "スキャン", Color(0.42, 0.88, 1.0), button_extent, false, touch_control_system.touch_button_opacity)
+	touch_scan_button.setup("action_scan", "スキャン", Color(0.42, 0.88, 1.0), button_extent, true, touch_control_system.touch_button_opacity, 1.45)
 	touch_scan_button.action_started.connect(_on_touch_action_started)
+	touch_scan_button.action_ended.connect(_on_touch_action_ended)
 	buttons.add_child(touch_scan_button)
 	touch_drone_button = TouchActionButtonScript.new()
 	touch_drone_button.setup("action_drone", "回収", Color(0.50, 1.0, 0.70), button_extent, false, touch_control_system.touch_button_opacity)
@@ -2005,7 +2069,8 @@ func _refresh_touch_controls() -> void:
 	touch_drone_button.visible = not action_blocked
 	touch_speed_button.visible = not action_blocked and bool(runtime_settings.get("speed_hold_enabled", true))
 	touch_drone_button.set_ready_state(state.recall_drone_ready)
-	touch_scan_button.set_active_state(not state.nearby_field_help.is_empty())
+	touch_scan_button.text = crystal_survey_system.button_label(state)
+	touch_scan_button.set_active_state(not state.nearby_field_help.is_empty() or int(state.survey_resonance) >= int(state.survey_resonance_max))
 	touch_speed_button.text = speed_lock_system.display_text()
 	touch_pause_button.text = "再開" if state.paused else "ポーズ"
 	touch_map_button.text = "閉じる" if map_expanded else "マップ"
@@ -2024,7 +2089,7 @@ func _on_touch_action_started(action: String) -> void:
 	touch_control_system.set_action_pressed(action, true, false)
 	match action:
 		"action_scan":
-			_scan_field_target()
+			pass
 		"action_drone":
 			_activate_recall_drone()
 		"action_speed_hold":
@@ -2051,6 +2116,11 @@ func _on_touch_action_ended(action: String) -> void:
 	if action == "action_speed_hold":
 		touch_control_system.set_speed_pressed(false)
 		speed_lock_system.end_press()
+	elif action == "action_scan":
+		if touch_scan_button != null and float(touch_scan_button.last_hold_progress) >= 0.98:
+			_complete_scan_extract()
+		else:
+			_scan_field_target()
 
 func _speed_modal_blocked() -> bool:
 	return (
@@ -2133,7 +2203,7 @@ func _refresh_pause_ui() -> void:
 func _refresh_pause_actions() -> void:
 	if pause_action_row == null:
 		return
-	var signature := "%d:%s:%s" % [pause_tab_index, str(state.auto_infinite_enabled), str(state.auto_recall_drone_enabled)]
+	var signature := "%d:%s:%s:%s" % [pause_tab_index, str(state.auto_infinite_enabled), str(state.auto_recall_drone_enabled), _current_seed_text()]
 	if signature == pause_actions_signature:
 		return
 	pause_actions_signature = signature
@@ -2156,6 +2226,10 @@ func _refresh_pause_actions() -> void:
 			_refresh_pause_ui()
 		)
 		pause_action_row.add_child(recall_button)
+	var seed_button = CrystalButtonScript.new()
+	seed_button.setup("シードをコピー", Color(0.62, 0.86, 1.0), Vector2(180, 56 if input_mode.is_touch_mode() else 42))
+	seed_button.pressed.connect(_copy_seed_to_clipboard)
+	pause_action_row.add_child(seed_button)
 	var settings_button = CrystalButtonScript.new()
 	settings_button.setup("設定", Color(0.52, 1.0, 0.72), Vector2(160, 56 if input_mode.is_touch_mode() else 42))
 	settings_button.pressed.connect(func(): set_pause_tab(7))
@@ -2184,6 +2258,7 @@ func _pause_status_text() -> String:
 	var blessing_data: Dictionary = meta_system.blessings.get(state.selected_blessing_id, {})
 	return "\n".join([
 		"キャラ：%s" % state.selected_character_name,
+		"現在シード：%s" % _current_seed_text(),
 		"HP：%d / %d　Lv：%d　EXP：%d%%" % [state.hp, state.max_hp, state.level, int(exp_bar.value)],
 		"生存時間：%s　撃破：%s　スコア：%s" % [JaText.format_time(state.elapsed_seconds), JaText.format_int(state.kills), JaText.format_int(state.score)],
 		"攻撃倍率：%.2f　CD倍率：%.2f　範囲倍率：%.2f　移動速度：%.1f　吸収範囲：%.1f" % [state.get_damage_multiplier(), state.get_cooldown_multiplier(), state.get_area_multiplier(), state.get_move_speed(), state.get_magnet_radius()],
@@ -2196,6 +2271,28 @@ func _pause_status_text() -> String:
 		String(blessing_data.get("effect_description_ja", blessing_data.get("description_ja", ""))),
 		"数値：%s" % " / ".join(blessing_data.get("numeric_effects_ja", []))
 	])
+
+func _current_seed_text() -> String:
+	if state == null:
+		return ""
+	var text := String(state.map_seed_text).strip_edges()
+	if text == "":
+		text = str(int(state.map_seed))
+	return text
+
+func copy_current_seed_to_clipboard() -> bool:
+	var text := _current_seed_text()
+	if text == "":
+		return false
+	if DisplayServer.get_name() == "headless":
+		return true
+	DisplayServer.clipboard_set(text)
+	return true
+
+func _copy_seed_to_clipboard() -> void:
+	if copy_current_seed_to_clipboard():
+		message_label.text = "シードをコピーしました：%s" % _current_seed_text()
+		_refresh_pause_ui()
 
 func _pause_weapons_text() -> String:
 	var lines: Array = []

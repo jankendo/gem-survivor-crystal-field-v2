@@ -1,6 +1,8 @@
 extends RefCounted
 class_name CorePickupChoiceSystem
 
+const SelectionContextSystemScript = preload("res://scripts/systems/SelectionContextSystem.gd")
+
 var capacity = preload("res://scripts/systems/EquipmentCapacitySystem.gd").new()
 var over_cap = preload("res://scripts/systems/EquipmentOverCapSystem.gd").new()
 
@@ -21,6 +23,7 @@ func open_choice(state, kind: String, drop: Dictionary, events: Array, count: in
 	}
 	state.level_up_options = options
 	state.level_up_pending = true
+	state.selection_context = SelectionContextSystemScript.WEAPON_CORE if kind == "weapon" else SelectionContextSystemScript.PASSIVE_CORE
 	state.message = "%sの中身を選択" % ("武器コア" if kind == "weapon" else "パッシブ結晶")
 	events.append({"type": "core_choice_open", "kind": kind, "options": options.size(), "source_id": source_id})
 	return true
@@ -118,6 +121,7 @@ func _close(state) -> void:
 	state.pending_core_choice = {}
 	state.level_up_pending = false
 	state.level_up_options = []
+	state.selection_context = SelectionContextSystemScript.NONE
 
 func _find_option(options: Array, uid: String) -> Dictionary:
 	for option in options:

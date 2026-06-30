@@ -1,6 +1,8 @@
 extends RefCounted
 class_name FieldEquipmentPickupSystem
 
+const SelectionContextSystemScript = preload("res://scripts/systems/SelectionContextSystem.gd")
+
 var capacity = preload("res://scripts/systems/EquipmentCapacitySystem.gd").new()
 var over_cap = preload("res://scripts/systems/EquipmentOverCapSystem.gd").new()
 var availability = preload("res://scripts/systems/FieldObjectAvailabilitySystem.gd").new()
@@ -54,6 +56,7 @@ func open_choice(state, equipment: Dictionary, events: Array) -> bool:
 	state.pending_field_equipment_choice = {"equipment": equipment, "options": [option, decline]}
 	state.level_up_options = [option, decline]
 	state.level_up_pending = true
+	state.selection_context = SelectionContextSystemScript.FIELD_EQUIPMENT
 	state.message = "フィールド装備を発見：%s" % String(equipment.get("name_ja", item_id))
 	events.append({"type": "field_equipment_choice_open", "id": item_id, "kind": kind, "name": option.get("name_ja", item_id)})
 	return true
@@ -113,6 +116,7 @@ func _close(state) -> void:
 	state.pending_field_equipment_choice = {}
 	state.level_up_pending = false
 	state.level_up_options = []
+	state.selection_context = SelectionContextSystemScript.NONE
 
 func _find_option(options: Array, uid: String) -> Dictionary:
 	for option in options:

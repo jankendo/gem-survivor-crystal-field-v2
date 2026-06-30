@@ -1,6 +1,8 @@
 extends RefCounted
 class_name RuneContractSystem
 
+const SelectionContextSystemScript = preload("res://scripts/systems/SelectionContextSystem.gd")
+
 func make_offer(state, count: int = 3) -> Array:
 	if state.rune_contracts.size() >= 5:
 		return []
@@ -43,6 +45,7 @@ func offer_after_boss(state, events: Array) -> bool:
 		return false
 	state.rune_contract_pending = true
 	state.level_up_pending = true
+	state.selection_context = SelectionContextSystemScript.RUNE_CONTRACT
 	state.level_up_options = options
 	state.selected_reward_index = 0
 	events.append({"type": "rune_contract_offer", "options": options})
@@ -53,6 +56,7 @@ func apply_contract(state, id: String, events: Array) -> bool:
 		state.rune_contract_pending = false
 		state.level_up_pending = false
 		state.level_up_options = []
+		state.selection_context = SelectionContextSystemScript.NONE
 		state.message = "契約を見送りました"
 		events.append({"type": "rune_contract_skip"})
 		return true
@@ -65,6 +69,7 @@ func apply_contract(state, id: String, events: Array) -> bool:
 	state.rune_contract_pending = false
 	state.level_up_pending = false
 	state.level_up_options = []
+	state.selection_context = SelectionContextSystemScript.NONE
 	state.message = "%sを結んだ" % String(data.get("name_ja", id))
 	if data.has("max_hp_mult"):
 		state.max_hp = maxi(1, int(round(float(state.max_hp) * float(data.get("max_hp_mult", 1.0)))))

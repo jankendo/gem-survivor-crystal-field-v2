@@ -17,6 +17,7 @@ func run(t) -> void:
 	var desktop_ui: Dictionary = system.ui_limits({"render_quality": "standard"}, "Windows")
 	var ios_ui: Dictionary = system.ui_limits({"render_quality": "low"}, "iOS")
 	t.assert_true(int(ios_ui["max_rendered_effects"]) < int(desktop_ui["max_rendered_effects"]), "iOS should reduce rendered effects only")
-	t.assert_true(int(ios_ui["max_rendered_damage_numbers"]) < int(desktop_ui["max_rendered_damage_numbers"]), "iOS should reduce rendered damage numbers")
+	t.assert_eq(int(ios_ui["max_rendered_damage_numbers"]), 0, "Phase 9 removes rendered damage numbers on iOS")
+	t.assert_eq(int(desktop_ui["max_rendered_damage_numbers"]), 0, "Phase 9 removes rendered damage numbers on desktop")
 	t.assert_true(int(ios_ui["notification_lines"]) < int(desktop_ui["notification_lines"]), "iOS should reduce notification lines")
 	t.assert_true(float(ios_ui["ui_animation_scale"]) < float(desktop_ui["ui_animation_scale"]), "iOS should reduce UI animation intensity")

@@ -2,8 +2,10 @@ extends RefCounted
 class_name GemCollectionBatchProcessor
 
 const ExpSystemScript = preload("res://scripts/systems/ExpSystem.gd")
+const GemCollectionVisualBatchSystemScript = preload("res://scripts/systems/GemCollectionVisualBatchSystem.gd")
 
 var exp_system = ExpSystemScript.new()
+var visual_batch_system = GemCollectionVisualBatchSystemScript.new()
 
 func collect(state, target_gems: Array, events: Array, source: String, batch_size: int = 160, value_multiplier: float = 1.0) -> Dictionary:
 	var started_msec = Time.get_ticks_msec()
@@ -57,8 +59,8 @@ func collect(state, target_gems: Array, events: Array, source: String, batch_siz
 	var pickup_score = int(round(float(total_exp) * 2.0 * state.get_combo_score_multiplier()))
 	state.add_score(pickup_score, state.player_position)
 	var missing = maxi(0, picked.keys().size() - collected)
-	var metrics = _metrics(source, picked.keys().size(), collected, total_exp, total_exp, duplicate_targets, missing, started_msec)
-	_append_ring_effect(state, source, representative_positions, collected, total_exp)
+	var visual_batch := _append_ring_effect(state, source, representative_positions, collected, total_exp)
+	var metrics = _metrics(source, picked.keys().size(), collected, total_exp, total_exp, duplicate_targets, missing, started_msec, int(visual_batch.get("representative_count", 0)))
 	_record_source(state, source, collected, total_exp, batch_count, metrics)
 	events.append({
 		"type": "global_gem_collection",
@@ -88,7 +90,7 @@ func _record_source(state, source: String, collected: int, exp: int, batches: in
 		"resonance_magnet_core":
 			state.gems_collected_by_passive += collected
 
-func _metrics(source: String, expected_count: int, collected: int, expected_exp: int, actual_exp: int, duplicate_targets: int, missing: int, started_msec: int) -> Dictionary:
+func _metrics(source: String, expected_count: int, collected: int, expected_exp: int, actual_exp: int, duplicate_targets: int, missing: int, started_msec: int, proxy_nodes: int = 0) -> Dictionary:
 	var duration_ms = maxi(0, Time.get_ticks_msec() - started_msec)
 	return {
 		"source": source,
@@ -98,29 +100,34 @@ func _metrics(source: String, expected_count: int, collected: int, expected_exp:
 		"actual_exp": actual_exp,
 		"duplicate_targets": duplicate_targets,
 		"missing": missing,
-		"proxy_nodes": mini(collected, 48),
+		"proxy_nodes": mini(collected, proxy_nodes),
+		"visual_batch_count": 1 if proxy_nodes > 0 else 0,
+		"representative_gem_count": proxy_nodes,
 		"duration_ms": duration_ms,
 		"long_frames": 0
 	}
 
-func _append_ring_effect(state, source: String, positions: Array, collected: int, exp: int) -> void:
+func _append_ring_effect(state, source: String, positions: Array, collected: int, exp: int) -> Dictionary:
 	if collected <= 0:
-		return
+		return {}
 	var config: Dictionary = state.gem_collection_effects.get("global_collection", {})
 	var proxy_limit = int(config.get("max_proxy_nodes", 48))
-	var proxies = mini(collected, proxy_limit)
-	var ring_count = clampi(int(ceil(float(proxies) / 16.0)), 1, 4)
+	var visual_batch := visual_batch_system.make_batch(source, positions, collected, exp, state.player_position, proxy_limit)
+	var proxies = int(visual_batch.get("representative_count", 0))
+	var ring_count = clampi(int(config.get("gem_collection_ring_count", config.get("ring_count", 1))), 1, 1)
 	state.gem_ring_effects.append({
 		"source": source,
 		"count": collected,
 		"exp": exp,
-		"positions": positions,
+		"positions": visual_batch.get("representative_positions", []),
 		"proxy_nodes": proxies,
 		"ring_count": ring_count,
 		"start_time": state.elapsed_seconds,
-		"duration": float(config.get("ring_duration", 0.78)),
-		"collapse_start": float(config.get("collapse_start", 0.48)),
-		"center": state.player_position
+		"duration": float(config.get("ring_duration", visual_batch.get("visual_duration", 0.26))),
+		"collapse_start": float(config.get("collapse_start", 0.12)),
+		"center": state.player_position,
+		"visual_batch": visual_batch
 	})
 	while state.gem_ring_effects.size() > int(config.get("max_active_ring_effects", 4)):
 		state.gem_ring_effects.pop_front()
+	return visual_batch

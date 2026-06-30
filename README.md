@@ -2,6 +2,12 @@
 
 Godot 4.7 + GDScript、Compatibility rendererで作る、2D探索型サバイバー / bullet-heavenアクションゲームです。
 
+## Phase 9 Crystal Survey / Enemy & Gem Ultra-Lite
+
+Phase 9では、スキャンを部屋・アイテム・イベント・敵・地形を発見する探索システムへ強化し、初回発見でラン内限定の探査共鳴を得て、長押しで封印対象を正規pickup処理へ抽出できるようにしました。市場調査と設計根拠は[docs/research/phase9_scan_market_research.md](docs/research/phase9_scan_market_research.md)に分離しています。
+
+レベルアップ専用の再抽選、スキップ、封印は通常EXPレベルアップ以外で表示・消費されません。極限省電力モードは通常敵表示とジェム収集演出も最小化し、damage numberとtouch hapticは設定項目ごと廃止しました。詳細は[docs/v2_phase9_crystal_survey_enemy_gem_ultralite.md](docs/v2_phase9_crystal_survey_enemy_gem_ultralite.md)を参照してください。
+
 ## Phase 8 iOS Extreme Lite / Gameplay UX
 
 Phase 8では`ios_minimal`と保存値を破壊しない省電力実効設定を追加しました。30fps描画、背景粒子・ダメージ数字・軌跡OFFでも、敵数、弾、DPS、EXP、報酬、RNGは変更しません。
@@ -107,7 +113,9 @@ $GODOT = ".tools/godot-4.7/editor/Godot_v4.7-stable_win64_console.exe"
 & $GODOT --headless --path . --script res://tests/test_runner.gd
 & $GODOT --headless --path . --script res://tests/test_phase6_runner.gd
 & $GODOT --headless --path . --script res://tests/test_phase7_runner.gd
+& $GODOT --headless --path . --script res://tests/phase9_test_runner.gd
 & $GODOT --headless --path . --script res://tests/batch_test_runner.gd -- --manifest=res://tests/manifests/fast_gate.json
+& $GODOT --headless --path . --script res://tests/batch_test_runner.gd -- --manifest=res://tests/manifests/phase9_perf.json --output=res://test-output/ci/phase9_perf_timing.json
 & $GODOT --headless --path . --script res://tests/auto_play_ios_evolved_effect_stress.gd
 & $GODOT --headless --path . --script res://tests/auto_play_phase6_renderer_compare.gd -- --stem=res://test-output/phase6/local_4_7 --label=local_4_7
 & $GODOT --headless --path . --script res://tests/auto_play_60sec.gd
@@ -144,6 +152,10 @@ iOS unsigned IPA:
 ## v2正本文書
 
 - [docs/current_gameplay_spec.md](docs/current_gameplay_spec.md)
+- [docs/v2_phase9_crystal_survey_enemy_gem_ultralite.md](docs/v2_phase9_crystal_survey_enemy_gem_ultralite.md)
+- [docs/research/phase9_scan_market_research.md](docs/research/phase9_scan_market_research.md)
+- [docs/performance/phase9_enemy_gem_scan_audit.md](docs/performance/phase9_enemy_gem_scan_audit.md)
+- [docs/performance/phase9_before_after.md](docs/performance/phase9_before_after.md)
 - [docs/v2_phase7_ios_effect_budget_fast_ci.md](docs/v2_phase7_ios_effect_budget_fast_ci.md)
 - [docs/performance/phase7_visual_budget_architecture.md](docs/performance/phase7_visual_budget_architecture.md)
 - [docs/performance/phase7_before_after.md](docs/performance/phase7_before_after.md)

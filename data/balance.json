@@ -70,7 +70,7 @@
       "max_rendered_projectiles": 340,
       "max_rendered_enemy_projectiles": 180,
       "max_rendered_effects": 130,
-      "max_rendered_damage_numbers": 56,
+      "max_rendered_damage_numbers": 0,
       "max_rendered_background_particles": 210
     },
     "desktop_standard": {
@@ -79,7 +79,7 @@
       "max_rendered_projectiles": 500,
       "max_rendered_enemy_projectiles": 260,
       "max_rendered_effects": 200,
-      "max_rendered_damage_numbers": 80,
+      "max_rendered_damage_numbers": 0,
       "max_rendered_background_particles": 300
     },
     "desktop_high": {
@@ -88,7 +88,7 @@
       "max_rendered_projectiles": 580,
       "max_rendered_enemy_projectiles": 300,
       "max_rendered_effects": 240,
-      "max_rendered_damage_numbers": 96,
+      "max_rendered_damage_numbers": 0,
       "max_rendered_background_particles": 360
     },
     "ios_low": {
@@ -97,7 +97,7 @@
       "max_rendered_projectiles": 120,
       "max_rendered_enemy_projectiles": 110,
       "max_rendered_effects": 64,
-      "max_rendered_damage_numbers": 24,
+      "max_rendered_damage_numbers": 0,
       "max_rendered_background_particles": 48
     },
     "ios_standard": {
@@ -106,7 +106,7 @@
       "max_rendered_projectiles": 190,
       "max_rendered_enemy_projectiles": 160,
       "max_rendered_effects": 96,
-      "max_rendered_damage_numbers": 36,
+      "max_rendered_damage_numbers": 0,
       "max_rendered_background_particles": 90
     },
     "ios_high": {
@@ -115,7 +115,7 @@
       "max_rendered_projectiles": 280,
       "max_rendered_enemy_projectiles": 210,
       "max_rendered_effects": 140,
-      "max_rendered_damage_numbers": 54,
+      "max_rendered_damage_numbers": 0,
       "max_rendered_background_particles": 150
     }
   }

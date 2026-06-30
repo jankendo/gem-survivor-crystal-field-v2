@@ -462,6 +462,9 @@ func _character_colors(character_id: String) -> Dictionary:
 	return {"primary": Color(0.98, 0.88, 0.34), "accent": Color(0.42, 0.86, 1.0)}
 
 func _draw_enemies() -> void:
+	if visual_effect_budget_system.is_minimal():
+		_draw_enemies_minimal()
+		return
 	for enemy in state.enemies:
 		if not _is_world_visible(enemy.position, enemy.radius + 20.0):
 			continue
@@ -516,6 +519,38 @@ func _draw_enemies() -> void:
 			draw_line(pos + Vector2(enemy.radius * 0.55, -enemy.radius * 0.65), pos + Vector2(enemy.radius * 0.30, -enemy.radius * 0.15), Color.WHITE, 2.0)
 		if enemy.poison_timer > 0.0:
 			draw_circle(pos + Vector2(-enemy.radius * 0.55, -enemy.radius * 0.65), 5.0, Color(0.48, 1.0, 0.34, 0.72))
+
+func _draw_enemies_minimal() -> void:
+	for enemy in state.enemies:
+		if not _is_world_visible(enemy.position, enemy.radius + 16.0):
+			continue
+		_phase6_metric("dynamic_enemy_draws")
+		var pos = world_to_screen(enemy.position)
+		var critical := bool(enemy.boss) or bool(enemy.elite)
+		var color = Color(1.0, 0.35, 0.20) if enemy.boss else ENEMY_COLORS.get(enemy.type, Color.WHITE)
+		if enemy.boss:
+			draw_rect(Rect2(pos + Vector2(-enemy.radius, -enemy.radius), Vector2(enemy.radius * 2.0, enemy.radius * 2.0)), color, true)
+			draw_arc(pos, enemy.radius + 10.0, 0.0, TAU, 28, Color(1.0, 0.86, 0.24), 3.0)
+		elif enemy.elite or enemy.type == "elite":
+			draw_rect(Rect2(pos + Vector2(-enemy.radius, -enemy.radius), Vector2(enemy.radius * 2.0, enemy.radius * 2.0)), color, true)
+			draw_arc(pos, enemy.radius + 5.0, 0.0, TAU, 24, Color(1.0, 0.96, 0.42), 2.0)
+		else:
+			match enemy.type:
+				"bat", "charger", "shooter", "crystal_sniper":
+					draw_polygon(PackedVector2Array([pos + Vector2(0, -enemy.radius), pos + Vector2(enemy.radius, 0), pos + Vector2(0, enemy.radius), pos + Vector2(-enemy.radius, 0)]), PackedColorArray([color, color.darkened(0.05), color, color.darkened(0.18)]))
+				"golem", "crystal_golem", "shield_bug":
+					draw_rect(Rect2(pos + Vector2(-enemy.radius, -enemy.radius), Vector2(enemy.radius * 2.0, enemy.radius * 2.0)), color, true)
+				_:
+					draw_circle(pos, enemy.radius, color)
+		if critical:
+			var hp_ratio = clampf(float(enemy.hp) / maxf(1.0, float(enemy.max_hp)), 0.0, 1.0)
+			var width = 54.0 if enemy.boss else 38.0
+			draw_rect(Rect2(pos + Vector2(-width * 0.5, -enemy.radius - 12), Vector2(width, 5)), Color(0.05, 0.06, 0.08), true)
+			draw_rect(Rect2(pos + Vector2(-width * 0.5, -enemy.radius - 12), Vector2(width * hp_ratio, 5)), Color(1.0, 0.25, 0.22), true)
+		if enemy.shock_stacks > 0:
+			draw_circle(pos + Vector2(enemy.radius * 0.55, -enemy.radius * 0.65), 4.0, Color(0.62, 0.82, 1.0, 0.80))
+		if enemy.poison_timer > 0.0:
+			draw_circle(pos + Vector2(-enemy.radius * 0.55, -enemy.radius * 0.65), 4.0, Color(0.48, 1.0, 0.34, 0.80))
 
 func _draw_gems() -> void:
 	var rendered_gems := visual_effect_budget_system.select_visual_items(

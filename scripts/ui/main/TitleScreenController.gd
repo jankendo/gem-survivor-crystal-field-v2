@@ -1,6 +1,8 @@
 extends RefCounted
 class_name TitleScreenController
 
+const JaText = preload("res://scripts/ui/JaText.gd")
+
 func actions() -> Array:
 	return [
 		{"id": "start", "label": "ゲーム開始", "tier": 1, "accent": Color(0.52, 1.0, 1.0)},
@@ -20,5 +22,5 @@ func status_lines(save_data: Dictionary, selected_name: String, blessing_name: S
 	return [
 		"現在：%s / %s" % [selected_name, blessing_name],
 		"クリスタル貨：%s" % str(int(save_data.get("crystal_currency", 0))),
-		"最高生存：%.0f秒" % float(stats.get("best_survival", 0.0))
+		"最高生存：%s" % JaText.format_time(float(stats.get("best_survival", 0.0)))
 	]

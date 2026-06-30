@@ -55,6 +55,7 @@ var spawn_meter: float = 0.0
 var selected_reward_index: int = 0
 var level_up_pending: bool = false
 var level_up_options: Array = []
+var selection_context: String = "none"
 var queued_level_up_count: int = 0
 var message: String = ""
 var chest_message: String = ""
@@ -258,6 +259,16 @@ var field_help_discovered: Dictionary = {}
 var nearby_field_help: Dictionary = {}
 var scanned_field_help: Dictionary = {}
 var field_scan_timer: float = 0.0
+var scan_cooldown: float = 0.0
+var scan_extract_cooldown: float = 0.0
+var scan_hold_progress: float = 0.0
+var scan_extract_target: Dictionary = {}
+var scan_last_targets: Array = []
+var scan_navigation_target: Dictionary = {}
+var scan_discovered_keys: Dictionary = {}
+var scan_telemetry: Dictionary = {}
+var survey_resonance: int = 0
+var survey_resonance_max: int = 3
 var current_goals: Array = []
 var current_goal_id: String = ""
 var goal_change_timer: float = 0.0
@@ -419,6 +430,7 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	selected_reward_index = 0
 	level_up_pending = false
 	level_up_options = []
+	selection_context = "none"
 	queued_level_up_count = 0
 	message = ""
 	chest_message = ""
@@ -563,6 +575,16 @@ func start_new_run(seed_value: int = 0, seed_text: String = "") -> void:
 	nearby_field_help = {}
 	scanned_field_help = {}
 	field_scan_timer = 0.0
+	scan_cooldown = 0.0
+	scan_extract_cooldown = 0.0
+	scan_hold_progress = 0.0
+	scan_extract_target = {}
+	scan_last_targets = []
+	scan_navigation_target = {}
+	scan_discovered_keys = {}
+	scan_telemetry = {}
+	survey_resonance = 0
+	survey_resonance_max = 3
 	current_goals = []
 	current_goal_id = ""
 	goal_change_timer = 0.0
@@ -1478,7 +1500,7 @@ func add_floating_text(text: String, pos: Vector2, color: Color) -> void:
 		"pos": pos,
 		"life": 1.0,
 		"color": color,
-		"effect_kind": "damage_number",
+		"effect_kind": "floating_notice",
 	}, pool_manager, elapsed_seconds)
 
 func trim_runtime_arrays() -> void:

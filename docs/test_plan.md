@@ -22,6 +22,21 @@ python tools/validate_ios_workflow.py
 
 Phase 8 stressはseed 60606、敵600、弾720、ジェム1,200、ボス、分裂敵、進化、過充電、イベントを固定し、standard/low/minimal/batteryのsimulation hashを一致させる。実iPhone項目は`docs/qa/phase8_ios_real_device_checklist.md`で別管理する。
 
+## Phase 9 targeted tests
+
+```powershell
+$GODOT = ".\.tools\godot-4.7\editor\Godot_v4.7-stable_win64_console.exe"
+& $GODOT --version
+& $GODOT --headless --path . --check-only --script res://tests/test_runner.gd
+& $GODOT --headless --path . --script res://tests/phase9_test_runner.gd
+& $GODOT --headless --path . --script res://tests/batch_test_runner.gd -- --manifest=res://tests/manifests/fast_gate.json --output=res://test-output/ci/fast_gate_timing.json
+& $GODOT --headless --path . --script res://tests/batch_test_runner.gd -- --manifest=res://tests/manifests/phase9_perf.json --output=res://test-output/ci/phase9_perf_timing.json
+python tools/validate_github_actions.py
+python tools/validate_ios_workflow.py
+```
+
+Phase 9はselection context、敵visual snapshot/batch、ジェム収集batch、damage number/haptic廃止、seed copy、Result damage、Crystal Survey短押し/長押しを検証する。`test-output/phase9/phase9_extreme_stress.md`はWindows headless CPU fixtureであり、実iPhone、Metal、thermal、batteryの証明ではない。
+
 ## v2 targeted tests
 
 ```powershell

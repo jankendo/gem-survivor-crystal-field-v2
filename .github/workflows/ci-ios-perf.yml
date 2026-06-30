@@ -1,4 +1,4 @@
-name: Phase 8 iOS Performance
+name: Phase 9 iOS Performance
 
 on:
   workflow_dispatch:
@@ -6,15 +6,21 @@ on:
     branches:
       - "phase7/**"
       - "phase8/**"
+      - "phase9/**"
     paths:
       - "scripts/core/SurvivorState.gd"
       - "scripts/systems/WeaponSystem.gd"
       - "scripts/systems/VisualEffect*.gd"
+      - "scripts/systems/Enemy*.gd"
+      - "scripts/systems/GemCollection*.gd"
+      - "scripts/systems/CrystalSurveySystem.gd"
       - "scripts/systems/WeaponRenderStyleCache.gd"
       - "scripts/ui/ArenaView.gd"
       - "data/visual_effect_profiles.json"
+      - "data/gem_collection_effects.json"
       - "data/weapon_effects.json"
       - "tests/Phase7EffectStressHarness.gd"
+      - "tests/manifests/phase9_perf.json"
       - ".github/workflows/ci-ios-perf.yml"
   pull_request:
     branches: [main]
@@ -22,21 +28,25 @@ on:
       - "scripts/core/SurvivorState.gd"
       - "scripts/systems/WeaponSystem.gd"
       - "scripts/systems/VisualEffect*.gd"
+      - "scripts/systems/Enemy*.gd"
+      - "scripts/systems/GemCollection*.gd"
+      - "scripts/systems/CrystalSurveySystem.gd"
       - "scripts/systems/WeaponRenderStyleCache.gd"
       - "scripts/ui/ArenaView.gd"
       - "data/visual_effect_profiles.json"
+      - "data/gem_collection_effects.json"
       - "data/weapon_effects.json"
       - "tests/Phase7EffectStressHarness.gd"
 
 concurrency:
-  group: phase8-perf-${{ github.workflow }}-${{ github.ref }}
+  group: phase9-perf-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   GODOT_VERSION: "4.7-stable"
 
 jobs:
-  phase8-performance:
+  phase9-performance:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -81,6 +91,14 @@ jobs:
           GODOT=".tools/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
           "${GODOT}" --headless --path . --script res://tests/auto_play_ios_phase8_extreme_late_game_stress.gd | tee test-output/ci/phase8_perf.log
 
+      - name: Run Phase 9 enemy gem scan performance manifest
+        shell: bash
+        run: |
+          GODOT=".tools/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
+          "${GODOT}" --headless --path . --script res://tests/batch_test_runner.gd -- \
+            --manifest=res://tests/manifests/phase9_perf.json \
+            --output=res://test-output/ci/phase9_perf_timing.json
+
       - name: Performance summary
         if: always()
         shell: bash
@@ -94,10 +112,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase8-performance-summary
+          name: phase9-performance-summary
           path: |
             test-output/phase7/
             test-output/ci/phase7_perf_timing.json
             test-output/ci/phase8_perf.log
+            test-output/ci/phase9_perf_timing.json
           if-no-files-found: error
           compression-level: 1

@@ -1,6 +1,8 @@
 extends RefCounted
 class_name GameModalQueueSystem
 
+const SelectionContextSystemScript = preload("res://scripts/systems/SelectionContextSystem.gd")
+
 func queue_level_up(state) -> void:
 	state.queued_level_up_count += 1
 
@@ -20,6 +22,7 @@ func open_next_level_up(state, events: Array, level_up_system) -> bool:
 		return false
 	state.queued_level_up_count -= 1
 	state.level_up_pending = true
+	state.selection_context = SelectionContextSystemScript.LEVEL_UP
 	state.selected_reward_index = 0
 	state.level_up_options = level_up_system.prepare_options(state, 3)
 	events.append({

@@ -1,6 +1,8 @@
 extends RefCounted
 class_name LevelUpSystem
 
+const SelectionContextSystemScript = preload("res://scripts/systems/SelectionContextSystem.gd")
+
 var overclock_system = preload("res://scripts/systems/OverclockSystem.gd").new()
 var rune_contract_system = preload("res://scripts/systems/RuneContractSystem.gd").new()
 var build_synergy_system = preload("res://scripts/systems/BuildSynergySystem.gd").new()
@@ -130,6 +132,7 @@ func apply_option(state, option_uid: String, events: Array) -> bool:
 		return false
 	state.level_up_pending = false
 	state.level_up_options = []
+	state.selection_context = SelectionContextSystemScript.NONE
 	if kind == "infinite":
 		state.message = "%s Lv%d" % [String(option.get("name_ja", "")), int(state.infinite_upgrades.get(id, next_level))]
 	elif kind == "overclock":

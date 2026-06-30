@@ -33,8 +33,8 @@ func run(t) -> void:
 	touch.configure({"touch_ui_mode": "on", "touch_haptics": true, "battery_saver": false}, "iOS")
 	for i in range(25):
 		touch.feedback_light()
-	t.assert_eq(touch.haptic_count, 20, "standard haptic budget should stop repeated feedback")
+	t.assert_eq(touch.haptic_count, 0, "Phase 9 removes touch haptics even when legacy setting is true")
 	touch.configure({"touch_ui_mode": "on", "touch_haptics": true, "battery_saver": true}, "iOS")
 	for i in range(15):
 		touch.feedback_light()
-	t.assert_eq(touch.haptic_count, 8, "battery saver haptic budget should be stricter")
+	t.assert_eq(touch.haptic_count, 0, "battery saver must not re-enable haptics")

@@ -5,6 +5,7 @@ const JaText = preload("res://scripts/ui/JaText.gd")
 const RewardCardScript = preload("res://scripts/ui/components/RewardCard.gd")
 const CrystalButtonScript = preload("res://scripts/ui/components/CrystalButton.gd")
 const TouchSelectionSystemScript = preload("res://scripts/systems/TouchSelectionSystem.gd")
+const SelectionContextSystemScript = preload("res://scripts/systems/SelectionContextSystem.gd")
 
 signal reward_chosen(reward_id: String)
 signal reroll_requested
@@ -41,7 +42,9 @@ func show_options(options: Array, controls: Dictionary = {}, use_touch_mode: boo
 	var skip_max := int(controls.get("skip_max", skip_remaining))
 	var skip_allowed := bool(controls.get("can_skip", false))
 	var seal_allowed := bool(controls.get("can_seal", banishes > 0))
-	selection.configure(options, rerolls, banishes, skip_allowed)
+	var level_up_actions := bool(controls.get("level_up_actions", String(controls.get("context", "level_up")) == SelectionContextSystemScript.LEVEL_UP))
+	var can_decline := bool(controls.get("can_decline", false))
+	selection.configure(options, rerolls, banishes, skip_allowed, level_up_actions)
 	var title = Label.new()
 	var first_kind = String(options[0].get("kind", "")) if not options.is_empty() else ""
 	title.text = String(controls.get("title", "ルーン契約" if first_kind.begins_with("contract") else "レベルアップ！"))
@@ -57,28 +60,34 @@ func show_options(options: Array, controls: Dictionary = {}, use_touch_mode: boo
 		button.pressed.connect(func(): selection.select_id(reward_id))
 		list.add_child(button)
 		index += 1
-	var actions := GridContainer.new()
-	actions.columns = 3
-	actions.add_theme_constant_override("h_separation", 10)
-	actions.add_theme_constant_override("v_separation", 8)
-	list.add_child(actions)
 	var button_size := Vector2(150, 56) if touch_mode else Vector2(132, 44)
-	var reroll = CrystalButtonScript.new()
-	reroll.setup("再抽選\n残り%d" % rerolls, Color(0.42, 0.82, 1.0), button_size)
-	reroll.disabled = rerolls <= 0
-	reroll.pressed.connect(func(): selection.request_reroll())
-	actions.add_child(reroll)
-	var banish = CrystalButtonScript.new()
-	banish.setup("封印\n%d/%d" % [banishes, banish_max], Color(1.0, 0.52, 0.42), button_size, true)
-	banish.disabled = banishes <= 0 or not seal_allowed
-	banish.pressed.connect(func(): selection.request_banish())
-	actions.add_child(banish)
-	var skip = CrystalButtonScript.new()
-	var skip_text := "スキップ\n%d/%d" % [skip_remaining, skip_max] if skip_max > 0 else "スキップ"
-	skip.setup(skip_text, Color(0.72, 0.78, 0.90), button_size)
-	skip.disabled = not skip_allowed
-	skip.pressed.connect(func(): selection.request_skip())
-	actions.add_child(skip)
+	if level_up_actions:
+		var actions := GridContainer.new()
+		actions.columns = 3
+		actions.add_theme_constant_override("h_separation", 10)
+		actions.add_theme_constant_override("v_separation", 8)
+		list.add_child(actions)
+		var reroll = CrystalButtonScript.new()
+		reroll.setup("再抽選\n残り%d" % rerolls, Color(0.42, 0.82, 1.0), button_size)
+		reroll.disabled = rerolls <= 0
+		reroll.pressed.connect(func(): selection.request_reroll())
+		actions.add_child(reroll)
+		var banish = CrystalButtonScript.new()
+		banish.setup("封印\n%d/%d" % [banishes, banish_max], Color(1.0, 0.52, 0.42), button_size, true)
+		banish.disabled = banishes <= 0 or not seal_allowed
+		banish.pressed.connect(func(): selection.request_banish())
+		actions.add_child(banish)
+		var skip = CrystalButtonScript.new()
+		var skip_text := "スキップ\n%d/%d" % [skip_remaining, skip_max] if skip_max > 0 else "スキップ"
+		skip.setup(skip_text, Color(0.72, 0.78, 0.90), button_size)
+		skip.disabled = not skip_allowed
+		skip.pressed.connect(func(): selection.request_skip())
+		actions.add_child(skip)
+	elif can_decline:
+		var decline = CrystalButtonScript.new()
+		decline.setup(String(controls.get("decline_text", "取得しない")), Color(0.72, 0.78, 0.90), Vector2(button_size.x * 1.35, button_size.y))
+		decline.pressed.connect(func(): skip_requested.emit())
+		list.add_child(decline)
 
 func hide_popup() -> void:
 	visible = false

@@ -51,4 +51,4 @@ func test_global_gem_collection_performance(t) -> void:
 	var metrics: Dictionary = result.get("metrics", {})
 	t.assert_eq(int(metrics.get("expected_count", 0)), 500, "metrics should record expected gem count")
 	t.assert_eq(int(metrics.get("actual_exp", 0)), int(metrics.get("expected_exp", -1)), "metrics should record exact EXP transaction")
-	t.assert_true(int(metrics.get("proxy_nodes", 0)) <= 48, "ring effect should use bounded proxy nodes")
+	t.assert_true(int(metrics.get("proxy_nodes", 0)) <= 4, "Phase 9 ring effect should use at most four representative gems")

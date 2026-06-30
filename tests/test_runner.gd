@@ -287,9 +287,58 @@ func _initialize() -> void:
 		,"res://tests/test_field_event_navigation_cleanup.gd"
 		,"res://tests/test_event_target_priority.gd"
 		,"res://tests/test_shop_unlock_condition_presentation.gd"
-		,"res://tests/test_all_weapon_passive_conditions_have_japanese_text.gd"
+		,"res://tests/test_all_weapon_passive_conditions_have_japanese_text.gd",
+		"res://tests/test_selection_actions_level_up_only.gd",
+		"res://tests/test_selection_actions_hidden_for_core.gd",
+		"res://tests/test_selection_actions_hidden_for_chest.gd",
+		"res://tests/test_selection_action_charge_integrity.gd",
+		"res://tests/test_enemy_render_snapshot_parity.gd",
+		"res://tests/test_enemy_visual_batch.gd",
+		"res://tests/test_enemy_animation_phase_cache.gd",
+		"res://tests/test_enemy_minimal_critical_visibility.gd",
+		"res://tests/test_enemy_simulation_unchanged_by_visual_profile.gd",
+		"res://tests/test_gem_collection_batch_totals.gd",
+		"res://tests/test_gem_collection_visual_budget.gd",
+		"res://tests/test_gem_collection_high_value_priority.gd",
+		"res://tests/test_gem_collection_no_per_gem_nodes.gd",
+		"res://tests/test_gem_collection_no_per_gem_tweens.gd",
+		"res://tests/test_global_gem_collection_single_batch.gd",
+		"res://tests/test_gem_collection_simulation_parity.gd",
+		"res://tests/test_survival_time_japanese_format.gd",
+		"res://tests/test_best_survival_display_consistency.gd",
+		"res://tests/test_damage_numbers_removed.gd",
+		"res://tests/test_legacy_damage_setting_ignored.gd",
+		"res://tests/test_touch_haptics_removed.gd",
+		"res://tests/test_legacy_haptic_setting_ignored.gd",
+		"res://tests/test_pause_seed_display.gd",
+		"res://tests/test_pause_seed_copy.gd",
+		"res://tests/test_clipboard_headless_safe.gd",
+		"res://tests/test_result_weapon_damage_totals.gd",
+		"res://tests/test_result_evolution_damage_breakdown.gd",
+		"res://tests/test_result_damage_percentage.gd",
+		"res://tests/test_result_damage_safe_area.gd",
+		"res://tests/test_scan_discovers_current_room.gd",
+		"res://tests/test_scan_discovers_nearby_rooms.gd",
+		"res://tests/test_scan_expands_map.gd",
+		"res://tests/test_scan_discovers_available_items.gd",
+		"res://tests/test_scan_does_not_reveal_locked_time_items.gd",
+		"res://tests/test_scan_does_not_unlock_shop_items.gd",
+		"res://tests/test_scan_resonance_unique_rewards.gd",
+		"res://tests/test_scan_hold_extracts_sealed_item.gd",
+		"res://tests/test_scan_extract_uses_regular_pickup.gd",
+		"res://tests/test_scan_extract_core_uses_regular_choice.gd",
+		"res://tests/test_scan_cancel_does_not_spend.gd",
+		"res://tests/test_scan_target_disappears_safely.gd",
+		"res://tests/test_scan_spatial_query_budget.gd",
+		"res://tests/test_scan_extreme_lite_visual_budget.gd",
+		"res://tests/auto_play_phase9_enemy_motion_stress.gd",
+		"res://tests/auto_play_phase9_gem_collection_burst.gd",
+		"res://tests/auto_play_phase9_scan_expedition_15min.gd",
+		"res://tests/auto_play_phase9_enemy_gem_scan_extreme_stress.gd",
+		"res://tests/auto_play_phase9_visual_simulation_parity.gd"
 	]
 	for suite_path in suites:
+		save.update_settings({"touch_ui_mode": "auto", "desktop_touch_preview": false})
 		print("Running ", suite_path)
 		var suite_script = load(suite_path)
 		if suite_script == null or not suite_script.can_instantiate():

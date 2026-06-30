@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-06-30 Phase 9
+
+### Added
+
+* `SelectionContextSystem`で再抽選、スキップ、封印、候補除外を通常EXPレベルアップ専用へ限定。
+* `EnemyRenderSnapshotSystem`、`EnemyVisualBatchSystem`、`EnemyAnimationPhaseCache`で通常敵の表示commandをbatch化。
+* `GemCollectionVisualBatchSystem`で1,200ジェム全回収でも代表4件以内の表示へ縮退。
+* `CrystalSurveySystem`で短押しscan、探査共鳴、長押し共鳴抽出、map/room発見、ローカルtelemetryを追加。
+* ポーズseed表示/コピー、分秒の最高生存表示、リザルト武器別総ダメージ表示。
+* Phase 9専用48 suite、340 assertions、Phase 9 performance manifest、Phase 9 docs一式。
+
+### Changed
+
+* 極限省電力モードを敵minimal表示、ジェムbatch表示、UI animation offへ統合。
+* damage numberとtouch hapticの設定項目と旧保存値反映を廃止。
+* Fast Gate、Phase 9 Performance、Nightly、Release workflowをPhase 9 branchへ対応。
+
+### Validation
+
+* Phase 9 targeted 340 assertions成功。
+* Windows headless CPU fixtureはp50 3.558ms、p95 4.395ms、p99 4.822ms、33ms/100ms超過0。
+* enemy visual command削減98.65%、gem collection CPU p95削減98.37%、temporary allocation proxy削減99.67%、scan query p95 2.018ms。
+
+### Notes
+
+* enemy visual CPU p95は同fixtureで31.16%悪化しており、次フェーズでsnapshot buffer再利用とDictionary command削減が必要。
+* 実iPhoneのMetal、thermal、battery、長時間touch操作、人間プレイテストは未検証。
+
 ## Phase 8 Nightly 30-minute shard correction
 
 * `auto_play_ios_perf_25min.gd` and `auto_play_ios_perf_30min.gd` no longer repeat the 0-20 minute interval already covered by the parallel 20-minute shard.

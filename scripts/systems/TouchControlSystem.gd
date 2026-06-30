@@ -21,7 +21,7 @@ var virtual_joystick_enabled := true
 var touch_button_size := "standard"
 var touch_button_opacity := 0.78
 var handedness := "right"
-var haptics_enabled := true
+var haptics_enabled := false
 var move_control_mode := "dynamic"
 var joystick_visual_mode := "active"
 var joystick_deadzone := 0.12
@@ -42,7 +42,7 @@ func configure(settings: Dictionary, platform: String = OS.get_name()) -> void:
 	handedness = String(settings.get("touch_handedness", "right"))
 	if not handedness in ["right", "left"]:
 		handedness = "right"
-	haptics_enabled = bool(settings.get("touch_haptics", true))
+	haptics_enabled = false
 	move_control_mode = String(settings.get("move_control_mode", "dynamic"))
 	if not move_control_mode in ["dynamic", "fixed"]:
 		move_control_mode = "dynamic"
@@ -111,19 +111,7 @@ func consume_action(action: String) -> bool:
 	return true
 
 func feedback_light() -> bool:
-	if not haptics_enabled or not should_show():
-		return false
-	var now := Time.get_ticks_msec()
-	for timestamp in haptic_timestamps.duplicate():
-		if now - int(timestamp) >= 60000:
-			haptic_timestamps.erase(timestamp)
-	var limit := 8 if battery_profile == "battery_saver" else 20
-	if haptic_timestamps.size() >= limit:
-		return false
-	haptic_timestamps.append(now)
-	haptic_count += 1
-	Input.vibrate_handheld(22)
-	return true
+	return false
 
 func controls_swapped() -> bool:
 	return handedness == "left"

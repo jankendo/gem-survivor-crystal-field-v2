@@ -7,6 +7,7 @@ on:
       - main
       - "phase7/**"
       - "phase8/**"
+      - "phase9/**"
     tags: ["v*"]
     paths:
       - "project.godot"

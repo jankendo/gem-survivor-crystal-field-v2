@@ -44,11 +44,13 @@ def main() -> int:
         "Phase 7 stress retained": "auto_play_ios_effect_budget_snapshot.gd" in fast,
         "Phase 7 parity retained": "auto_play_ios_visual_simulation_parity.gd" in fast,
         "Phase 8 stress": "auto_play_ios_phase8_extreme_late_game_stress.gd" in fast,
+        "Phase 9 fast runner": "phase9_test_runner.gd" in fast,
         "Fast Gate target": "timeout-minutes: 15" in fast,
         "Phase 8 perf dispatch": "workflow_dispatch:" in perf,
         "Phase 8 perf target": "timeout-minutes: 20" in perf,
-        "Phase 8 perf artifact": "phase8-performance-summary" in perf,
+        "Phase 9 perf artifact": "phase9-performance-summary" in perf,
         "Phase 8 perf comparison": "auto_play_ios_phase8_extreme_late_game_stress.gd" in perf,
+        "Phase 9 perf manifest": "phase9_perf.json" in perf,
         "release dispatch": "workflow_dispatch:" in release,
         "Windows runner": "runs-on: windows-latest" in release,
         "macos-26 runner": "runs-on: macos-26" in release,
@@ -79,9 +81,11 @@ def main() -> int:
         "nightly all shard artifact": "Full-Test-${{ matrix.shard }}" in nightly,
         "nightly target": "timeout-minutes: 90" in nightly,
         "nightly Phase 8 shard": "phase8_test_runner.gd,auto_play_ios_phase8_extreme_late_game_stress.gd" in nightly,
+        "nightly Phase 9 shard": "phase9_test_runner.gd,auto_play_phase9_enemy_gem_scan_extreme_stress.gd,auto_play_phase9_visual_simulation_parity.gd" in nightly,
         "timing output": "timing.ndjson" in nightly and "fast_gate_timing.json" in fast,
         "consolidated Fast artifact": "fast-qa-summary" in fast,
         "failure artifact": "failure-logs" in fast,
+        "phase9 branch triggers": '"phase9/**"' in perf and '"phase9/**"' in nightly and '"phase9/**"' in release,
     }
     failures.extend(name for name, passed in checks.items() if not passed)
     if failures:

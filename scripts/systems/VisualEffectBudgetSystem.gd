@@ -35,6 +35,8 @@ func configure_metrics(enabled: bool) -> void:
 func rendered_limit(kind: String, fallback: int) -> int:
 	var key := "max_rendered_%s" % kind
 	var base := int(profile.get(key, fallback))
+	if base <= 0:
+		return 0
 	match thermal_level:
 		"fair":
 			if kind in ["effects", "damage_numbers", "background_particles"]:
