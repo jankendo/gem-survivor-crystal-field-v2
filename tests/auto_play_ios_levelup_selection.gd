@@ -9,7 +9,7 @@ func _initialize() -> void:
 	await _run()
 	SaveSystem.new().update_settings(old_settings)
 	if failures.is_empty():
-		print("AutoPlay iOS Touch OK: level-up, contract skip, chest confirm and evolution card selection.")
+		print("AutoPlay iOS Touch OK: level-up, contract decline card, chest confirm and evolution card selection.")
 		quit(0)
 	else:
 		for failure in failures:
@@ -34,8 +34,10 @@ func _run() -> void:
 	var contracts = RuneContractSystemScript.new()
 	_assert(contracts.offer_after_boss(game.state, events), "contract offer should open")
 	game._refresh()
-	game.reward_popup.selection.request_skip()
-	_assert(not game.state.rune_contract_pending, "touch skip should close contract selection")
+	_assert(not game.reward_popup.selection.request_skip(), "level-up skip action should be disabled during contract selection")
+	_assert(game.state.rune_contract_pending, "contract selection should remain open after disabled skip action")
+	_assert(game.reward_popup.selection.select_id("contract_skip:skip"), "contract decline card should be tappable")
+	_assert(not game.state.rune_contract_pending, "contract decline card should close contract selection")
 
 	game.state.chest_pending = true
 	game.state.chest_timer = 2.0
