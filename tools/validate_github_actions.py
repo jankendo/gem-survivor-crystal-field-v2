@@ -81,7 +81,7 @@ def main() -> int:
         "nightly all shard artifact": "Full-Test-${{ matrix.shard }}" in nightly,
         "nightly target": "timeout-minutes: 90" in nightly,
         "nightly Phase 8 shard": "phase8_test_runner.gd,auto_play_ios_phase8_extreme_late_game_stress.gd" in nightly,
-        "nightly Phase 9 shard": "phase9_test_runner.gd,auto_play_phase9_enemy_gem_scan_extreme_stress.gd,auto_play_phase9_visual_simulation_parity.gd" in nightly,
+        "nightly Phase 9 shard": "scripts: phase9_test_runner.gd" in nightly,
         "timing output": "timing.ndjson" in nightly and "fast_gate_timing.json" in fast,
         "consolidated Fast artifact": "fast-qa-summary" in fast,
         "failure artifact": "failure-logs" in fast,

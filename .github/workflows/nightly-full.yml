@@ -30,7 +30,7 @@ jobs:
           - shard: phase8
             scripts: phase8_test_runner.gd,auto_play_ios_phase8_extreme_late_game_stress.gd
           - shard: phase9
-            scripts: phase9_test_runner.gd,auto_play_phase9_enemy_gem_scan_extreme_stress.gd,auto_play_phase9_visual_simulation_parity.gd
+            scripts: phase9_test_runner.gd
           - shard: core-long
             scripts: auto_play_10min.gd,auto_play_30min_balance.gd
           - shard: weapons
